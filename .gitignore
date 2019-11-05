@@ -1,3 +1,4 @@
 *.png
 venv/
 OriginalData
+*.ipynb_checkpoints*
