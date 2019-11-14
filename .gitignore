@@ -2,4 +2,8 @@
 venv/
 OriginalData
 Data
+.idea
 *.ipynb_checkpoints*
+Models
+Logs
+*__pycache__*

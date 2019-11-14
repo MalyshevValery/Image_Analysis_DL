@@ -1,0 +1,32 @@
+{
+  "generator_args": {
+    "images_path": "Data/Images",
+    "masks_path": "Data/Masks",
+    "train_val_test": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "shuffle": true
+  },
+  "model": {
+    "name": "unet"
+  },
+  "model_compile": {
+    "optimizer": "adam",
+    "loss": "binary_crossentropy",
+    "metrics": [
+      "acc",
+      "iou"
+    ]
+  },
+  "training": {
+    "batch_size": 4,
+    "epochs": 20,
+    "callbacks": [
+      "early_stop",
+      "tensorboard",
+      "checkpoint"
+    ]
+  }
+}

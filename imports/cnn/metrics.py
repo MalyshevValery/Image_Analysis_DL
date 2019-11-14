@@ -13,17 +13,6 @@ def iou(y_true, y_pred, smooth=1.):
     return (intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) - intersection + smooth)
 
 
-def jaccard_coef(y_true, y_pred):
-    """Jaccard coefficient
-
-    Calculation is similar to ToU but pixel-wise operations allow to use it with grayscale (not binary masks)
-    """
-    intersection = K.sum(y_true * y_pred)
-    union = K.sum(y_true + y_pred)
-    jac = (intersection + 1.) / (union - intersection + 1.)
-    return K.mean(jac)
-
-
 def iou_thresholded(y_true, y_pred, threshold=0.5, smooth=1.):
     """Intersection over Union with given threshold applied to y_pred
     """
