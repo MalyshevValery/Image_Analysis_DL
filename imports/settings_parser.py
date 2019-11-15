@@ -15,6 +15,12 @@ metrics_map = {
     'iou': iou
 }
 
+max_min_map = {
+    'acc': 'max',
+    'iou': 'max',
+    'loss': 'min'
+}
+
 
 class SettingsParser:
     """This class parses settings.json"""
@@ -29,6 +35,7 @@ class SettingsParser:
         del self.model_params['name']
 
         self.model_compile = settings['model_compile']
+        self.metrics_names = self.model_compile['metrics'].copy()
         self.model_compile['metrics'] = list(map(lambda s: metrics_map[s], self.model_compile['metrics']))
 
         training = settings['training']
@@ -83,8 +90,10 @@ class SettingsParser:
         for s in self.callbacks_names:
             if s == "early_stop":
                 callbacks.append(
-                    EarlyStopping(monitor=self.model_compile['metrics'][0], verbose=1, min_delta=0.01, patience=3,
-                                  mode='max', restore_best_weights=True))
+                    EarlyStopping(monitor='val_' + self.metrics_names[0],
+                        verbose=1, min_delta=0.01,
+                        patience=3,mode=max_min_map[self.metrics_names[0]],
+                        restore_best_weights=True))
             elif s == "tensorboard":
                 log_dir = "Logs/" + self.general_name
                 callbacks.append(TensorBoard(log_dir=log_dir, profile_batch=0))
@@ -92,8 +101,10 @@ class SettingsParser:
                 if not os.path.exists('Models'):
                     os.makedirs('Models')
                 callbacks.append(
-                    ModelCheckpoint('Models/' + self.general_name + '.h5', monitor=self.model_compile['metrics'][0],
-                                    verbose=1, save_best_only=True, mode='max'))
+                    ModelCheckpoint('Models/' + self.general_name + '.h5',
+                        monitor='val_'+self.metrics_names[0],
+                        verbose=1, save_best_only=True,
+                        mode=max_min_map[self.metrics_names[0]]))
                 self.keep_settings()
         return callbacks
 
