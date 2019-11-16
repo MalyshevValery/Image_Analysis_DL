@@ -7,7 +7,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoa
 
 from imports.cnn.architectures.unet import UNet
 from imports.cnn.metrics import iou
-from imports.data_generator import DataGenerator
+from imports.data_generators.image_mask_generator import ImageMaskGenerator
 
 # Map for metrics labels
 metrics_map = {
@@ -23,7 +23,13 @@ class SettingsParser:
             settings = json.load(file)
             self.settings = copy.deepcopy(settings)
 
-        self.generator_args = settings['generator_args']
+        self.images_path = settings['data']['images']
+        self.masks_path = settings['data']['masks']
+        self.descriptor_path = settings['data']['descriptor']
+
+        self.generator_args = settings['generator']
+        self.registration_args = settings['registration']
+
         self.model = settings['model']['name']
         self.model_params = settings['model']
         del self.model_params['name']
@@ -50,17 +56,13 @@ class SettingsParser:
         """Returns generator object created according to settings.json
 
         Required fields:
-            - images_path
-            - masks_path
+            - data_args
+                - images_path
+                - masks_path
         Optional fields:
             according to DataGenerator class constructor
         """
-        copy = self.generator_args.copy()
-        images_path = self.generator_args['images_path']
-        masks_path = self.generator_args['masks_path']
-        del copy['images_path']
-        del copy['masks_path']
-        return DataGenerator(images_path, masks_path, **copy)
+        return ImageMaskGenerator(self.images_path, self.masks_path, **self.generator_args)
 
     def get_model_method(self):
         """Returns method for model creation according to model.name setting"""

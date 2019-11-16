@@ -1,7 +1,14 @@
 {
-  "generator_args": {
-    "images_path": "Data/Images",
-    "masks_path": "Data/Masks",
+  "data": {
+    "images": "Data/Images",
+    "masks": "Data/Masks",
+    "descriptor": "Data/descriptors.csv"
+  },
+  "registration": {
+    "num_images": 4,
+    "n_jobs": 5
+  },
+  "generator": {
     "train_val_test": [
       0.8,
       0.1,

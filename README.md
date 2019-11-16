@@ -6,6 +6,8 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 pip install <tensorflow==2.0.0b1 / tensorflow-gpu==2.0.0b1>
+
+apt install elastix
 ```
 
 ## Training model

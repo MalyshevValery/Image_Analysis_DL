@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 
 
-class DataGenerator:
+class ImageMaskGenerator:
     """This class divides image data on train, validation, test sets and can create generators for model training"""
     def __init__(self, images_folder, masks_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True):
         """Constructor
