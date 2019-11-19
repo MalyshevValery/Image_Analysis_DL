@@ -66,7 +66,6 @@ class SettingsParser:
         except Exception:
             self.callbacks_names = []
 
-
         self.batch_size = training['batch_size']
         self.epochs = training['epochs']
         del training['batch_size']
@@ -105,8 +104,8 @@ class SettingsParser:
         for s in self.callbacks_names:
             if s == "early_stop":
                 callbacks.append(
-                    EarlyStopping(monitor='val_' + self.model_compile['metrics'][0], verbose=1, min_delta=0.01, patience=3,
-                                  mode=metrics_map[self.metrics_names[0]], restore_best_weights=True))
+                    EarlyStopping(monitor='val_' + self.model_compile['metrics'][0], verbose=1, min_delta=0.01,
+                                  patience=3, mode=metrics_map[self.metrics_names[0]], restore_best_weights=True))
             elif s == "tensorboard":
                 log_dir = "Logs/" + self.general_name
                 callbacks.append(TensorBoard(log_dir=log_dir, profile_batch=0))
