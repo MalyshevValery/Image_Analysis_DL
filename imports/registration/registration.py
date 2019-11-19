@@ -7,13 +7,15 @@ import tempfile
 
 
 class Registration:
-    def __init__(self, images_dir, masks_dir, descriptor_file, num_images=5, n_jobs=1, images_list=None):
+    def __init__(self, images_dir, masks_dir, descriptor_file, num_images=5, n_jobs=1, images_list=None,
+                 forbid_the_same=True):
         self.num_images = num_images
         self.size = (256, 256)
         self.descriptors = descriptor_file
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.n_jobs = n_jobs
+        self.forbid_same = forbid_the_same
 
         if images_list is None:
             images = os.listdir(images_dir)
@@ -60,9 +62,10 @@ class Registration:
         df.to_csv(filename, index=None)
         return np.asarray(descriptor)
 
-    def segment(self, image=None, image_filename=None):
-        if image is None and image_filename is None:
-            raise Exception("no arguments")
+    def segment(self, image):
+        if isinstance(image,str):
+            image_filename = image
+            image = None
 
         if image is None:
             descriptor = self.simple_descriptor(cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE))
@@ -71,6 +74,8 @@ class Registration:
 
         distances = MT.pairwise_distances(self.descriptors, [descriptor], metric='correlation')[:, 0]
         indexes = np.argsort(distances)[:self.num_images]
+        if self.forbid_same and distances[indexes[0]] < 0.001:
+            indexes = np.argsort(distances)[1:self.num_images + 1]
         filenames = self.filenames[indexes]
 
         if image is not None:
@@ -87,6 +92,7 @@ class Registration:
                     os.system(self.run_elastix.format(image_filename, moving_image, tmp_dir))
                     os.system(self.run_transformix.format(moving_mask, tmp_dir))
                     masks.append(cv2.imread(os.path.join(tmp_dir, 'result.bmp'), cv2.IMREAD_GRAYSCALE))
+                    # TODO: weights according to distances
             mask = np.mean(np.asarray(masks), axis=0)
             mask /= mask.max()
         except Exception as e:

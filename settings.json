@@ -1,7 +1,8 @@
 {
   "data": {
-    "images": "Data/Images",
+    "images": "Data/Test_Images",
     "masks": "Data/Masks",
+    "reg": "Data/Registration",
     "descriptor": "Data/descriptors.csv"
   },
   "registration": {

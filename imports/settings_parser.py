@@ -26,6 +26,7 @@ class SettingsParser:
         self.images_path = settings['data']['images']
         self.masks_path = settings['data']['masks']
         self.descriptor_path = settings['data']['descriptor']
+        self.reg_path = settings['data']['reg']
 
         self.generator_args = settings['generator']
         self.registration_args = settings['registration']
