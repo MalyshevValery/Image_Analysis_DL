@@ -7,8 +7,19 @@ from imports.registration import Registration
 
 
 class ImageRegMaskGenerator(ImageMaskGenerator):
-    def __init__(self, images_folder, masks_folder, reg_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True,
-                 descriptor_file='des.csv', **reg_args):
+    """Generator which appends registration mask to image"""
+    def __init__(self, images_folder, masks_folder, reg_folder, descriptor_file,
+                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, **reg_args):
+        """Constructor
+
+        :param images_folder: Folder with images
+        :param masks_folder: Folder with masks
+        :param reg_folder: Folder for registration masks
+        :param train_val_test: Fractures of train validation tests sets according to overall size
+        :param shuffle: If data should be shuffled
+        :param descriptor_file: File for descriptor (see registration params
+        :param reg_args: Other keyword arguments for registration
+        """
 
         assert len(train_val_test) == 3
         assert np.abs(np.sum(train_val_test) - 1) < 0.01

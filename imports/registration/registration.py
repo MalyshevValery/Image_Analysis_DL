@@ -7,8 +7,19 @@ import tempfile
 
 
 class Registration:
+    """Class for image registration by elastix"""
     def __init__(self, images_dir, masks_dir, descriptor_file, num_images=5, n_jobs=1, images_list=None,
                  forbid_the_same=True):
+        """Constructor
+
+        :param images_dir: dir with images
+        :param masks_dir: dir with masks
+        :param descriptor_file: file to put descriptors in
+        :param num_images: Number of neighbour images which will be averaged to result mask
+        :param n_jobs: N-jobs for image registration
+        :param images_list: list of database image names - If None class use all images in folder
+        :param forbid_the_same: Forbids to use provided image for registration if its in database
+        """
         self.num_images = num_images
         self.size = (256, 256)
         self.descriptors = descriptor_file
@@ -49,6 +60,7 @@ class Registration:
                 self.descriptors = self.descriptors.drop(['filename'], axis=1).values
 
     def simple_descriptor(self, image):
+        """Descriptor of image. Row- and Column- wise sums of image"""
         res = np.concatenate([np.sum(image, axis=0) / self.size[0], np.sum(image, axis=1) / self.size[1]])
         return res / 255
 
@@ -63,6 +75,7 @@ class Registration:
         return np.asarray(descriptor)
 
     def segment(self, image):
+        """Segment image with registration. Image can be either ndarray or string path to file"""
         if isinstance(image,str):
             image_filename = image
             image = None
@@ -103,7 +116,3 @@ class Registration:
         if e is not None:
             raise e
         return mask
-
-    @staticmethod
-    def __run_registration(elastix_command, transformix_command):
-        pass
