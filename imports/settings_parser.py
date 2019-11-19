@@ -7,76 +7,91 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoa
 
 from imports.cnn.architectures.unet import UNet
 from imports.cnn.metrics import iou
-from imports.data_generator import DataGenerator
+from imports.data_generators.image_mask_generator import ImageMaskGenerator
 
 # Map for metrics labels
+from imports.data_generators.image_reg_mask_generator import ImageRegMaskGenerator
+
 metrics_map = {
     'acc': 'acc',
     'iou': iou
 }
 
-max_min_map = {
+mode_map = {
+    'loss': 'min',
     'acc': 'max',
-    'iou': 'max',
-    'loss': 'min'
+    'iou': 'max'
 }
 
 
 class SettingsParser:
     """This class parses settings.json"""
+
     def __init__(self, json_filename):
         with open(json_filename, 'r') as file:
             settings = json.load(file)
             self.settings = copy.deepcopy(settings)
 
-        self.generator_args = settings['generator_args']
+        self.images_path = settings['data']['images']
+        self.masks_path = settings['data']['masks']
+        self.descriptor_path = settings['data']['descriptor']
+        self.reg_path = settings['data']['reg']
+
+        self.gen_type = settings['generator_type']
+        try:
+            self.generator_args = settings['generator']
+        except Exception:
+            self.generator_args = {}
+
+        try:
+            self.registration_args = settings['registration']
+        except Exception:
+            self.registration_args = {}
+
         self.model = settings['model']['name']
         self.model_params = settings['model']
         del self.model_params['name']
 
         self.model_compile = settings['model_compile']
-        self.metrics_names = self.model_compile['metrics'].copy()
-        self.model_compile['metrics'] = list(map(lambda s: metrics_map[s], self.model_compile['metrics']))
+        try:
+            self.metrics_names = self.model_compile['metrics'].copy()
+            self.model_compile['metrics'] = list(map(lambda s: metrics_map[s], self.model_compile['metrics']))
+        except Exception:
+            self.metrics_names = []
 
         training = settings['training']
         try:
             self.callbacks_names = training['callbacks']
+            del training['callbacks']
         except Exception:
             self.callbacks_names = []
 
-        try:
-            self.batch_size = training['batch_size']
-        except Exception:
-            self.batch_size = 1
 
+        self.batch_size = training['batch_size']
         self.epochs = training['epochs']
+        del training['batch_size']
+        del training['epochs']
+
+        self.training = training
 
         self.general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-" + self.model)
 
     def get_data_generator(self):
-        """Returns generator object created according to settings.json
-
-        Required fields:
-            - images_path
-            - masks_path
-        Optional fields:
-            according to DataGenerator class constructor
-        """
-        copy = self.generator_args.copy()
-        images_path = self.generator_args['images_path']
-        masks_path = self.generator_args['masks_path']
-        del copy['images_path']
-        del copy['masks_path']
-        return DataGenerator(images_path, masks_path, **copy)
+        """Returns generator object created according to settings.json and input shape for it"""
+        if self.gen_type == 'norm':
+            return ImageMaskGenerator(self.images_path, self.masks_path, **self.generator_args), (256, 256, 3)
+        elif self.gen_type == 'reg':
+            return ImageRegMaskGenerator(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
+                                         **self.generator_args, **self.registration_args), (256, 256, 4)
+        else:
+            raise Exception('Unknown generator type')
 
     def get_model_method(self):
         """Returns method for model creation according to model.name setting"""
         if self.model == 'unet':
             return UNet
         else:
-            print("Unknown model name")
-            print("Possible model names: unet")
-            return None
+            raise Exception("Unknown model name")
 
     def get_callbacks(self):
         """Makes callbacks from labels in settings.json
@@ -90,10 +105,8 @@ class SettingsParser:
         for s in self.callbacks_names:
             if s == "early_stop":
                 callbacks.append(
-                    EarlyStopping(monitor='val_' + self.metrics_names[0],
-                        verbose=1, min_delta=0.01,
-                        patience=3,mode=max_min_map[self.metrics_names[0]],
-                        restore_best_weights=True))
+                    EarlyStopping(monitor='val_' + self.model_compile['metrics'][0], verbose=1, min_delta=0.01, patience=3,
+                                  mode=metrics_map[self.metrics_names[0]], restore_best_weights=True))
             elif s == "tensorboard":
                 log_dir = "Logs/" + self.general_name
                 callbacks.append(TensorBoard(log_dir=log_dir, profile_batch=0))
@@ -101,10 +114,9 @@ class SettingsParser:
                 if not os.path.exists('Models'):
                     os.makedirs('Models')
                 callbacks.append(
-                    ModelCheckpoint('Models/' + self.general_name + '.h5',
-                        monitor='val_'+self.metrics_names[0],
-                        verbose=1, save_best_only=True,
-                        mode=max_min_map[self.metrics_names[0]]))
+                    ModelCheckpoint('Models/' + self.general_name + '.h5', monitor='val_' + self.metrics_names[0],
+                                    verbose=1, save_best_only=True, mode=metrics_map[self.metrics_names[0]]))
+            elif s == 'keep_settings':
                 self.keep_settings()
         return callbacks
 

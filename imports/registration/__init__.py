@@ -1,0 +1,1 @@
+from imports.registration.registration import Registration
