@@ -81,7 +81,8 @@ class SettingsParser:
             return ImageMaskGenerator(self.images_path, self.masks_path, **self.generator_args), (256, 256, 3)
         elif self.gen_type == 'reg':
             return ImageRegMaskGenerator(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-                                         **self.generator_args, **self.registration_args), (256, 256, 4)
+                                         **self.generator_args,
+                                         **self.registration_args), (256, 256, 2)
         else:
             raise Exception('Unknown generator type')
 
@@ -104,8 +105,8 @@ class SettingsParser:
         for s in self.callbacks_names:
             if s == "early_stop":
                 callbacks.append(
-                    EarlyStopping(monitor='val_' + self.model_compile['metrics'][0], verbose=1, min_delta=0.01,
-                                  patience=3, mode=metrics_map[self.metrics_names[0]], restore_best_weights=True))
+                    EarlyStopping(monitor='val_' + self.metrics_names[0], verbose=1, min_delta=0.01,
+                                  patience=3, mode=mode_map[self.metrics_names[0]], restore_best_weights=True))
             elif s == "tensorboard":
                 log_dir = "Logs/" + self.general_name
                 callbacks.append(TensorBoard(log_dir=log_dir, profile_batch=0))
@@ -114,7 +115,7 @@ class SettingsParser:
                     os.makedirs('Models')
                 callbacks.append(
                     ModelCheckpoint('Models/' + self.general_name + '.h5', monitor='val_' + self.metrics_names[0],
-                                    verbose=1, save_best_only=True, mode=metrics_map[self.metrics_names[0]]))
+                                    verbose=1, save_best_only=True, mode=mode_map[self.metrics_names[0]]))
             elif s == 'keep_settings':
                 self.keep_settings()
         return callbacks

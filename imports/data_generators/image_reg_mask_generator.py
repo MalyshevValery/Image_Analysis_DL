@@ -54,11 +54,11 @@ class ImageRegMaskGenerator(ImageMaskGenerator):
         self.batch_size = 1
 
     def _read_one_batch(self, array_values):
-        images = np.zeros((len(array_values), 256, 256, 4)).astype('float')
+        images = np.zeros((len(array_values), 256, 256, 2)).astype('float')
         masks = np.zeros((len(array_values), 256, 256, 1)).astype('float')
 
         for i, val in enumerate(array_values):
-            image = cv2.imread(self.image_names[val]) / 255.
+            image = cv2.imread(self.image_names[val], cv2.IMREAD_GRAYSCALE) / 255.
             image = np.asarray(image, dtype=float) / np.max(image)
             image = cv2.resize(image, (256, 256), cv2.INTER_AREA)
 
@@ -70,7 +70,7 @@ class ImageRegMaskGenerator(ImageMaskGenerator):
             mask = cv2.resize(mask, (256, 256), cv2.INTER_AREA) > 0.5
             mask = mask.reshape(256, 256, 1)  # Add extra dimension for parity with train_img size [512 * 512 * 3]
 
-            images[i, :, :, :3] = image  # add to array - img[0], img[1], and so on.
-            images[i, :, :, 3] = reg_mask
+            images[i, :, :, 0] = image  # add to array - img[0], img[1], and so on.
+            images[i, :, :, 1] = reg_mask
             masks[i] = mask
         return images, masks
