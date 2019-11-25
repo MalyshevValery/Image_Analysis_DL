@@ -5,6 +5,7 @@ import cv2
 
 class ImageMaskGenerator:
     """This class divides image data on train, validation, test sets and can create generators for model training"""
+
     def __init__(self, images_folder, masks_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True):
         """Constructor
 
@@ -16,7 +17,7 @@ class ImageMaskGenerator:
         assert len(train_val_test) == 3
         assert np.abs(np.sum(train_val_test) - 1) < 0.01
 
-        self.filenames = os.listdir(images_folder)
+        self.filenames = np.array(os.listdir(images_folder))
         self.image_names = [os.path.join(images_folder, f) for f in self.filenames]
         self.mask_names = [os.path.join(masks_folder, f) for f in self.filenames]
         self.indices = np.arange(len(self.filenames))
@@ -30,9 +31,9 @@ class ImageMaskGenerator:
         self.train = self.indices[:n_train]
         self.val = self.indices[n_train:n_train + n_val]
         self.test = self.indices[-n_test:]
-        
+
         self.batch_size = 1
-        
+
     def set_batch_size(self, batch_size):
         """Sets batch size for generators"""
         assert batch_size >= 1
@@ -83,9 +84,26 @@ class ImageMaskGenerator:
                 delta = i * self.batch_size
                 max_j = min(len(array) - delta, self.batch_size)
 
-                yield self._read_one_batch(array[delta:delta+max_j])
+                yield self._read_one_batch(array[delta:delta + max_j])
 
-            np.random.shuffle(array)
+    def save_predicted(self, directory, idx, pred):
+        """Saves predicted masks
 
+        :param directory: Dir where images will be saved
+        :param idx: Indices of data entries (self.train, self.test, self.val)
+        :param pred: Predicted values
+        """
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
+        pred = pred[:, :, :, 0]
+        for i, val in enumerate(idx):
+            image = cv2.imread(self.image_names[val]) / 255.
+            image = np.asarray(image, dtype=float) / np.max(image)
+            image = cv2.resize(image, (256, 256), cv2.INTER_AREA)
+
+            image[:, :, 2] *= (1.0 - pred[i])
+            image = (255.0 * image).astype(np.uint8)
+
+            cv2.imwrite(os.path.join(directory, self.filenames[val]), image)
 

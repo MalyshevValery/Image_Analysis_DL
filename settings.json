@@ -9,7 +9,7 @@
     "num_images": 4,
     "n_jobs": 5
   },
-  "generator_type": "norm",
+  "generator_type": "reg",
   "generator": {
     "train_val_test": [
       0.8,
@@ -38,5 +38,6 @@
       "checkpoint",
       "keep_settings"
     ]
-  }
+  },
+  "predict": true
 }

@@ -1,7 +1,9 @@
 import os
 import sys
+
+from tensorflow.python.keras.saving import load_model, save_model
+
 from imports.settings_parser import SettingsParser
-import tensorflow.keras as ks
 
 
 def train_test(settings_filename='settings.json'):
@@ -17,17 +19,23 @@ def train_test(settings_filename='settings.json'):
     results = model.fit_generator(generator.train_generator(), epochs=parser.epochs,
                                   steps_per_epoch=generator.train_steps(), validation_data=generator.valid_generator(),
                                   validation_steps=generator.valid_steps(), callbacks=callbacks, **parser.training)
+    model.load_weights(os.path.join(parser.results_dir, 'weights.h5'))
 
     ret = model.evaluate_generator(generator.test_generator(), generator.test_steps(), callbacks=callbacks,
                                    **parser.training)
     ret_val = {'loss': ret[0]}
-    model.load_weights(os.path.join(parser.results_dir, 'weights.h5'))
     if len(ret) > 1:
         for i, n in enumerate(parser.metrics_names):
             ret_val[n] = ret[i + 1]
     print('Test resutls: ', ret_val)
     for key in ret_val:
         open(os.path.join(parser.results_dir, '%.2f_' % ret_val[key] + key), 'w')
+
+    if parser.predict:
+        pred_dir = os.path.join(parser.results_dir, 'predicted')
+        pred = model.predict_generator(generator.test_generator(), generator.test_steps(), callbacks=callbacks,
+                                       **parser.training)
+        generator.save_predicted(pred_dir, generator.test, pred)
 
 
 if __name__ == '__main__':

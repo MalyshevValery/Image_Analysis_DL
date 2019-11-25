@@ -38,14 +38,14 @@ class SettingsParser:
         self.reg_path = settings['data']['reg']
 
         self.gen_type = settings['generator_type']
-        try:
+        if 'generator' in settings:
             self.generator_args = settings['generator']
-        except Exception:
+        else:
             self.generator_args = {}
 
-        try:
+        if 'registration' in settings:
             self.registration_args = settings['registration']
-        except Exception:
+        else:
             self.registration_args = {}
 
         self.model = settings['model']['name']
@@ -53,17 +53,17 @@ class SettingsParser:
         del self.model_params['name']
 
         self.model_compile = settings['model_compile']
-        try:
+        if 'metrics' in self.model_compile:
             self.metrics_names = self.model_compile['metrics'].copy()
             self.model_compile['metrics'] = list(map(lambda s: metrics_map[s], self.model_compile['metrics']))
-        except Exception:
+        else:
             self.metrics_names = []
 
         training = settings['training']
-        try:
+        if 'callbacks' in training:
             self.callbacks_names = training['callbacks']
             del training['callbacks']
-        except Exception:
+        else:
             self.callbacks_names = []
 
         self.batch_size = training['batch_size']
@@ -72,6 +72,11 @@ class SettingsParser:
         del training['epochs']
 
         self.training = training
+
+        if 'predict' in settings:
+            self.predict = settings['predict']
+        else:
+            self.predict = False
 
         self.general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-" + self.model)
         self.results_dir = os.path.join("Jobs", self.general_name)
@@ -114,7 +119,7 @@ class SettingsParser:
                 callbacks.append(TensorBoard(log_dir=self.results_dir, profile_batch=0))
             elif s == "checkpoint":
                 callbacks.append(
-                    ModelCheckpoint('Models/' + self.general_name + '.h5', monitor='val_' + self.metrics_names[0],
+                    ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'), monitor='val_' + self.metrics_names[0],
                                     verbose=1, save_best_only=True, mode=mode_map[self.metrics_names[0]]))
             elif s == 'keep_settings':
                 self.keep_settings()
@@ -123,4 +128,4 @@ class SettingsParser:
     def keep_settings(self):
         """Dumps settings to folder with models to be able to reproduce results later"""
         with open(os.path.join(self.results_dir, 'settings.json'), 'w') as file:
-            json.dump(self.settings, file)
+            json.dump(self.settings, file, indent=2)

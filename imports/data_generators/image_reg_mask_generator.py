@@ -22,25 +22,8 @@ class ImageRegMaskGenerator(ImageMaskGenerator):
         :param descriptor_file: File for descriptor (see registration params
         :param reg_args: Other keyword arguments for registration
         """
-
-        assert len(train_val_test) == 3
-        assert np.abs(np.sum(train_val_test) - 1) < 0.01
-        self.filenames = np.array(os.listdir(images_folder))
-        self.image_names = [os.path.join(images_folder, f) for f in self.filenames]
-        self.mask_names = [os.path.join(masks_folder, f) for f in self.filenames]
+        super().__init__(images_folder, masks_folder, train_val_test, shuffle)
         self.reg_names = [os.path.join(reg_folder, f) for f in self.filenames]
-        self.indices = np.arange(len(self.filenames))
-        if shuffle:
-            np.random.shuffle(self.indices)
-
-        n_train = int(len(self.filenames) * train_val_test[0])
-        n_val = int(len(self.filenames) * train_val_test[1])
-        n_test = len(self.filenames) - n_train - n_val
-
-        self.train = self.indices[:n_train]
-        self.val = self.indices[n_train:n_train + n_val]
-        self.test = self.indices[-n_test:]
-
         if os.path.isdir(reg_folder) and delete_previous:
             shutil.rmtree(reg_folder)
 
@@ -55,8 +38,6 @@ class ImageRegMaskGenerator(ImageMaskGenerator):
                 reg_mask = reg.segment(self.image_names[i])
                 reg_mask *= 255.
                 cv2.imwrite(self.reg_names[i], reg_mask)
-
-        self.batch_size = 1
 
     def _read_one_batch(self, array_values):
         images = np.zeros((len(array_values), 256, 256, 2)).astype('float')

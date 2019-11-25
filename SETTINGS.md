@@ -30,8 +30,9 @@
 - **training** - params for model training
     - *batch_size* - default 1
     - *epochs*
-    - ? *callbacks* - array of callbacks for training. 
+    - ? *callbacks* - array of callbacks for training.
     - ? *use_multiprocessing* - Use multiprocessing to load data from generators
     - ? *workers* - number of worker threads(processes) to load data from generators
     Callback have to be from this array *[early_stop, tensorboard, checkpoint, keep_settings]*.
     Callbacks monitors first metric on validation
+- ? **predict** - Save predicted test set
