@@ -74,6 +74,9 @@ class SettingsParser:
         self.training = training
 
         self.general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-" + self.model)
+        self.results_dir = os.path.join("Jobs", self.general_name)
+        if not os.path.exists(self.results_dir):
+            os.makedirs(self.results_dir)
 
     def get_data_generator(self):
         """Returns generator object created according to settings.json and input shape for it"""
@@ -104,16 +107,13 @@ class SettingsParser:
         for s in self.callbacks_names:
             if s == "early_stop":
                 callbacks.append(
-                    EarlyStopping(monitor='val_' + self.model_compile['metrics'][0], verbose=1, min_delta=0.01,
+                    EarlyStopping(monitor='val_' + self.metrics_names[0], verbose=1, min_delta=0.01,
                                   patience=3, mode=metrics_map[self.metrics_names[0]], restore_best_weights=True))
             elif s == "tensorboard":
-                log_dir = "Logs/" + self.general_name
-                callbacks.append(TensorBoard(log_dir=log_dir, profile_batch=0))
+                callbacks.append(TensorBoard(log_dir=self.results_dir, profile_batch=0))
             elif s == "checkpoint":
-                if not os.path.exists('Models'):
-                    os.makedirs('Models')
                 callbacks.append(
-                    ModelCheckpoint('Models/' + self.general_name + '.h5', monitor='val_' + self.metrics_names[0],
+                    ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'), monitor='val_' + self.metrics_names[0],
                                     verbose=1, save_best_only=True, mode=metrics_map[self.metrics_names[0]]))
             elif s == 'keep_settings':
                 self.keep_settings()
@@ -121,5 +121,5 @@ class SettingsParser:
 
     def keep_settings(self):
         """Dumps settings to folder with models to be able to reproduce results later"""
-        with open('Models/' + self.general_name + '-settings.json', 'w') as file:
+        with open(os.path.join(self.results_dir, 'settings.json'), 'w') as file:
             json.dump(self.settings, file)

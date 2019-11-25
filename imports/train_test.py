@@ -1,6 +1,7 @@
 import os
 import sys
 from imports.settings_parser import SettingsParser
+import tensorflow.keras as ks
 
 
 def train_test(settings_filename='settings.json'):
@@ -20,12 +21,13 @@ def train_test(settings_filename='settings.json'):
     ret = model.evaluate_generator(generator.test_generator(), generator.test_steps(), callbacks=callbacks,
                                    **parser.training)
     ret_val = {'loss': ret[0]}
+    model.load_weights(os.path.join(parser.results_dir, 'weights.h5'))
     if len(ret) > 1:
         for i, n in enumerate(parser.metrics_names):
             ret_val[n] = ret[i + 1]
     print('Test resutls: ', ret_val)
-    model.save('Models/' + parser.general_name + '-final.h5')
-    open('Models/test_' + str(ret_val) + "_" + parser.general_name, 'w')
+    for key in ret_val:
+        open(os.path.join(parser.results_dir, '%.2f_' % ret_val[key] + key), 'w')
 
 
 if __name__ == '__main__':
