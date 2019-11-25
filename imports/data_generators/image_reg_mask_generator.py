@@ -1,4 +1,6 @@
 import os
+import shutil
+
 import cv2
 from tqdm import tqdm
 import numpy as np
@@ -9,7 +11,7 @@ from imports.registration import Registration
 class ImageRegMaskGenerator(ImageMaskGenerator):
     """Generator which appends registration mask to image"""
     def __init__(self, images_folder, masks_folder, reg_folder, descriptor_file,
-                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, **reg_args):
+                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, delete_previous=False, **reg_args):
         """Constructor
 
         :param images_folder: Folder with images
@@ -38,6 +40,9 @@ class ImageRegMaskGenerator(ImageMaskGenerator):
         self.train = self.indices[:n_train]
         self.val = self.indices[n_train:n_train + n_val]
         self.test = self.indices[-n_test:]
+
+        if os.path.isdir(reg_folder) and delete_previous:
+            shutil.rmtree(reg_folder)
 
         if not os.path.isdir(reg_folder) or len(set(os.listdir(reg_folder)) & set(self.filenames)) < len(
                 self.filenames):

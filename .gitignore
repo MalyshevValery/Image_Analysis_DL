@@ -4,6 +4,5 @@ OriginalData
 Data
 .idea
 *.ipynb_checkpoints*
-Models
-Logs
+Jobs/
 *__pycache__*

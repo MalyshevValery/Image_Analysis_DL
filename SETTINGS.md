@@ -14,6 +14,7 @@
 - ? **generator**
     - ? *train_val_test* - array of 3 values with data splits
     - ? *shuffle* - shuffle data before train val test split
+    - ? [reg] *delete_previous* - Removes existing folder with registration
 - **model** - Neural Network model
     - *name* - name of model. *One of [unet]*
         - *n_filters* - Number of filters on first level. Multiplies by two on every subsequent level. Default - 16
