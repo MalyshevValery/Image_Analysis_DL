@@ -7,10 +7,10 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoa
 
 from imports.cnn.architectures.unet import UNet
 from imports.cnn.metrics import iou
-from imports.data_generators.image_mask_generator import ImageMaskGenerator
 
-# Map for metrics labels
-from imports.data_generators.image_reg_mask_generator import ImageRegMaskGenerator
+from imports.data.loaders.image_mask_loader import ImageMaskLoader
+import albumentations as aug
+
 
 metrics_map = {
     'acc': 'acc',
@@ -23,6 +23,10 @@ mode_map = {
     'iou': 'max'
 }
 
+augmentations = {
+    'float': aug.ToFloat
+}
+
 
 class SettingsParser:
     """This class parses settings.json"""
@@ -32,26 +36,34 @@ class SettingsParser:
             settings = json.load(file)
             self.settings = copy.deepcopy(settings)
 
+        # Data
         self.images_path = settings['data']['images']
         self.masks_path = settings['data']['masks']
         self.descriptor_path = settings['data']['descriptor']
         self.reg_path = settings['data']['reg']
 
-        self.gen_type = settings['generator_type']
-        if 'generator' in settings:
-            self.generator_args = settings['generator']
-        else:
-            self.generator_args = {}
+        # Loader
+        self.loader_type = settings['loader_type']
+        self.loader_args = settings['loader'] if 'loader' in settings else {}
 
-        if 'registration' in settings:
-            self.registration_args = settings['registration']
-        else:
-            self.registration_args = {}
+        # Augmentations
+        aug_names = [s['name'] for s in settings['aug_all']]
+        aug_params = settings['aug_all']
+        for a in aug_params:
+            del a['name']
+        self.aug_all = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(settings['aug_all']))]
+        self.aug_all = aug.Compose(self.aug_all)
+        print("Augmentations for all", self.aug_all)
 
+        # Registration
+        self.registration_args = settings['registration'] if 'registration' in settings else {}
+
+        # Model
         self.model = settings['model']['name']
         self.model_params = settings['model']
         del self.model_params['name']
 
+        # Model compile
         self.model_compile = settings['model_compile']
         if 'metrics' in self.model_compile:
             self.metrics_names = self.model_compile['metrics'].copy()
@@ -59,6 +71,7 @@ class SettingsParser:
         else:
             self.metrics_names = []
 
+        # Training
         training = settings['training']
         if 'callbacks' in training:
             self.callbacks_names = training['callbacks']
@@ -73,26 +86,24 @@ class SettingsParser:
 
         self.training = training
 
-        if 'predict' in settings:
-            self.predict = settings['predict']
-        else:
-            self.predict = False
+        self.predict = settings['predict'] if 'predict' in settings else False
 
+        # Utility data
         self.general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-" + self.model)
         self.results_dir = os.path.join("Jobs", self.general_name)
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir)
 
-    def get_data_generator(self):
-        """Returns generator object created according to settings.json and input shape for it"""
-        if self.gen_type == 'norm':
-            return ImageMaskGenerator(self.images_path, self.masks_path, **self.generator_args), (256, 256, 3)
-        elif self.gen_type == 'reg':
-            return ImageRegMaskGenerator(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-                                         **self.generator_args,
-                                         **self.registration_args), (256, 256, 2)
+    def get_loader(self):
+        """Returns loader object created according to settings.json and input shape for it"""
+        if self.loader_type == 'norm':
+            return ImageMaskLoader(self.images_path, self.masks_path, **self.loader_args), (256, 256, 3)
+        # elif self.gen_type == 'reg':
+        #     return ImageRegMaskloader(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
+        #                                  **self.loader_args,
+        #                                  **self.registration_args), (256, 256, 2)
         else:
-            raise Exception('Unknown generator type')
+            raise Exception('Unknown loader type')
 
     def get_model_method(self):
         """Returns method for model creation according to model.name setting"""
@@ -102,13 +113,6 @@ class SettingsParser:
             raise Exception("Unknown model name")
 
     def get_callbacks(self):
-        """Makes callbacks from labels in settings.json
-
-        Possible values:
-            - early_stop
-            - tensorboard
-            - checkpoint
-        """
         callbacks = []
         for s in self.callbacks_names:
             if s == "early_stop":
@@ -119,7 +123,8 @@ class SettingsParser:
                 callbacks.append(TensorBoard(log_dir=self.results_dir, profile_batch=0))
             elif s == "checkpoint":
                 callbacks.append(
-                    ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'), monitor='val_' + self.metrics_names[0],
+                    ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'),
+                                    monitor='val_' + self.metrics_names[0],
                                     verbose=1, save_best_only=True, mode=mode_map[self.metrics_names[0]]))
             elif s == 'keep_settings':
                 self.keep_settings()

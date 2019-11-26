@@ -10,11 +10,17 @@
 - ? **registration**
     - ? *num_images* - number of nearest images for mask registration
     - ? *n_jobs* - number of threads for elastix
-- **generator_type** - Usual or with registration masks - *[norm,reg]*
-- ? **generator**
-    - ? *train_val_test* - array of 3 values with data splits
-    - ? *shuffle* - shuffle data before train val test split
-    - ? [reg] *delete_previous* - Removes existing folder with registration
+- **loader_type** - Usual or with registration masks - *[norm,reg]*
+- ? **loader**
+    - ? *train_val_test* - array of 3 values with data splits, Default - (0.8, 0.1, 0.1)
+    - ? *shuffle* - shuffle data before train val test split. Default - False
+    - ? [reg] *delete_previous* - Removes existing folder with registration. Default - False
+- **aug_all** - List of augmentations for all data (like scaling and normalizing)
+- **aug_train** - List of augmentations for train data (is applied before *aug_all*)
+
+    Augmentations format is list of objects where *name* is keyword for augmentation and 
+    then it keyword parameters follows. See next section for all possible params 
+
 - **model** - Neural Network model
     - *name* - name of model. *One of [unet]*
         - *n_filters* - Number of filters on first level. Multiplies by two on every subsequent level. Default - 16
@@ -36,3 +42,9 @@
     Callback have to be from this array *[early_stop, tensorboard, checkpoint, keep_settings]*.
     Callbacks monitors first metric on validation
 - ? **predict** - Save predicted test set
+
+## Augmentations
+**All**:
+- ToFloat - {name: *float*, ? max_value, ? p}
+
+**Train**:

@@ -9,8 +9,8 @@
     "num_images": 4,
     "n_jobs": 5
   },
-  "generator_type": "reg",
-  "generator": {
+  "loader_type": "norm",
+  "loader": {
     "train_val_test": [
       0.8,
       0.1,
@@ -18,6 +18,14 @@
     ],
     "shuffle": true
   },
+  "aug_all": [
+    {
+      "name": "float",
+      "max_value": 255
+      }
+  ],
+  "aug_train": [
+  ],
   "model": {
     "name": "unet"
   },

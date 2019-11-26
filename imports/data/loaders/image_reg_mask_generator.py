@@ -4,7 +4,7 @@ import shutil
 import cv2
 from tqdm import tqdm
 import numpy as np
-from imports.data_generators import ImageMaskGenerator
+from imports.data import ImageMaskGenerator
 from imports.registration import Registration
 
 

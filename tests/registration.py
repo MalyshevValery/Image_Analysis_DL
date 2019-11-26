@@ -1,6 +1,6 @@
 import os
 
-from imports.data_generators.image_reg_mask_generator import ImageRegMaskGenerator
+from imports.data.image_reg_mask_generator import ImageRegMaskGenerator
 from tests.tools.test import Test
 from imports.registration import Registration
 from imports.settings_parser import SettingsParser
@@ -33,7 +33,7 @@ class RegistrationTester:
 
         with Test('Registration generator init'):
             gen = ImageRegMaskGenerator(parser.images_path, parser.masks_path, parser.reg_path,
-                                        parser.descriptor_path **parser.generator_args,
+                                        parser.descriptor_path ** parser.loader_args,
                                         **parser.registration_args)
 
         with Test('Registrtion generator get'):

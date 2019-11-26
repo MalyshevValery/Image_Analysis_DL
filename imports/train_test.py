@@ -1,28 +1,34 @@
 import os
 import sys
 
-from tensorflow.python.keras.saving import load_model, save_model
-
 from imports.settings_parser import SettingsParser
+from imports.data.mask_generator import MaskGenerator
 
+import matplotlib.pyplot as plt
 
 def train_test(settings_filename='settings.json'):
     parser = SettingsParser(settings_filename)
-    generator, img_shape = parser.get_data_generator()
+    loader, img_shape = parser.get_loader()
+    train = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
+    val = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
+    test = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
+
+    print(train[0][0].max())
+    plt.imshow(train[0][0][0])
+    plt.show()
+    plt.hist(train[0][0].flatten())
+    plt.show()
 
     model = parser.get_model_method()(img_shape, **parser.model_params)
     model.compile(**parser.model_compile)
     model.summary()
 
     callbacks = parser.get_callbacks()
-    generator.set_batch_size(parser.batch_size)
-    results = model.fit_generator(generator.train_generator(), epochs=parser.epochs,
-                                  steps_per_epoch=generator.train_steps(), validation_data=generator.valid_generator(),
-                                  validation_steps=generator.valid_steps(), callbacks=callbacks, **parser.training)
+    results = model.fit_generator(train, epochs=parser.epochs, validation_data=val, callbacks=callbacks,
+                                  **parser.training)
     model.load_weights(os.path.join(parser.results_dir, 'weights.h5'))
 
-    ret = model.evaluate_generator(generator.test_generator(), generator.test_steps(), callbacks=callbacks,
-                                   **parser.training)
+    ret = model.evaluate_generator(test, callbacks=callbacks, **parser.training)
     ret_val = {'loss': ret[0]}
     if len(ret) > 1:
         for i, n in enumerate(parser.metrics_names):
@@ -33,9 +39,8 @@ def train_test(settings_filename='settings.json'):
 
     if parser.predict:
         pred_dir = os.path.join(parser.results_dir, 'predicted')
-        pred = model.predict_generator(generator.test_generator(), generator.test_steps(), callbacks=callbacks,
-                                       **parser.training)
-        generator.save_predicted(pred_dir, generator.test, pred)
+        pred = model.predict_generator(test, callbacks=callbacks, **parser.training)
+        loader.save_predicted(pred_dir, loader.test_indices(), pred)
 
 
 if __name__ == '__main__':
