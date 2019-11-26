@@ -8,9 +8,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoa
 from imports.cnn.architectures.unet import UNet
 from imports.cnn.metrics import iou
 
-from imports.data.loaders.image_mask_loader import ImageMaskLoader
+from imports.data.loaders import ImageRegMaskLoader, ImageMaskLoader
 import albumentations as aug
-
 
 metrics_map = {
     'acc': 'acc',
@@ -98,10 +97,9 @@ class SettingsParser:
         """Returns loader object created according to settings.json and input shape for it"""
         if self.loader_type == 'norm':
             return ImageMaskLoader(self.images_path, self.masks_path, **self.loader_args), (256, 256, 3)
-        # elif self.gen_type == 'reg':
-        #     return ImageRegMaskloader(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-        #                                  **self.loader_args,
-        #                                  **self.registration_args), (256, 256, 2)
+        elif self.loader_type == 'reg':
+            return ImageRegMaskLoader(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
+                                      **self.loader_args, **self.registration_args), (256, 256, 2)
         else:
             raise Exception('Unknown loader type')
 

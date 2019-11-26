@@ -13,12 +13,6 @@ def train_test(settings_filename='settings.json'):
     val = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
     test = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
 
-    print(train[0][0].max())
-    plt.imshow(train[0][0][0])
-    plt.show()
-    plt.hist(train[0][0].flatten())
-    plt.show()
-
     model = parser.get_model_method()(img_shape, **parser.model_params)
     model.compile(**parser.model_compile)
     model.summary()

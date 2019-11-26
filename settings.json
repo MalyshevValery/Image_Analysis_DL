@@ -6,8 +6,8 @@
     "descriptor": "Data/descriptors.csv"
   },
   "registration": {
-    "num_images": 4,
-    "n_jobs": 5
+    "num_images": 1,
+    "n_jobs": 4
   },
   "loader_type": "norm",
   "loader": {

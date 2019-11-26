@@ -17,20 +17,20 @@ class ImageMaskLoader:
         assert len(train_val_test) == 3
         assert np.abs(np.sum(train_val_test) - 1) < 0.01
 
-        self.__filenames = np.array(os.listdir(images_folder))
-        self.__image_names = [os.path.join(images_folder, f) for f in self.__filenames]
-        self.__mask_names = [os.path.join(masks_folder, f) for f in self.__filenames]
-        self.__indices = np.arange(len(self.__filenames))
+        self._filenames = np.array(os.listdir(images_folder))
+        self._image_names = [os.path.join(images_folder, f) for f in self._filenames]
+        self._mask_names = [os.path.join(masks_folder, f) for f in self._filenames]
+        self._indices = np.arange(len(self._filenames))
         if shuffle:
-            np.random.shuffle(self.__indices)  # shuffle before split
+            np.random.shuffle(self._indices)  # shuffle before split
 
-        n_train = int(len(self.__filenames) * train_val_test[0])
-        n_val = int(len(self.__filenames) * train_val_test[1])
-        n_test = len(self.__filenames) - n_train - n_val
+        n_train = int(len(self._filenames) * train_val_test[0])
+        n_val = int(len(self._filenames) * train_val_test[1])
+        n_test = len(self._filenames) - n_train - n_val
 
-        self.__train = self.__indices[:n_train]
-        self.__val = self.__indices[n_train:n_train + n_val]
-        self.__test = self.__indices[-n_test:]
+        self.__train = self._indices[:n_train]
+        self.__val = self._indices[n_train:n_train + n_val]
+        self.__test = self._indices[-n_test:]
 
     def train_indices(self):
         return self.__train
@@ -42,12 +42,12 @@ class ImageMaskLoader:
         return self.__test
 
     def get_image(self, i):
-        image = cv2.imread(self.__image_names[i]).astype(np.float32)
+        image = cv2.imread(self._image_names[i]).astype(np.float32)
         return image
 
     def get_mask(self, i):
         """Returns (256,256) mask scaled to [0,1]"""
-        mask = cv2.imread(self.__mask_names[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
+        mask = cv2.imread(self._mask_names[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
         mask /= mask.max()
         return mask
 
@@ -63,7 +63,7 @@ class ImageMaskLoader:
 
         pred = pred[:, :, :, 0]
         for i, val in enumerate(idx):
-            image = cv2.imread(self.__image_names[val]) / 255.
+            image = cv2.imread(self._image_names[val]) / 255.
             image = np.asarray(image, dtype=float) / np.max(image)
             image = cv2.resize(image, (256, 256), cv2.INTER_AREA)
 
@@ -73,5 +73,5 @@ class ImageMaskLoader:
             pred_ = pred[i]
             pred_ = (255.0 * pred_).astype(np.uint8)
 
-            cv2.imwrite(os.path.join(directory, self.__filenames[val]), image)
-            cv2.imwrite(os.path.join(directory, self.__filenames[val] + '_mask.png'), pred_)
+            cv2.imwrite(os.path.join(directory, self._filenames[val]), image)
+            cv2.imwrite(os.path.join(directory, self._filenames[val] + '_mask.png'), pred_)
