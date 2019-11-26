@@ -5,8 +5,7 @@ from imports.train_test import train_test
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print('123')
-        # train_test()
+        train_test()
     settings = sys.argv[1]
     if os.path.isfile(settings):
         print('File -', settings)

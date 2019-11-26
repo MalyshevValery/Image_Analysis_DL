@@ -29,12 +29,11 @@ class MaskGenerator(Sequence):
 
         images = [self.__loader.get_image(i) for i in batch_idx]
         masks = [self.__loader.get_mask(i) for i in batch_idx]
-
         if self.__augment is not None:
             data = [self.__augment(image=images[i], mask=masks[i]) for i in range(len(batch_idx))]
             images = [d['image'] for d in data]
             masks = [d['mask'] for d in data]
-        return np.array(images), np.expand_dims(np.array(masks), axis=-1)
+        return np.array(images), np.array(masks)
 
     def on_epoch_end(self):
         np.random.shuffle(self.__idxs)

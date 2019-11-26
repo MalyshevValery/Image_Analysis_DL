@@ -6,14 +6,22 @@ from imports.data.mask_generator import MaskGenerator
 
 import matplotlib.pyplot as plt
 
+
 def train_test(settings_filename='settings.json'):
     parser = SettingsParser(settings_filename)
-    loader, img_shape = parser.get_loader()
-    train = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
+    loader = parser.get_loader()
+    train = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_train)
     val = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
     test = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
 
-    model = parser.get_model_method()(img_shape, **parser.model_params)
+    if parser.show_sample:
+        to_show = train[0]
+        plt.imshow(to_show[0][0][:, :, 0])
+        plt.show()
+        plt.imshow(to_show[1][0][:, :, 0])
+        plt.show()
+
+    model = parser.get_model_method()(parser.input_shape, **parser.model_params)
     model.compile(**parser.model_compile)
     model.summary()
 

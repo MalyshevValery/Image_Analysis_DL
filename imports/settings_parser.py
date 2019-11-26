@@ -23,7 +23,22 @@ mode_map = {
 }
 
 augmentations = {
-    'float': aug.ToFloat
+    'blur': aug.Blur,
+    'bright_contrast': aug.RandomBrightnessContrast,
+    'clahe': aug.CLAHE,
+    'crop': aug.RandomCrop,
+    'sized_crop': aug.RandomSizedCrop,
+    'compression': aug.ImageCompression,
+    'downscale': aug.Downscale,
+    'equalize': aug.Equalize,
+    'float': aug.ToFloat,
+    'gaussian_noise': aug.GaussNoise,
+    'gaussian_blur': aug.GaussianBlur,
+    'iaa_sharpen': aug.IAASharpen,
+    'iso_noise': aug.ISONoise,
+    'median_blur': aug.MedianBlur,
+    'resize': aug.Resize,
+    'shift_scale_rotate': aug.ShiftScaleRotate
 }
 
 
@@ -40,6 +55,7 @@ class SettingsParser:
         self.masks_path = settings['data']['masks']
         self.descriptor_path = settings['data']['descriptor']
         self.reg_path = settings['data']['reg']
+        self.input_shape = settings['data']['input_shape']
 
         # Loader
         self.loader_type = settings['loader_type']
@@ -53,6 +69,15 @@ class SettingsParser:
         self.aug_all = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(settings['aug_all']))]
         self.aug_all = aug.Compose(self.aug_all)
         print("Augmentations for all", self.aug_all)
+
+        aug_names = [s['name'] for s in settings['aug_train']]
+        aug_params = settings['aug_train']
+        for a in aug_params:
+            del a['name']
+        self.aug_train = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(settings['aug_train']))]
+        self.aug_train = aug.Compose(self.aug_train)
+        self.aug_train = aug.Compose([self.aug_train, self.aug_all])
+        print("Augmentations for train", self.aug_train)
 
         # Registration
         self.registration_args = settings['registration'] if 'registration' in settings else {}
@@ -86,6 +111,7 @@ class SettingsParser:
         self.training = training
 
         self.predict = settings['predict'] if 'predict' in settings else False
+        self.show_sample = settings['show_sample'] if 'show_sample' in settings else False
 
         # Utility data
         self.general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-" + self.model)
@@ -96,10 +122,10 @@ class SettingsParser:
     def get_loader(self):
         """Returns loader object created according to settings.json and input shape for it"""
         if self.loader_type == 'norm':
-            return ImageMaskLoader(self.images_path, self.masks_path, **self.loader_args), (256, 256, 3)
+            return ImageMaskLoader(self.images_path, self.masks_path, **self.loader_args)
         elif self.loader_type == 'reg':
             return ImageRegMaskLoader(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-                                      **self.loader_args, **self.registration_args), (256, 256, 2)
+                                      **self.loader_args, **self.registration_args)
         else:
             raise Exception('Unknown loader type')
 

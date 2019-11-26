@@ -12,7 +12,7 @@ class ImageRegMaskLoader(ImageMaskLoader):
     """Generator which appends registration mask to image"""
 
     def __init__(self, images_folder, masks_folder, reg_folder, descriptor_file,
-                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, delete_previous=False, **reg_args):
+                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, load_gray=False, delete_previous=False, **reg_args):
         """Constructor
 
         :param images_folder: Folder with images
@@ -23,7 +23,7 @@ class ImageRegMaskLoader(ImageMaskLoader):
         :param descriptor_file: File for descriptor (see registration params
         :param reg_args: Other keyword arguments for registration
         """
-        super().__init__(images_folder, masks_folder, train_val_test, shuffle)
+        super().__init__(images_folder, masks_folder, train_val_test, shuffle, load_gray)
         self._reg_names = [os.path.join(reg_folder, f) for f in self._filenames]
         if os.path.isdir(reg_folder) and delete_previous:
             shutil.rmtree(reg_folder)
@@ -41,6 +41,9 @@ class ImageRegMaskLoader(ImageMaskLoader):
                 cv2.imwrite(self._reg_names[i], reg_mask)
 
     def get_image(self, i):
-        image = cv2.imread(self._image_names[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
-        reg_mask = cv2.imread(self._reg_names[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
-        return np.stack([image, reg_mask], axis=-1)
+        if self._load_gray:
+            image = cv2.imread(self._image_names[i], cv2.IMREAD_GRAYSCALE)[:, :, np.newaxis]
+        else:
+            image = cv2.imread(self._image_names[i])
+        reg_mask = cv2.imread(self._reg_names[i], cv2.IMREAD_GRAYSCALE)[:, :, np.newaxis]
+        return np.concatenate([image, reg_mask], axis=2)

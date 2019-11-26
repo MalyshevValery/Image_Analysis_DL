@@ -7,6 +7,7 @@
     - *masks* - path to ground truth with masks
     - *reg* - path to folder with registration masks (will be created if needed)
     - *descriptor* - path to file with image descriptors
+    - *input_shape* - input shape of data. It's up to user to determine valid shape
 - ? **registration**
     - ? *num_images* - number of nearest images for mask registration
     - ? *n_jobs* - number of threads for elastix
@@ -42,9 +43,31 @@
     Callback have to be from this array *[early_stop, tensorboard, checkpoint, keep_settings]*.
     Callbacks monitors first metric on validation
 - ? **predict** - Save predicted test set
+- ? **predict** - Show train sample to check augmentation
 
 ## Augmentations
+Argument *p* - probability of applying can be used in all augmentations
+
 **All**:
-- ToFloat - {name: *float*, ? max_value, ? p}
+- **Pixel**
+    - Equalize - {name: *equalize*, ?mode, ?by_channels}
+    - ToFloat - {name: *float*, ?max_value}
+    - CLAHE - {name: *clahe*, ?clip_limit, ?tile_grid_size}
+- **Spatial**
+    - Resize {name: *resize*, height, width, ?interpolation}
 
 **Train**:
+- **Pixel**
+    - Blur - {name: *blur*, ?blur_limit}
+    - Downscale - {name: *downscale*, ? scale_min, ?scale_max}
+    - GaussNoise {name: *gauss_noise*, ?var_limit, ?mean}
+    - GaussianBlur {name: *gauss_blur*, ?blur_limit}
+    - IAASharpen {name: *iaa_sharpen*, ?alpha, ?lightness}
+    - ImageCompression {name: *compression*, ?quality_lower, ?quality_upper}
+    - ISONoise {name: *iso_noise*, ?color_shift, ?intensity}
+    - MedianBlur {name: *median_blur*, ?blur_limit}
+    - RandomBrightnessContrast - {name: *bright_contrast*, ?brightness_limit, ?contrast_limit, ?brightness_by_max}
+- **Spatial**
+    - ShiftScaleRotate - {name: *shift_scale_rotate*, ?shift_limit, ?scale_limit, ? rotate_limit)
+    - RandomCrop - {name: *crop*, height, width}
+    - RandomSizedCrop - {name: *sized_crop*, min_max_height, height, width}

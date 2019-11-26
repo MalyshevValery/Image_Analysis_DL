@@ -6,7 +6,7 @@ import cv2
 class ImageMaskLoader:
     """This class divides image data on train, validation, test sets and can create generators for model training"""
 
-    def __init__(self, images_folder, masks_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True):
+    def __init__(self, images_folder, masks_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True, load_gray=False):
         """Constructor
 
         :param images_folder: Folder with images
@@ -21,6 +21,7 @@ class ImageMaskLoader:
         self._image_names = [os.path.join(images_folder, f) for f in self._filenames]
         self._mask_names = [os.path.join(masks_folder, f) for f in self._filenames]
         self._indices = np.arange(len(self._filenames))
+        self._load_gray = load_gray
         if shuffle:
             np.random.shuffle(self._indices)  # shuffle before split
 
@@ -42,14 +43,16 @@ class ImageMaskLoader:
         return self.__test
 
     def get_image(self, i):
-        image = cv2.imread(self._image_names[i]).astype(np.float32)
-        return image
+        if self._load_gray:
+            return cv2.imread(self._image_names[i], cv2.IMREAD_GRAYSCALE)[:, :, np.newaxis]
+        else:
+            return cv2.imread(self._image_names[i])
 
     def get_mask(self, i):
         """Returns (256,256) mask scaled to [0,1]"""
         mask = cv2.imread(self._mask_names[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
         mask /= mask.max()
-        return mask
+        return mask[:, :, np.newaxis]
 
     def save_predicted(self, directory, idx, pred):
         """Saves predicted masks
