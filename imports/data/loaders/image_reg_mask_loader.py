@@ -12,7 +12,8 @@ class ImageRegMaskLoader(ImageMaskLoader):
     """Generator which appends registration mask to image"""
 
     def __init__(self, images_folder, masks_folder, reg_folder, descriptor_file,
-                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, load_gray=False, delete_previous=False, **reg_args):
+                 train_val_test=(0.8, 0.1, 0.1), shuffle=True, load_gray=False, mask_channel_codes=None,
+                 delete_previous=False, **reg_args):
         """Constructor
 
         :param images_folder: Folder with images
@@ -23,7 +24,7 @@ class ImageRegMaskLoader(ImageMaskLoader):
         :param descriptor_file: File for descriptor (see registration params
         :param reg_args: Other keyword arguments for registration
         """
-        super().__init__(images_folder, masks_folder, train_val_test, shuffle, load_gray)
+        super().__init__(images_folder, masks_folder, train_val_test, shuffle, load_gray, mask_channel_codes)
         self._reg_names = [os.path.join(reg_folder, f) for f in self._filenames]
         if os.path.isdir(reg_folder) and delete_previous:
             shutil.rmtree(reg_folder)

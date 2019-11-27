@@ -4,47 +4,8 @@ import os
 import copy
 
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-
 from imports.cnn.models.unet import UNet
-
-import segmentation_models.metrics as metrics
-import segmentation_models.losses as losses
-
-from imports.data.loaders import ImageRegMaskLoader, ImageMaskLoader
-import albumentations as aug
-
-metrics_map = {
-    'iou': metrics.IOUScore(name='iou'),
-    'f1': metrics.FScore(beta=1, name='f1'),
-    'f2': metrics.FScore(beta=2, name='f2'),
-    'precision': metrics.Precision(name='precision'),
-    'recall': metrics.Recall(name='recall')
-}
-
-loss_map = {
-    'jaccard': losses.JaccardLoss(),
-    'dice': losses.DiceLoss(),
-    'binary_focal': losses.BinaryFocalLoss()
-}
-
-augmentations = {
-    'blur': aug.Blur,
-    'bright_contrast': aug.RandomBrightnessContrast,
-    'clahe': aug.CLAHE,
-    'crop': aug.RandomCrop,
-    'sized_crop': aug.RandomSizedCrop,
-    'compression': aug.ImageCompression,
-    'downscale': aug.Downscale,
-    'equalize': aug.Equalize,
-    'float': aug.ToFloat,
-    'gaussian_noise': aug.GaussNoise,
-    'gaussian_blur': aug.GaussianBlur,
-    'iaa_sharpen': aug.IAASharpen,
-    'iso_noise': aug.ISONoise,
-    'median_blur': aug.MedianBlur,
-    'resize': aug.Resize,
-    'shift_scale_rotate': aug.ShiftScaleRotate
-}
+from imports.settings_maps import *
 
 
 class SettingsParser:
@@ -64,6 +25,7 @@ class SettingsParser:
 
         # Loader
         self.loader_type = settings['loader_type']
+        self.loader_decorators = settings['loader_decorators'] if 'loader_decorators' in settings else []
         self.loader_args = settings['loader'] if 'loader' in settings else {}
 
         # Augmentations
@@ -130,12 +92,19 @@ class SettingsParser:
             os.makedirs(self.results_dir)
 
     def get_loader(self):
-        """Returns loader object created according to settings.json and input shape for it"""
+        """Returns decorated loader object created according to settings.json and input shape for it"""
+        loader_cls = loader_class[self.loader_type]
+        for d in self.loader_decorators:
+            t_dec = d.copy()
+            dec = decorators[t_dec['name']]
+            del t_dec['name']
+            loader_cls = dec(loader_cls, **t_dec)
+
         if self.loader_type == 'norm':
-            return ImageMaskLoader(self.images_path, self.masks_path, **self.loader_args)
+            return loader_cls(self.images_path, self.masks_path, **self.loader_args)
         elif self.loader_type == 'reg':
-            return ImageRegMaskLoader(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-                                      **self.loader_args, **self.registration_args)
+            return loader_cls(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
+                              **self.loader_args, **self.registration_args)
         else:
             raise Exception('Unknown loader type')
 

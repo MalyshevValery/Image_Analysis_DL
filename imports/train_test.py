@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 
 from imports.settings_parser import SettingsParser
 from imports.data.mask_generator import MaskGenerator
@@ -16,9 +17,12 @@ def train_test(settings_filename='settings.json'):
 
     if parser.show_sample:
         to_show = train[0]
-        plt.imshow(to_show[0][0][:, :, 0])
-        plt.show()
-        plt.imshow(to_show[1][0][:, :, 0])
+        image = to_show[0][0]
+        mask = to_show[1][0]
+        if image.shape[2] == 1:
+            image = np.concatenate([image] * 3, axis=-1)
+        image[:, :, :mask.shape[2]] *= (1 - mask)
+        plt.imshow(image)
         plt.show()
 
     model = parser.get_model_method()(parser.input_shape, **parser.model_params)

@@ -1,3 +1,4 @@
+from tensorflow.keras.layers import Softmax
 from tensorflow.keras.layers import Input, Conv2D, Conv2DTranspose, MaxPooling2D
 from tensorflow.keras.layers import Dropout, Activation, BatchNormalization, concatenate
 from tensorflow.keras import Model
@@ -14,10 +15,11 @@ def Conv2DBlock(input_tensor, n_filters, n_layers=2, activation='relu', kernel_s
     return x
 
 
-def UNet(input_shape, n_filters=16, dropout=0.5, batchnorm=True, kernel_size=3, activation='relu', n_conv_layers=2):
+def UNet(input_shape, out_channels=1, n_filters=16, dropout=0.5, batchnorm=True, kernel_size=3, activation='relu', n_conv_layers=2):
     """U-Net architecture
 
     :param input_shape: shape of one input image
+    :param out_channels: number of output channels
     :param n_filters: number of filters in convolutions. This number will progressively increase with 1,2,4,8,16 multiplier
     :param dropout: Dropout parameter
     :param batchnorm: If batchnorm iwll be applied
@@ -77,6 +79,11 @@ def UNet(input_shape, n_filters=16, dropout=0.5, batchnorm=True, kernel_size=3, 
     c9 = Conv2DBlock(u9, n_filters=n_filters * 1, kernel_size=kernel_size, activation=activation, batchnorm=batchnorm,
                      n_layers=n_conv_layers)
 
-    outputs = Conv2D(1, (1, 1), activation='sigmoid')(c9)
+    if out_channels > 1:
+        outputs = Conv2D(out_channels, (1, 1))(c9)
+        outputs = Softmax()(outputs)
+    else:
+        outputs = Conv2D(out_channels, (1, 1), activation='sigmoid')(c9)
+
     model = Model(inputs=[input_img], outputs=[outputs], name='U-Net')
     return model

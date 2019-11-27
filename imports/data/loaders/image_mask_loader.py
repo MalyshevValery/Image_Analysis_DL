@@ -6,7 +6,8 @@ import cv2
 class ImageMaskLoader:
     """This class divides image data on train, validation, test sets and can create generators for model training"""
 
-    def __init__(self, images_folder, masks_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True, load_gray=False):
+    def __init__(self, images_folder, masks_folder, train_val_test=(0.8, 0.1, 0.1), shuffle=True, load_gray=False,
+                 mask_channel_codes=None):
         """Constructor
 
         :param images_folder: Folder with images
@@ -22,6 +23,9 @@ class ImageMaskLoader:
         self._mask_names = [os.path.join(masks_folder, f) for f in self._filenames]
         self._indices = np.arange(len(self._filenames))
         self._load_gray = load_gray
+        self._mask_channel_codes = mask_channel_codes
+        if isinstance(self._mask_channel_codes, int):
+            self._mask_channel_codes = list(range(self._mask_channel_codes))
         if shuffle:
             np.random.shuffle(self._indices)  # shuffle before split
 
@@ -52,7 +56,13 @@ class ImageMaskLoader:
         """Returns (256,256) mask scaled to [0,1]"""
         mask = cv2.imread(self._mask_names[i], cv2.IMREAD_GRAYSCALE).astype(np.float32)
         mask /= mask.max()
-        return mask[:, :, np.newaxis]
+        if self._mask_channel_codes is None:
+            return mask[:, :, np.newaxis]
+        else:
+            mask *= max(self._mask_channel_codes)
+            masks = [np.abs(mask - c) < 0.01 for c in self._mask_channel_codes]
+            mask = np.stack(masks, axis=-1)
+            return mask.astype(np.float32)
 
     def save_predicted(self, directory, idx, pred):
         """Saves predicted masks
@@ -64,17 +74,18 @@ class ImageMaskLoader:
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        pred = pred[:, :, :, 0]
         for i, val in enumerate(idx):
             image = cv2.imread(self._image_names[val]) / 255.
             image = np.asarray(image, dtype=float) / np.max(image)
             image = cv2.resize(image, (256, 256), cv2.INTER_AREA)
 
-            image[:, :, 2] *= (1.0 - pred[i])
+            image[:, :, :pred[i].shape[-1]] *= (1.0 - pred[i])
             image = (255.0 * image).astype(np.uint8)
 
             pred_ = pred[i]
             pred_ = (255.0 * pred_).astype(np.uint8)
 
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             cv2.imwrite(os.path.join(directory, self._filenames[val]), image)
-            cv2.imwrite(os.path.join(directory, self._filenames[val] + '_mask.png'), pred_)
+            for j in range(pred_.shape[-1]):
+                cv2.imwrite(os.path.join(directory, self._filenames[val] + '_mask{}.png'.format(j)), pred_[:, :, j])

@@ -15,12 +15,19 @@
     "n_jobs": 4
   },
   "loader_type": "norm",
+  "loader_decorators": [
+    {
+      "name": "ignore_label",
+      "radius": 1
+    }
+  ],
   "loader": {
     "train_val_test": [
       0.8,
       0.1,
       0.1
     ],
+    "mask_channel_codes": 2,
     "shuffle": true
   },
   "aug_all": [
@@ -31,7 +38,8 @@
   ],
   "aug_train": [],
   "model": {
-    "name": "unet"
+    "name": "unet",
+    "out_channels": 2
   },
   "model_compile": {
     "optimizer": "adam",
@@ -46,7 +54,7 @@
   },
   "training": {
     "batch_size": 4,
-    "epochs": 5,
+    "epochs": 10,
     "callbacks": [
       "early_stop",
       "tensorboard",
@@ -54,5 +62,6 @@
       "keep_settings"
     ]
   },
-  "predict": true
+  "predict": true,
+  "show_sample":true
 }
