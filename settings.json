@@ -25,35 +25,23 @@
   },
   "aug_all": [
     {
-      "name": "clahe"
-    },
-    {
       "name": "float",
       "max_value": 255
-    },
-    {
-      "name": "resize",
-      "height": 256,
-      "width": 256
     }
   ],
-  "aug_train": [
-    {
-      "name": "shift_scale_rotate",
-      "border_mode": 5,
-      "value": 0.0,
-      "p": 1
-    }
-  ],
+  "aug_train": [],
   "model": {
     "name": "unet"
   },
   "model_compile": {
     "optimizer": "adam",
-    "loss": "binary_crossentropy",
+    "loss": "dice",
     "metrics": [
+      "iou",
       "acc",
-      "iou"
+      "f2",
+      "precision",
+      "recall"
     ]
   },
   "training": {
@@ -66,6 +54,5 @@
       "keep_settings"
     ]
   },
-  "predict": true,
-  "show_sample": true
+  "predict": true
 }

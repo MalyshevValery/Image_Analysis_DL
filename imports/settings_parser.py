@@ -5,21 +5,26 @@ import copy
 
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 
-from imports.cnn.architectures.unet import UNet
-from imports.cnn.metrics import iou
+from imports.cnn.models.unet import UNet
+
+import segmentation_models.metrics as metrics
+import segmentation_models.losses as losses
 
 from imports.data.loaders import ImageRegMaskLoader, ImageMaskLoader
 import albumentations as aug
 
 metrics_map = {
-    'acc': 'acc',
-    'iou': iou
+    'iou': metrics.IOUScore(name='iou'),
+    'f1': metrics.FScore(beta=1, name='f1'),
+    'f2': metrics.FScore(beta=2, name='f2'),
+    'precision': metrics.Precision(name='precision'),
+    'recall': metrics.Recall(name='recall')
 }
 
-mode_map = {
-    'loss': 'min',
-    'acc': 'max',
-    'iou': 'max'
+loss_map = {
+    'jaccard': losses.JaccardLoss(),
+    'dice': losses.DiceLoss(),
+    'binary_focal': losses.BinaryFocalLoss()
 }
 
 augmentations = {
@@ -89,9 +94,14 @@ class SettingsParser:
 
         # Model compile
         self.model_compile = settings['model_compile']
+        loss = self.model_compile['loss']
+        if loss in loss_map:
+            self.model_compile['loss'] = loss_map[loss]
+
         if 'metrics' in self.model_compile:
             self.metrics_names = self.model_compile['metrics'].copy()
-            self.model_compile['metrics'] = list(map(lambda s: metrics_map[s], self.model_compile['metrics']))
+            self.model_compile['metrics'] = list(
+                map(lambda s: metrics_map[s] if s in metrics_map else s, self.model_compile['metrics']))
         else:
             self.metrics_names = []
 
@@ -142,14 +152,14 @@ class SettingsParser:
             if s == "early_stop":
                 callbacks.append(
                     EarlyStopping(monitor='val_' + self.metrics_names[0], verbose=1, min_delta=0.01,
-                                  patience=3, mode=mode_map[self.metrics_names[0]], restore_best_weights=True))
+                                  patience=3, mode='max', restore_best_weights=True))
             elif s == "tensorboard":
                 callbacks.append(TensorBoard(log_dir=self.results_dir, profile_batch=0))
             elif s == "checkpoint":
                 callbacks.append(
                     ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'),
                                     monitor='val_' + self.metrics_names[0],
-                                    verbose=1, save_best_only=True, mode=mode_map[self.metrics_names[0]]))
+                                    verbose=1, save_best_only=True, mode='max'))
             elif s == 'keep_settings':
                 self.keep_settings()
         return callbacks
