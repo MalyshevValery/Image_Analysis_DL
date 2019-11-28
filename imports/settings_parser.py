@@ -82,12 +82,19 @@ class SettingsParser:
 
         self.training = training
 
+        # Other params
         self.predict = settings['predict'] if 'predict' in settings else False
         self.show_sample = settings['show_sample'] if 'show_sample' in settings else False
 
         # Utility data
-        self.general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-" + self.model)
-        self.results_dir = os.path.join("Jobs", self.general_name)
+        general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+        settings_name = os.path.basename(json_filename)
+        if settings_name.startswith('settings_'):
+            settings_name = settings_name[len('settings_'):]
+        if settings_name.endswith('.json'):
+            settings_name = settings_name[:-len('.json')]
+
+        self.results_dir = os.path.join("Jobs", general_name + '_' + self.model + '_' + settings_name)
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir)
 

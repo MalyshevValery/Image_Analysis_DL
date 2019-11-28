@@ -12,8 +12,8 @@ def train_test(settings_filename='settings.json'):
     parser = SettingsParser(settings_filename)
     loader = parser.get_loader()
     train = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_train)
-    val = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
-    test = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_all)
+    val = MaskGenerator(loader.valid_indices(), loader, parser.batch_size, parser.aug_all)
+    test = MaskGenerator(loader.test_indices(), loader, parser.batch_size, parser.aug_all, shuffle=False)
 
     if parser.show_sample:
         to_show = train[0]

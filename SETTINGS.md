@@ -79,4 +79,4 @@ Argument *p* - probability of applying can be used in all augmentations
 
 ## Decorators
 **Loader**
-- Ignore label - {name: *ignore_label*, ?radius, ?label}
+- Ignore label - {name: *ignore_label*, ?radius, ?channel}

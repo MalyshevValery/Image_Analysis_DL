@@ -6,3 +6,4 @@ Data
 *.ipynb_checkpoints*
 Jobs/
 *__pycache__*
+Experiments/*

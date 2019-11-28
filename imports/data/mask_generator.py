@@ -36,4 +36,5 @@ class MaskGenerator(Sequence):
         return np.array(images), np.array(masks)
 
     def on_epoch_end(self):
-        np.random.shuffle(self.__idxs)
+        if self.__shuffle:
+            np.random.shuffle(self.__idxs)

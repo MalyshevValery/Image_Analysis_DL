@@ -18,7 +18,7 @@
   "loader_decorators": [
     {
       "name": "ignore_label",
-      "radius": 1
+      "radius": 4
     }
   ],
   "loader": {
@@ -27,8 +27,8 @@
       0.1,
       0.1
     ],
-    "mask_channel_codes": 2,
-    "shuffle": true
+    "shuffle": true,
+    "mask_channel_codes": 2
   },
   "aug_all": [
     {
@@ -60,8 +60,10 @@
       "tensorboard",
       "checkpoint",
       "keep_settings"
-    ]
+    ],
+    "use_multiprocessing": true,
+    "workers": 8
   },
   "predict": true,
-  "show_sample":true
+  "show_sample": true
 }
