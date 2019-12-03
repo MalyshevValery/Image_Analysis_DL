@@ -20,13 +20,17 @@ class ImageMaskLoader:
 
         self._filenames = np.array(os.listdir(images_folder))
         self._image_names = [os.path.join(images_folder, f) for f in self._filenames]
-        self._mask_names = [os.path.join(masks_folder, f) for f in self._filenames]
+        if masks_folder is not None:
+            self._mask_names = [os.path.join(masks_folder, f) for f in self._filenames]
+        else:
+            self._mask_names = []
         self._indices = np.arange(len(self._filenames))
         self._load_gray = load_gray
         self._mask_channel_codes = mask_channel_codes
         if isinstance(self._mask_channel_codes, int):
             self._mask_channel_codes = list(range(self._mask_channel_codes))
         if shuffle:
+            np.random.seed(1)
             np.random.shuffle(self._indices)  # shuffle before split
 
         n_train = int(len(self._filenames) * train_val_test[0])

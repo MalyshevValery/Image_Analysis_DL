@@ -54,7 +54,7 @@
   },
   "training": {
     "batch_size": 4,
-    "epochs": 10,
+    "epochs": 2,
     "callbacks": [
       "early_stop",
       "tensorboard",

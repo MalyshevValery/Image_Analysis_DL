@@ -1,5 +1,6 @@
 from tensorflow.python.keras.utils import Sequence
 import numpy as np
+np.random.seed(1)
 
 
 class MaskGenerator(Sequence):
