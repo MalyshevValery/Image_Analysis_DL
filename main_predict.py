@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import traceback as tb
+from multiprocessing import Process
 
 from imports.predict import predict
 
@@ -19,6 +20,8 @@ if __name__ == '__main__':
             continue
         print('Dir -', path)
         try:
-            predict(path, parsed_args.image_dir, parsed_args.f)
+            proc = Process(target=predict, args=[path, parsed_args.image_dir, parsed_args.f])
+            proc.start()
+            proc.join()
         except Exception as e:
             tb.print_exc()
