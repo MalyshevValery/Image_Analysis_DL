@@ -1,4 +1,5 @@
 import os
+import json
 import sys
 import numpy as np
 
@@ -6,7 +7,7 @@ from imports.utils.gpu_setup import gpu_setup
 from imports.utils.settings_parser import SettingsParser
 from imports.data.mask_generator import MaskGenerator
 import matplotlib.pyplot as plt
-import json
+
 
 
 def train_test(settings_filename='settings.json'):
