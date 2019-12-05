@@ -3,7 +3,7 @@ import os
 from imports.data.image_reg_mask_generator import ImageRegMaskGenerator
 from tests.tools.test import Test
 from imports.registration import Registration
-from imports.settings_parser import SettingsParser
+from imports.utils.settings_parser import SettingsParser
 import numpy as np
 import cv2
 

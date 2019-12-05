@@ -5,7 +5,7 @@ import copy
 
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 from imports.cnn.models.unet import UNet
-from imports.settings_maps import *
+from imports.utils.settings_maps import *
 
 
 class SettingsParser:

@@ -1,8 +1,9 @@
 import os
-import tensorflow as tf
 import sys
 import numpy as np
-from imports.settings_parser import SettingsParser
+
+from imports.utils.gpu_setup import gpu_setup
+from imports.utils.settings_parser import SettingsParser
 from imports.data.mask_generator import MaskGenerator
 import matplotlib.pyplot as plt
 import json
@@ -11,10 +12,7 @@ import json
 def train_test(settings_filename='settings.json'):
     with open(os.path.join(os.path.dirname(__file__), '..', 'gpu_settings.json'), 'r') as gpu_file:
         gpu_settings = json.load(gpu_file)
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_settings['gpu'])
-        if tf.test.is_gpu_available():
-            tf.config.gpu.set_per_process_memory_fraction(float(gpu_settings['frac']))
-            tf.config.gpu.set_per_process_memory_growth(True)
+        gpu_setup(gpu_settings)
 
     parser = SettingsParser(settings_filename)
     loader = parser.get_loader()
