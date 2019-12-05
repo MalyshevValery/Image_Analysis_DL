@@ -5,9 +5,18 @@ from imports.data.loaders.image_loader import ImageLoader
 from imports.settings_parser import SettingsParser
 from imports.data.mask_generator import MaskGenerator
 import argparse
+import json
+import tensorflow as tf
 
 
 def predict(jobdir, image_dir, frac=1):
+    with open(os.path.join(os.path.dirname(__file__), '..', 'gpu_settings.json'), 'r') as gpu_file:
+        gpu_settings = json.load(gpu_file)
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_settings['gpu'])
+        if tf.test.is_gpu_available():
+            tf.config.gpu.set_per_process_memory_fraction(float(gpu_settings['frac']))
+            tf.config.gpu.set_per_process_memory_growth(True)
+
     parser = SettingsParser(os.path.join(jobdir, 'settings.json'))
     loader_args = {}
     if 'load_gray' in parser.loader_args:
