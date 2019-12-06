@@ -11,10 +11,11 @@ from imports.utils.settings_maps import *
 class SettingsParser:
     """This class parses settings.json"""
 
-    def __init__(self, json_filename):
+    def __init__(self, json_filename, predict_mode=False):
         with open(json_filename, 'r') as file:
             settings = json.load(file)
             self.settings = copy.deepcopy(settings)
+        self.predict_mode = predict_mode
 
         # Data
         self.images_path = settings['data']['images']
@@ -95,7 +96,7 @@ class SettingsParser:
             settings_name = settings_name[:-len('.json')]
 
         self.results_dir = os.path.join("Jobs", general_name + '_' + self.model + '_' + settings_name)
-        if not os.path.exists(self.results_dir):
+        if not os.path.exists(self.results_dir) and not self.predict_mode:
             os.makedirs(self.results_dir)
 
     def get_loader(self):
@@ -142,5 +143,7 @@ class SettingsParser:
 
     def keep_settings(self):
         """Dumps settings to folder with models to be able to reproduce results later"""
+        if self.predict_mode:
+            return
         with open(os.path.join(self.results_dir, 'settings.json'), 'w') as file:
             json.dump(self.settings, file, indent=2)

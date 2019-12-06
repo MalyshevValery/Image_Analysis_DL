@@ -15,7 +15,7 @@ def predict(jobdir, image_dir, frac=1):
         gpu_settings = json.load(gpu_file)
         gpu_setup(gpu_settings)
 
-    parser = SettingsParser(os.path.join(jobdir, 'settings.json'))
+    parser = SettingsParser(os.path.join(jobdir, 'settings.json'), predict_mode=True)
     loader_args = {}
     if 'load_gray' in parser.loader_args:
         loader_args['load_gray'] = parser.loader_args['load_gray']

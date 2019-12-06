@@ -47,7 +47,7 @@ def train_test(settings_filename='settings.json'):
             ret_val[n] = ret[i + 1]
     print('Test resutls: ', ret_val)
     for key in ret_val:
-        open(os.path.join(parser.results_dir, '%.2f_' % ret_val[key] + key), 'w')
+        open(os.path.join(parser.results_dir, '%.3f_' % ret_val[key] + key), 'w')
 
     if parser.predict:
         pred_dir = os.path.join(parser.results_dir, 'predicted')
