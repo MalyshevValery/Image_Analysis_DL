@@ -15,20 +15,13 @@
     "n_jobs": 4
   },
   "loader_type": "norm",
-  "loader_decorators": [
-    {
-      "name": "ignore_label",
-      "radius": 4
-    }
-  ],
   "loader": {
     "train_val_test": [
       0.8,
       0.1,
       0.1
     ],
-    "shuffle": true,
-    "mask_channel_codes": 2
+    "shuffle": true
   },
   "aug_all": [
     {
@@ -36,10 +29,28 @@
       "max_value": 255
     }
   ],
-  "aug_train": [],
+  "aug_train": [
+    {
+      "name": "blur"
+    },
+    {
+      "name": "gauss_noise"
+    },
+    {
+      "name": "iaa_sharpen"
+    },
+    {
+      "name":"compression",
+      "quality_lower": 50
+    },
+    {
+      "name": "shift_scale_rotate",
+      "border_mode": 1,
+      "rotate_limit": 15
+    }
+  ],
   "model": {
-    "name": "unet",
-    "out_channels": 2
+    "name": "unet"
   },
   "model_compile": {
     "optimizer": "adam",
@@ -56,7 +67,6 @@
     "batch_size": 4,
     "epochs": 2,
     "callbacks": [
-      "early_stop",
       "tensorboard",
       "checkpoint",
       "keep_settings"

@@ -9,7 +9,6 @@ from imports.data.mask_generator import MaskGenerator
 import matplotlib.pyplot as plt
 
 
-
 def train_test(settings_filename='settings.json'):
     with open(os.path.join(os.path.dirname(__file__), '..', 'gpu_settings.json'), 'r') as gpu_file:
         gpu_settings = json.load(gpu_file)
