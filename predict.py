@@ -1,6 +1,5 @@
 """Main predicting script"""
 import argparse
-import json
 import os
 import sys
 import traceback as tb
@@ -18,9 +17,6 @@ def predict(jobdir, image_dir):
     :param image_dir: directory with images to predict
     :return:
     """
-    with open(os.path.join(os.path.dirname(__file__), 'gpu_settings.json'), 'r') as gpu_file:
-        gpu_settings = json.load(gpu_file)
-        utils.gpu_setup(gpu_settings)
 
     parser = utils.SettingsParser(os.path.join(jobdir, 'settings.json'), predict_mode=True)
     loader_args = {'load_gray': parser.loader_args['load_gray']} if 'load_gray' in parser.loader_args else {}

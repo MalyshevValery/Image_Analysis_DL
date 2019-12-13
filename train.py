@@ -1,6 +1,5 @@
 """Main training script"""
 import argparse
-import json
 import os
 import sys
 import traceback as tb
@@ -18,9 +17,6 @@ def train(settings_filename='settings.json'):
 
     :param settings_filename: path to settings file
     """
-    with open(os.path.join(os.path.dirname(__file__), 'gpu_settings.json'), 'r') as gpu_file:
-        gpu_settings = json.load(gpu_file)
-        utils.gpu_setup(gpu_settings)
 
     parser = utils.SettingsParser(settings_filename)
     loader = parser.get_loader()
