@@ -1,7 +1,7 @@
 """Parts for NN models"""
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import Activation, BatchNormalization
 from tensorflow.keras import layers
+from tensorflow.keras.layers import Activation, BatchNormalization
+from tensorflow.keras.layers import Conv2D
 
 
 class Conv2DBlock(layers.Layer):

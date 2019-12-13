@@ -1,11 +1,12 @@
+import copy
 import datetime
 import json
 import os
-import copy
 
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+
 from imports.models.unet import UNet
-from imports.utils.settings_maps import *
+from .maps import *
 
 
 class SettingsParser:
@@ -124,6 +125,7 @@ class SettingsParser:
             raise Exception("Unknown model name")
 
     def get_callbacks(self):
+        """Get callbacks for training"""
         callbacks = []
         for s in self.callbacks_names:
             if s == "early_stop":

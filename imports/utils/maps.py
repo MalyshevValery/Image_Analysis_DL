@@ -1,8 +1,10 @@
-import segmentation_models.metrics as metrics
-import segmentation_models.losses as losses
-import imports.data.decorators as decorators
+"""Maps settings strings to functions and objects"""
 import albumentations as aug
-from imports.data.loaders import ImageMaskLoader, ImageRegMaskLoader
+import segmentation_models.losses as losses
+import segmentation_models.metrics as metrics
+
+import imports.data.decorators as decorators
+import imports.data.loaders as loaders
 
 metrics_map = {
     'iou': metrics.IOUScore(name='iou'),
@@ -38,8 +40,8 @@ augmentations = {
 }
 
 loader_class = {
-    'norm': ImageMaskLoader,
-    'reg': ImageRegMaskLoader
+    'norm': loaders.ImageMaskLoader,
+    'reg': loaders.ImageRegMaskLoader
 }
 
 decorators = {

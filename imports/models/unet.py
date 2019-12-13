@@ -1,8 +1,8 @@
 """UNet architecture for semantic segmentation"""
-from tensorflow.keras.layers import Softmax
-from tensorflow.keras.layers import Input, Conv2D, Conv2DTranspose, MaxPooling2D
-from tensorflow.keras.layers import Dropout, concatenate
 from tensorflow.keras import Model
+from tensorflow.keras.layers import Dropout, concatenate
+from tensorflow.keras.layers import Input, Conv2D, Conv2DTranspose, MaxPooling2D
+from tensorflow.keras.layers import Softmax
 
 from .parts import Conv2DBlock
 
@@ -15,7 +15,7 @@ def UNet(input_shape, out_channels=1, n_filters=16, dropout=0.5, batchnorm=True,
     :param out_channels: number of output channels
     :param n_filters: number of filters in convolutions. This number will increase with 1,2,4,8,16 multiplier
     :param dropout: Dropout parameter
-    :param batchnorm: If batchnorm iwll be applied
+    :param batchnorm: If batchnorm will be applied
     :param kernel_size: Size of convolutional kernel
     :param activation: Activation function
     :param n_conv_layers: Number of convolutoinal layers in each convolutoinal/deconvolutional block

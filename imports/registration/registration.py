@@ -1,13 +1,16 @@
+"""Class for registration"""
 import os
-import numpy as np
-import cv2
-import sklearn.metrics as MT
-import pandas as pd
 import tempfile
+
+import cv2.cv2 as cv2
+import numpy as np
+import pandas as pd
+import sklearn.metrics as metrics
 
 
 class Registration:
     """Class for image registration by elastix"""
+
     def __init__(self, images_dir, masks_dir, descriptor_file, num_images=5, n_jobs=1, images_list=None,
                  forbid_the_same=True):
         """Constructor
@@ -76,24 +79,20 @@ class Registration:
 
     def segment(self, image):
         """Segment image with registration. Image can be either ndarray or string path to file"""
-        if isinstance(image,str):
+        if isinstance(image, str):
+            descriptor = self.simple_descriptor(cv2.imread(image, cv2.IMREAD_GRAYSCALE))
             image_filename = image
-            image = None
-
-        if image is None:
-            descriptor = self.simple_descriptor(cv2.imread(image_filename, cv2.IMREAD_GRAYSCALE))
         else:
             descriptor = self.simple_descriptor(image)
+            _, image_filename = tempfile.mkstemp('.png')
+            cv2.imwrite(image_filename, image)
 
-        distances = MT.pairwise_distances(self.descriptors, [descriptor], metric='correlation')[:, 0]
+        distances = metrics.pairwise_distances(self.descriptors, [descriptor], metric='correlation')[:, 0]
         indexes = np.argsort(distances)[:self.num_images]
         if self.forbid_same and distances[indexes[0]] < 0.001:
             indexes = np.argsort(distances)[1:self.num_images + 1]
         filenames = self.filenames[indexes]
 
-        if image is not None:
-            image_filename = next(tempfile._get_candidate_names()) + '.png'
-            cv2.imwrite(image_filename, image)
         masks = []
         e = None
         mask = None
