@@ -5,7 +5,7 @@ import numpy as np
 
 from imports.utils.gpu_setup import gpu_setup
 from imports.utils.settings_parser import SettingsParser
-from imports.data.mask_generator import MaskGenerator
+from imports.data import MaskGenerator
 import matplotlib.pyplot as plt
 
 
@@ -31,6 +31,7 @@ def train_test(settings_filename='settings.json'):
         plt.show()
 
     model = parser.get_model_method()(parser.input_shape, **parser.model_params)
+    model.build((None, *parser.input_shape))
     model.compile(**parser.model_compile)
     model.summary()
 

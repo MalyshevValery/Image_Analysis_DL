@@ -1,2 +1,4 @@
-from imports.data.loaders.image_mask_loader import ImageMaskLoader
-from imports.data.loaders.image_reg_mask_loader import ImageRegMaskLoader
+"""Classes from package files"""
+from .image import ImageLoader
+from .image_mask import ImageMaskLoader
+from .image_reg_mask import ImageRegMaskLoader

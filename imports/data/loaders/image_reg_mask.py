@@ -1,10 +1,11 @@
+"""Loader for training with additional registration mask"""
 import os
 import shutil
 
-import cv2
+import cv2.cv2 as cv2
 from tqdm import tqdm
 import numpy as np
-from imports.data.loaders.image_mask_loader import ImageMaskLoader
+from imports.data.loaders.image_mask import ImageMaskLoader
 from imports.registration import Registration
 
 
@@ -42,6 +43,11 @@ class ImageRegMaskLoader(ImageMaskLoader):
                 cv2.imwrite(self._reg_names[i], reg_mask)
 
     def get_image(self, i):
+        """Returns image with additional channel, representing mask acquired by registration
+
+        :param i: index of image
+        :return: image
+        """
         if self._load_gray:
             image = cv2.imread(self._image_names[i], cv2.IMREAD_GRAYSCALE)[:, :, np.newaxis]
         else:

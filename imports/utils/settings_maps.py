@@ -43,5 +43,5 @@ loader_class = {
 }
 
 decorators = {
-    'ignore_label': decorators.ignore_label_loader
+    'ignore_label': decorators.add_ignore
 }

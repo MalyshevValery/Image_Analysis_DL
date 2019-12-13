@@ -1,8 +1,9 @@
+"""Decorators for loaders to enhance their work"""
 from skimage.morphology import disk, binary_erosion, binary_dilation
 import numpy as np
 
 
-def ignore_label_loader(cls, radius=3, channel=1):
+def add_ignore(cls, radius=3, channel=1):
     """Decorator to add ignore labels to mask
 
     :param cls: Loader class
@@ -12,9 +13,10 @@ def ignore_label_loader(cls, radius=3, channel=1):
     old_get_mask = cls.get_mask
 
     def wrapper(self, i):
+        """Wrapper for mask"""
         mask = old_get_mask(self, i)
-        if mask.shape[2] == 1:
-            raise Exception('One channel mask can be used with ignore label')
+        if mask.shape[2] != 1:
+            raise Exception('Only two channel mask can be used with ignore label')
         if getattr(self, '__morph_element', None) is None:
             setattr(self, '__morph_element', disk(radius))
         ignore = np.zeros(mask.shape[:-1], dtype=np.float32)

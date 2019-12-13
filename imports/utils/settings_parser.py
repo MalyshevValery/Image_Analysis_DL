@@ -4,7 +4,7 @@ import os
 import copy
 
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
-from imports.cnn.models.unet import UNet
+from imports.models.unet import UNet
 from imports.utils.settings_maps import *
 
 

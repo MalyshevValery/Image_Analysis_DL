@@ -1,10 +1,10 @@
 import os
 import sys
 
-from imports.data.loaders.image_loader import ImageLoader
+from imports.data.loaders import ImageLoader
 from imports.utils.gpu_setup import gpu_setup
 from imports.utils.settings_parser import SettingsParser
-from imports.data.mask_generator import MaskGenerator
+from imports.data import MaskGenerator
 import argparse
 import json
 import tensorflow as tf
@@ -21,8 +21,8 @@ def predict(jobdir, image_dir, frac=1):
         loader_args['load_gray'] = parser.loader_args['load_gray']
     if 'mask_channel_codes' in parser.loader_args:
         loader_args['mask_channel_codes'] = parser.loader_args['mask_channel_codes']
-    loader = ImageLoader(image_dir, frac, **loader_args)
-    test = MaskGenerator(loader.test_indices(), loader, parser.batch_size, parser.aug_all, shuffle=False)
+    loader = ImageLoader(image_dir, **loader_args)
+    test = MaskGenerator(loader.get_indices(), loader, parser.batch_size, parser.aug_all, shuffle=False)
 
     model = parser.get_model_method()(parser.input_shape, **parser.model_params)
     model.compile(**parser.model_compile)
@@ -31,7 +31,7 @@ def predict(jobdir, image_dir, frac=1):
 
     pred_dir = os.path.join(jobdir, 'predicted_' + image_dir.replace('/', '_'))
     pred = model.predict_generator(test, **parser.training)
-    loader.save_predicted(pred_dir, loader.test_indices(), pred)
+    loader.save_predicted(pred_dir, loader.get_indices(), pred)
 
 
 if __name__ == '__main__':
