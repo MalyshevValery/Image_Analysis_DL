@@ -12,16 +12,18 @@ from imports.data.loaders import ImageLoader
 
 
 def predict(jobdir, image_dir):
+    """Predict masks from images in provided directory
+
+    :param jobdir: directory with job (settings and weights are necessary
+    :param image_dir: directory with images to predict
+    :return:
+    """
     with open(os.path.join(os.path.dirname(__file__), 'gpu_settings.json'), 'r') as gpu_file:
         gpu_settings = json.load(gpu_file)
         utils.gpu_setup(gpu_settings)
 
     parser = utils.SettingsParser(os.path.join(jobdir, 'settings.json'), predict_mode=True)
-    loader_args = {}
-    if 'load_gray' in parser.loader_args:
-        loader_args['load_gray'] = parser.loader_args['load_gray']
-    if 'mask_channel_codes' in parser.loader_args:
-        loader_args['mask_channel_codes'] = parser.loader_args['mask_channel_codes']
+    loader_args = {'load_gray': parser.loader_args['load_gray']} if 'load_gray' in parser.loader_args else {}
     loader = ImageLoader(image_dir, **loader_args)
     test = MaskGenerator(loader.get_indices(), loader, parser.batch_size, parser.aug_all, shuffle=False)
 

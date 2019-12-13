@@ -1,11 +1,13 @@
 """Keras generator for semantic segmentation tasks"""
 import numpy as np
-from imports.data.loaders.abstractloader import AbstractLoader
 from tensorflow.python.keras.utils import Sequence
+
+from imports.data.loaders.abstractloader import AbstractLoader
 
 
 class MaskGenerator(Sequence):
     """Keras generator for semantic segmentation build on top of loaders"""
+
     def __init__(self, idx, loader, batch_size, augmentations=None, shuffle=True):
         """Constructor
 

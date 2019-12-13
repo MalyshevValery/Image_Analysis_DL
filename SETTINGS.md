@@ -16,6 +16,7 @@
 - ? **loader**
     - ? *train_val_test* - array of 3 values with data splits, Default - (0.8, 0.1, 0.1)
     - ? *shuffle* - shuffle data before train val test split. Default - False
+    - ? *load_gray* - loads grayscale image if True, RGB if False
     - ? *mask_channel_codes* - int (will become [0 ... val - 1] or array. Default - None for one channel mask
     - ? [reg] *delete_previous* - Removes existing folder with registration. Default - False
 - **aug_all** - List of augmentations for all data (like scaling and normalizing)
