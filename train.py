@@ -51,7 +51,7 @@ def train(settings_filename='settings.json'):
     ret = model.evaluate_generator(test_gen, callbacks=callbacks, **parser.training)
     ret_val = {'loss': ret[0]}
     if len(ret) > 1:
-        for i, n in enumerate(parser.metrics_names):
+        for i, n in enumerate([name for name in parser.metrics_names if name != 'loss']):
             ret_val[n] = ret[i + 1]
     print('Test results: ', ret_val)
     for key in ret_val:

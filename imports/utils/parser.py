@@ -1,3 +1,4 @@
+"""Settings parser"""
 import copy
 import datetime
 import json
@@ -64,6 +65,8 @@ class SettingsParser:
 
         if 'metrics' in self.model_compile:
             self.metrics_names = self.model_compile['metrics'].copy()
+            if 'loss' in self.model_compile['metrics']:
+                self.model_compile['metrics'].remove('loss')
             self.model_compile['metrics'] = list(
                 map(lambda s: metrics_map[s] if s in metrics_map else s, self.model_compile['metrics']))
         else:
@@ -127,18 +130,19 @@ class SettingsParser:
     def get_callbacks(self):
         """Get callbacks for training"""
         callbacks = []
+        metric_name = self.metrics_names[0]
+        mode = 'max' if not metric_name == 'loss' else 'min'
         for s in self.callbacks_names:
             if s == "early_stop":
                 callbacks.append(
-                    EarlyStopping(monitor='val_' + self.metrics_names[0], verbose=1, min_delta=0.01,
-                                  patience=3, mode='max', restore_best_weights=True))
+                    EarlyStopping(monitor='val_' + metric_name, verbose=1, min_delta=0.01, patience=3, mode=mode,
+                                  restore_best_weights=True))
             elif s == "tensorboard":
                 callbacks.append(TensorBoard(log_dir=self.results_dir, profile_batch=0))
             elif s == "checkpoint":
                 callbacks.append(
-                    ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'),
-                                    monitor='val_' + self.metrics_names[0],
-                                    verbose=1, save_best_only=True, mode='max'))
+                    ModelCheckpoint(os.path.join(self.results_dir, 'weights.h5'), monitor='val_' + metric_name,
+                                    verbose=1, save_best_only=True, mode=mode))
             elif s == 'keep_settings':
                 self.keep_settings()
         return callbacks

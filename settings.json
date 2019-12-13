@@ -57,6 +57,7 @@
     "optimizer": "adam",
     "loss": "dice",
     "metrics": [
+      "loss",
       "iou",
       "acc",
       "f2",

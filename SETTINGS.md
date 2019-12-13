@@ -39,7 +39,7 @@
     - ? *loss* - chosen loss. One of *['jaccard','dice','binary_focal']* 
     or any of keras builtin losses (such as 'binary_crossentropy')
     - ? *metrics* - array of used metrics. Metrics have to be keras builtins or from *['iou','f1','f2',
-    'precision','recall']*
+    'precision','recall']*. You can use `loss` to make callbacks work with loss but loss itself won't be a metric
 - **training** - params for model training
     - *batch_size* - default 1
     - *epochs*
