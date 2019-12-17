@@ -55,14 +55,10 @@
   },
   "model_compile": {
     "optimizer": "adam",
-    "loss": "dice",
+    "loss": "binary_crossentropy",
     "metrics": [
       "loss",
-      "iou",
-      "acc",
-      "f2",
-      "precision",
-      "recall"
+      "acc"
     ]
   },
   "training": {
