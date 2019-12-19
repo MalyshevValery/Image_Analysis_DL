@@ -4,14 +4,12 @@ import datetime
 import json
 import os
 
-import numpy as np
+from albumentations import Compose
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 
-from imports.data.extensions import *
+from imports.data import AlbumentationsWrapper, Loader
 from imports.models.unet import UNet
 from .maps import *
-from ..data.loader import Loader
-from ..data.storages import DirectoryStorage
 
 
 class SettingsParser:
@@ -23,35 +21,10 @@ class SettingsParser:
             self.settings = copy.deepcopy(settings)
         self.predict_mode = predict_mode
 
-        # Data
-        self.images_path = settings['data']['images']
-        self.masks_path = settings['data']['masks']
-        self.descriptor_path = settings['data']['descriptor']
-        self.reg_path = settings['data']['reg']
-        self.input_shape = settings['data']['input_shape']
-
-        # Loader
-        self.loader_type = settings['loader_type']
-        self.loader_decorators = settings['loader_decorators'] if 'loader_decorators' in settings else []
-        self.loader_args = settings['loader'] if 'loader' in settings else {}
-
         # Augmentations
-        aug_names = [s['name'] for s in settings['aug_all']] if 'aug_all' in settings else []
-        aug_params = settings['aug_all'] if 'aug_all' in settings else []
-        for a in aug_params:
-            del a['name']
-        self.aug_all = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(aug_names))]
-        self.aug_all = aug.Compose(self.aug_all)
-        print("Augmentations for all", self.aug_all)
-
-        aug_names = [s['name'] for s in settings['aug_train']]
-        aug_params = settings['aug_train']
-        for a in aug_params:
-            del a['name']
-        self.aug_train = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(settings['aug_train']))]
-        self.aug_train = aug.Compose(self.aug_train)
-        self.aug_train = aug.Compose([self.aug_train, self.aug_all])
-        print("Augmentations for train", self.aug_train)
+        self.augmentation_all = AlbumentationsWrapper.from_json(settings['augmentation_all'])
+        self.augmentation_train = AlbumentationsWrapper.from_json(settings['augmentation_train'])
+        self.augmentation_train_merged = Compose([self.augmentation_train, self.augmentation_all])
 
         # Registration
         self.registration_args = settings['registration'] if 'registration' in settings else {}
@@ -96,7 +69,7 @@ class SettingsParser:
         self.show_sample = settings['show_sample'] if 'show_sample' in settings else False
 
         # Utility data
-        general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+        general_name = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         settings_name = os.path.basename(json_filename)
         if settings_name.startswith('settings_'):
             settings_name = settings_name[len('settings_'):]
@@ -108,27 +81,7 @@ class SettingsParser:
             os.makedirs(self.results_dir)
 
     def get_loader(self):
-        """Returns decorated loader object created according to settings.json and input shape for it"""
-        storage_images = DirectoryStorage(self.images_path, color_transform='to_gray')
-        storage_masks = DirectoryStorage(self.masks_path, color_transform='to_gray')
-        return Loader(storage_images, masks=storage_masks,
-                      extensions={'mask': TypeScaleExtension(255, np.float32, 1.0),
-                                  'save_image': TypeScaleExtension(255, np.float32, 1.0),
-                                  'save': TypeScaleExtension(1)})
-        # loader_cls = loader_class[self.loader_type]
-        # for d in self.loader_decorators:
-        #     t_dec = d.copy()
-        #     dec = decorators[t_dec['name']]
-        #     del t_dec['name']
-        #     loader_cls = dec(loader_cls, **t_dec)
-        #
-        # if self.loader_type == 'norm':
-        #     return loader_cls(self.images_path, self.masks_path, **self.loader_args)
-        # elif self.loader_type == 'reg':
-        #     return loader_cls(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-        #                       **self.loader_args, **self.registration_args)
-        # else:
-        #     raise Exception('Unknown loader type')
+        return Loader.from_json(self.settings['loader'])
 
     def get_model_method(self):
         """Returns method for model creation according to model.name setting"""

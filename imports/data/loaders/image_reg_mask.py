@@ -1,15 +1,18 @@
 """Loader for training with additional registration mask"""
 import os
 import shutil
+import sys
 
 import cv2.cv2 as cv2
-from tqdm import tqdm
 import numpy as np
-from imports.data.loaders.image_mask import ImageMaskLoader
+from tqdm import tqdm
+
 from imports.registration import Registration
 
+print('ImageRegMaskLoader is not supported and is waiting for remake for new system', file=sys.stderr)
 
-class ImageRegMaskLoader(ImageMaskLoader):
+
+class ImageRegMaskLoader():
     """Generator which appends registration mask to image"""
 
     def __init__(self, images_folder, masks_folder, reg_folder, descriptor_file,

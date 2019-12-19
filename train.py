@@ -13,23 +13,25 @@ from imports.data import MaskGenerator
 from imports.data.storages import DirectoryStorage
 
 
-def train(settings_filename='settings.json'):
+def train(settings='settings.json', show_sample=False, predict=False):
     """Train model
 
-    :param settings_filename: path to settings file
+    :param settings: path to settings file
+    :param show_sample: shows sample from input data if True
+    :param predict: predicts and saves Test set if True
     """
 
-    parser = utils.SettingsParser(settings_filename)
+    parser = utils.SettingsParser(settings)
     loader = parser.get_loader()
     js = loader.to_json()
     print(js)
     loader = loader.from_json(js)
-    train_keys, val_keys, test_keys = loader.split(parser.loader_args['train_val_test'])
-    train_gen = MaskGenerator(train_keys, loader, parser.batch_size, parser.aug_train)
-    val_gen = MaskGenerator(val_keys, loader, parser.batch_size, parser.aug_all)
-    test_gen = MaskGenerator(test_keys, loader, parser.batch_size, parser.aug_all, shuffle=False)
+    train_keys, val_keys, test_keys = loader.split(parser.settings['train_val_test'])
+    train_gen = MaskGenerator(train_keys, loader, parser.batch_size, parser.augmentation_train_merged)
+    val_gen = MaskGenerator(val_keys, loader, parser.batch_size, parser.augmentation_all)
+    test_gen = MaskGenerator(test_keys, loader, parser.batch_size, parser.augmentation_all, shuffle=False)
 
-    if parser.show_sample:
+    if show_sample:
         to_show = train_gen[0]
         image = to_show[0][0]
         mask = to_show[1][0]
@@ -39,8 +41,8 @@ def train(settings_filename='settings.json'):
         plt.imshow(image)
         plt.show()
 
-    model = parser.get_model_method()(parser.input_shape, **parser.model_params)
-    model.build((None, *parser.input_shape))
+    model = parser.get_model_method()(parser.settings['input_shape'], **parser.model_params)
+    model.build((None, *parser.settings['input_shape']))
     model.compile(**parser.model_compile)
     model.summary()
 
@@ -58,7 +60,7 @@ def train(settings_filename='settings.json'):
     for key in ret_val:
         open(os.path.join(parser.results_dir, '%.3f_' % ret_val[key] + key), 'w')
 
-    if parser.predict:
+    if predict:
         pred_dir = os.path.join(parser.results_dir, 'predicted')
         pred = model.predict_generator(test_gen, callbacks=callbacks, **parser.training)
         loader.save_predicted(test_keys, pred, DirectoryStorage(pred_dir, mode='w'))
@@ -68,18 +70,23 @@ if __name__ == '__main__':
     args = argparse.ArgumentParser()
     args.add_argument('settings', help='File with settings or directory with different settings', nargs='?',
                       default='settings.json')
+    args.add_argument('-p', help='Save predicted test set to job dir', action='store_true', dest='predict')
+    args.add_argument('-s', help='Show sample', action='store_true', dest='show_sample')
     parsed_args = args.parse_args(sys.argv[1:])
 
-    settings = parsed_args.settings
-    if os.path.isfile(settings):
-        print('File -', settings)
-        train(settings)
-    elif os.path.isdir(settings):
-        print('Dir -', settings)
-        for f in os.listdir(settings):
-            print('File -', os.path.join(settings, f))
+    kwargs = vars(parsed_args)
+    settings_arg = parsed_args.settings
+    if os.path.isfile(settings_arg):
+        print('File -', settings_arg)
+        train(**vars(parsed_args))
+    elif os.path.isdir(settings_arg):
+        print('Dir -', settings_arg)
+        for f in os.listdir(settings_arg):
+            settings_file = os.path.join(settings_arg, f)
+            print('File -', settings_file)
             try:
-                proc = Process(target=train, args=(os.path.join(settings, f),))
+                kwargs['settings'] = settings_file
+                proc = Process(target=train, kwargs=kwargs)
                 proc.start()
                 proc.join()
             except Exception as e:
