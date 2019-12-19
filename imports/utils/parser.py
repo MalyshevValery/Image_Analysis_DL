@@ -4,10 +4,14 @@ import datetime
 import json
 import os
 
+import numpy as np
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 
+from imports.data.extensions import *
 from imports.models.unet import UNet
 from .maps import *
+from ..data.loader import Loader
+from ..data.storages import DirectoryStorage
 
 
 class SettingsParser:
@@ -32,11 +36,11 @@ class SettingsParser:
         self.loader_args = settings['loader'] if 'loader' in settings else {}
 
         # Augmentations
-        aug_names = [s['name'] for s in settings['aug_all']]
-        aug_params = settings['aug_all']
+        aug_names = [s['name'] for s in settings['aug_all']] if 'aug_all' in settings else []
+        aug_params = settings['aug_all'] if 'aug_all' in settings else []
         for a in aug_params:
             del a['name']
-        self.aug_all = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(settings['aug_all']))]
+        self.aug_all = [augmentations[aug_names[i]](**aug_params[i]) for i in range(len(aug_names))]
         self.aug_all = aug.Compose(self.aug_all)
         print("Augmentations for all", self.aug_all)
 
@@ -105,20 +109,26 @@ class SettingsParser:
 
     def get_loader(self):
         """Returns decorated loader object created according to settings.json and input shape for it"""
-        loader_cls = loader_class[self.loader_type]
-        for d in self.loader_decorators:
-            t_dec = d.copy()
-            dec = decorators[t_dec['name']]
-            del t_dec['name']
-            loader_cls = dec(loader_cls, **t_dec)
-
-        if self.loader_type == 'norm':
-            return loader_cls(self.images_path, self.masks_path, **self.loader_args)
-        elif self.loader_type == 'reg':
-            return loader_cls(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
-                              **self.loader_args, **self.registration_args)
-        else:
-            raise Exception('Unknown loader type')
+        storage_images = DirectoryStorage(self.images_path, color_transform='to_gray')
+        storage_masks = DirectoryStorage(self.masks_path, color_transform='to_gray')
+        return Loader(storage_images, masks=storage_masks,
+                      extensions={'mask': TypeScaleExtension(255, np.float32, 1.0),
+                                  'save_image': TypeScaleExtension(255, np.float32, 1.0),
+                                  'save': TypeScaleExtension(1)})
+        # loader_cls = loader_class[self.loader_type]
+        # for d in self.loader_decorators:
+        #     t_dec = d.copy()
+        #     dec = decorators[t_dec['name']]
+        #     del t_dec['name']
+        #     loader_cls = dec(loader_cls, **t_dec)
+        #
+        # if self.loader_type == 'norm':
+        #     return loader_cls(self.images_path, self.masks_path, **self.loader_args)
+        # elif self.loader_type == 'reg':
+        #     return loader_cls(self.images_path, self.masks_path, self.reg_path, self.descriptor_path,
+        #                       **self.loader_args, **self.registration_args)
+        # else:
+        #     raise Exception('Unknown loader type')
 
     def get_model_method(self):
         """Returns method for model creation according to model.name setting"""

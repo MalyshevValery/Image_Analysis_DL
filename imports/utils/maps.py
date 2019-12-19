@@ -3,8 +3,7 @@ import albumentations as aug
 import segmentation_models.losses as losses
 import segmentation_models.metrics as metrics
 
-import imports.data.decorators as decorators
-import imports.data.loaders as loaders
+# import imports.data.decorators as decorators
 
 metrics_map = {
     'iou': metrics.IOUScore(name='iou'),
@@ -38,12 +37,6 @@ augmentations = {
     'resize': aug.Resize,
     'shift_scale_rotate': aug.ShiftScaleRotate
 }
-
-loader_class = {
-    'norm': loaders.ImageMaskLoader,
-    'reg': loaders.ImageRegMaskLoader
-}
-
-decorators = {
-    'ignore_label': decorators.add_ignore
-}
+# decorators = {
+#     'ignore_label': decorators.ignore_region
+# }

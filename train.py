@@ -10,6 +10,7 @@ import numpy as np
 
 import imports.utils as utils
 from imports.data import MaskGenerator
+from imports.data.storages import DirectoryStorage
 
 
 def train(settings_filename='settings.json'):
@@ -20,9 +21,13 @@ def train(settings_filename='settings.json'):
 
     parser = utils.SettingsParser(settings_filename)
     loader = parser.get_loader()
-    train_gen = MaskGenerator(loader.train_indices(), loader, parser.batch_size, parser.aug_train)
-    val_gen = MaskGenerator(loader.valid_indices(), loader, parser.batch_size, parser.aug_all)
-    test_gen = MaskGenerator(loader.test_indices(), loader, parser.batch_size, parser.aug_all, shuffle=False)
+    js = loader.to_json()
+    print(js)
+    loader = loader.from_json(js)
+    train_keys, val_keys, test_keys = loader.split(parser.loader_args['train_val_test'])
+    train_gen = MaskGenerator(train_keys, loader, parser.batch_size, parser.aug_train)
+    val_gen = MaskGenerator(val_keys, loader, parser.batch_size, parser.aug_all)
+    test_gen = MaskGenerator(test_keys, loader, parser.batch_size, parser.aug_all, shuffle=False)
 
     if parser.show_sample:
         to_show = train_gen[0]
@@ -56,7 +61,7 @@ def train(settings_filename='settings.json'):
     if parser.predict:
         pred_dir = os.path.join(parser.results_dir, 'predicted')
         pred = model.predict_generator(test_gen, callbacks=callbacks, **parser.training)
-        loader.save_predicted(pred_dir, loader.test_indices(), pred)
+        loader.save_predicted(test_keys, pred, DirectoryStorage(pred_dir, mode='w'))
 
 
 if __name__ == '__main__':
