@@ -1,10 +1,12 @@
 """UNet architecture for semantic segmentation"""
+import copy
+
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dropout, concatenate
 from tensorflow.keras.layers import Input, Conv2D, Conv2DTranspose, MaxPooling2D
 from tensorflow.keras.layers import Softmax
 
-from .parts import Conv2DBlock
+from .conv2dblock import Conv2DBlock
 
 
 def UNet(input_shape, out_channels=1, n_filters=16, dropout=0.5, batchnorm=True, kernel_size=3, activation='relu',
@@ -21,6 +23,7 @@ def UNet(input_shape, out_channels=1, n_filters=16, dropout=0.5, batchnorm=True,
     :param n_conv_layers: Number of convolutoinal layers in each convolutoinal/deconvolutional block
     :return: Keras model for U-net
     """
+    meta_info = copy.deepcopy(locals())
     input_img = Input(input_shape)
 
     # contracting path
@@ -78,5 +81,6 @@ def UNet(input_shape, out_channels=1, n_filters=16, dropout=0.5, batchnorm=True,
     else:
         outputs = Conv2D(out_channels, (1, 1), activation='sigmoid')(c9)
 
-    model = Model(inputs=[input_img], outputs=[outputs], name='U-Net')
+    model = Model(inputs=[input_img], outputs=[outputs], name='UNet')
+    model.meta_info = meta_info
     return model

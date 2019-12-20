@@ -46,3 +46,8 @@ class MaskGenerator(Sequence):
         """This function is automatically called on epoch end"""
         if self.__shuffle:
             np.random.shuffle(self.__keys)
+
+    @property
+    def keys(self):
+        """Getter for keys"""
+        return self.__keys.copy()

@@ -1,4 +1,6 @@
 """Transforms data in [0, ?] to [0, X] of specified type"""
+import copy
+
 import numpy as np
 
 from .abstract import AbstractExtension
@@ -34,16 +36,16 @@ class TypeScaleExtension(AbstractExtension):
     @staticmethod
     def from_json(json):
         """Creates extension from json"""
-        copy = json.copy()
-        if copy.get('type', None) != TypeScaleExtension.type():
-            raise ValueError('Invalid type ' + copy.get('type') + ' for TypeScaleExtension')
-        del copy['type']
+        config = copy.deepcopy(json)
+        if config.get('type', None) != TypeScaleExtension.type():
+            raise ValueError('Invalid type ' + config.get('type') + ' for TypeScaleExtension')
+        del config['type']
 
-        if 'target_type' in copy:
-            if copy['target_type'] not in ALLOWED_TYPES:
-                raise ValueError(copy['target_type'] + ' is not nalowed type for TypeScaleExtension')
-            copy['target_type'] = ALLOWED_TYPES[copy['target_type']]
-        return TypeScaleExtension(**copy)
+        if 'target_type' in config:
+            if config['target_type'] not in ALLOWED_TYPES:
+                raise ValueError(config['target_type'] + ' is not nalowed type for TypeScaleExtension')
+            config['target_type'] = ALLOWED_TYPES[config['target_type']]
+        return TypeScaleExtension(**config)
 
     @classmethod
     def type(cls):

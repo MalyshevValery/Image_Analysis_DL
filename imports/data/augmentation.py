@@ -27,7 +27,6 @@ class AlbumentationsWrapper(JSONSerializable):
         copied_dict = copy.deepcopy(json)
         transform_dict = AlbumentationsWrapper.__deep_apply(copied_dict, 'transform', '__class_fullname__',
                                                             lambda s: NAME_TO_REGISTRY[s])
-        print(transform_dict)
         return ab.from_dict({'__version__': ab.__version__, 'transform': transform_dict})
 
     @staticmethod

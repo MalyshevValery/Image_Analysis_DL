@@ -1,16 +1,15 @@
 """Main training script"""
 import argparse
+import json
 import os
 import sys
 import traceback as tb
 from multiprocessing import Process
 
 import matplotlib.pyplot as plt
-import numpy as np
 
-import imports.utils as utils
-from imports.data import MaskGenerator
 from imports.data.storages import DirectoryStorage
+from imports.trainingwrapper import TrainingWrapper
 
 
 def train(settings='settings.json', show_sample=False, predict=False):
@@ -21,49 +20,20 @@ def train(settings='settings.json', show_sample=False, predict=False):
     :param predict: predicts and saves Test set if True
     """
 
-    parser = utils.SettingsParser(settings)
-    loader = parser.get_loader()
-    js = loader.to_json()
-    print(js)
-    loader = loader.from_json(js)
-    train_keys, val_keys, test_keys = loader.split(parser.settings['train_val_test'])
-    train_gen = MaskGenerator(train_keys, loader, parser.batch_size, parser.augmentation_train_merged)
-    val_gen = MaskGenerator(val_keys, loader, parser.batch_size, parser.augmentation_all)
-    test_gen = MaskGenerator(test_keys, loader, parser.batch_size, parser.augmentation_all, shuffle=False)
-
+    with open(settings, 'r') as file:
+        config = json.load(file)
+    tw = TrainingWrapper.from_json(config, 'Jobs/', settings)
     if show_sample:
-        to_show = train_gen[0]
-        image = to_show[0][0]
-        mask = to_show[1][0]
-        if image.shape[2] == 1:
-            image = np.concatenate([image] * 3, axis=-1)
-        image[:, :, :mask.shape[2]] *= (1 - mask)
-        plt.imshow(image)
-        plt.show()
+        plt.axis('off')
+        plt.imshow(tw.get_train_sample())
+        plt.show(bbox_inches='tight')
 
-    model = parser.get_model_method()(parser.settings['input_shape'], **parser.model_params)
-    model.build((None, *parser.settings['input_shape']))
-    model.compile(**parser.model_compile)
-    model.summary()
-
-    callbacks = parser.get_callbacks()
-    model.fit_generator(train_gen, epochs=parser.epochs, validation_data=val_gen, callbacks=callbacks,
-                        **parser.training)
-    model.load_weights(os.path.join(parser.results_dir, 'weights.h5'))
-
-    ret = model.evaluate_generator(test_gen, callbacks=callbacks, **parser.training)
-    ret_val = {'loss': ret[0]}
-    if len(ret) > 1:
-        for i, n in enumerate([name for name in parser.metrics_names if name != 'loss']):
-            ret_val[n] = ret[i + 1]
-    print('Test results: ', ret_val)
-    for key in ret_val:
-        open(os.path.join(parser.results_dir, '%.3f_' % ret_val[key] + key), 'w')
+    tw.train(save_whole_model=True)
+    tw.evaluate()
 
     if predict:
-        pred_dir = os.path.join(parser.results_dir, 'predicted')
-        pred = model.predict_generator(test_gen, callbacks=callbacks, **parser.training)
-        loader.save_predicted(test_keys, pred, DirectoryStorage(pred_dir, mode='w'))
+        pred_dir = os.path.join(tw._job_dir, 'predicted')
+        tw.predict_save_test(DirectoryStorage(pred_dir, mode='w'))
 
 
 if __name__ == '__main__':

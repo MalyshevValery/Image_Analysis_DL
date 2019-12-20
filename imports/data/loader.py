@@ -1,4 +1,6 @@
 """All-in-one loader for image tasks"""
+import copy
+
 import numpy as np
 
 from imports.data.extensions import extension_factory, AbstractExtension
@@ -72,6 +74,10 @@ class Loader(JSONSerializable):
         """Getter for keys"""
         return self._keys
 
+    def get_input_shape(self):
+        """Returns input shape of data"""
+        return self.get_image(self._keys[0]).shape
+
     def get_image(self, key):
         """Get image"""
         image = self._images[key]
@@ -124,12 +130,12 @@ class Loader(JSONSerializable):
     @staticmethod
     def from_json(json):
         """Creates loader from JSON"""
-        copy = json.copy()
-        del copy['images']
-        for k in copy.keys():
+        config = copy.deepcopy(json)
+        del config['images']
+        for k in config.keys():
             if k == 'extensions':
                 extensions = {}
-                extensions_conf = copy['extensions']
+                extensions_conf = config['extensions']
                 for apply in extensions_conf:
                     if not isinstance(extensions_conf[apply], list):
                         extensions[apply] = extension_factory(extensions_conf[apply], apply)
@@ -138,7 +144,7 @@ class Loader(JSONSerializable):
                         for extension in extensions_conf[apply]:
                             new_extensions.append(extension_factory(extension, apply))
                         extensions[apply] = new_extensions
-                copy[k] = extensions
+                config[k] = extensions
             else:
-                copy[k] = storage_factory(copy[k])
-        return Loader(storage_factory(json['images']), **copy)
+                config[k] = storage_factory(config[k])
+        return Loader(storage_factory(json['images']), **config)

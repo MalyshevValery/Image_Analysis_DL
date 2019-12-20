@@ -1,3 +1,6 @@
+"""Ignore region extension"""
+import copy
+
 import numpy as np
 import skimage.morphology as morph
 
@@ -44,12 +47,12 @@ class IgnoreRegionExtension(AbstractExtension):
     @staticmethod
     def from_json(json):
         """Returns IgnoreRegionExtension specified in json argument"""
-        copy = json.copy()
-        if copy.get('type', None) != IgnoreRegionExtension.type():
-            raise ValueError('Invalid type ' + copy.get('type') + ' for TypeScaleExtension')
-        del copy['type']
+        config = copy.deepcopy(json)
+        if config.get('type', None) != IgnoreRegionExtension.type():
+            raise ValueError('Invalid type ' + config.get('type') + ' for TypeScaleExtension')
+        del config['type']
 
-        return IgnoreRegionExtension(**copy)
+        return IgnoreRegionExtension(**config)
 
     @classmethod
     def allowed(cls):

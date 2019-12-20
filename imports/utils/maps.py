@@ -1,5 +1,4 @@
 """Maps settings strings to functions and objects"""
-import albumentations as aug
 import segmentation_models.losses as losses
 import segmentation_models.metrics as metrics
 
@@ -18,25 +17,3 @@ loss_map = {
     'dice': losses.DiceLoss(),
     'binary_focal': losses.BinaryFocalLoss()
 }
-
-augmentations = {
-    'blur': aug.Blur,
-    'bright_contrast': aug.RandomBrightnessContrast,
-    'clahe': aug.CLAHE,
-    'crop': aug.RandomCrop,
-    'sized_crop': aug.RandomSizedCrop,
-    'compression': aug.ImageCompression,
-    'downscale': aug.Downscale,
-    'equalize': aug.Equalize,
-    'float': aug.ToFloat,
-    'gauss_noise': aug.GaussNoise,
-    'gauss_blur': aug.GaussianBlur,
-    'iaa_sharpen': aug.IAASharpen,
-    'iso_noise': aug.ISONoise,
-    'median_blur': aug.MedianBlur,
-    'resize': aug.Resize,
-    'shift_scale_rotate': aug.ShiftScaleRotate
-}
-# decorators = {
-#     'ignore_label': decorators.ignore_region
-# }

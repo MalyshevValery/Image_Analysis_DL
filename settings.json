@@ -38,27 +38,12 @@
       ]
     }
   },
-  "registration": {
-    "num_images": 1,
-    "n_jobs": 4
-  },
-  "loader_type": "norm",
   "train_val_test": [
     0.8,
     0.1,
     0.1
   ],
-  "input_shape": [
-    256,
-    256,
-    1
-  ],
-  "augmentation_all": [
-    {
-      "transform": "ToFloat"
-    }
-  ],
-  "augmentation_train": [
+  "augmentation": [
     {
       "transform": "Blur"
     },
@@ -76,33 +61,30 @@
       "transform": "ShiftScaleRotate",
       "border_mode": 1,
       "rotate_limit": 15
+    },
+    {
+      "transform": "ToFloat"
     }
   ],
   "model": {
-    "name": "unet"
+    "name": "UNet"
   },
   "model_compile": {
     "optimizer": "adam",
-    "loss": "dice",
+    "loss": "binary_crossentropy",
     "metrics": [
-      "loss",
-      "iou",
-      "acc",
-      "f2",
-      "precision",
-      "recall"
+      "acc"
     ]
   },
-  "training": {
-    "batch_size": 4,
+  "batch_size": 4,
+  "training_params": {
     "epochs": 1,
-    "callbacks": [
-      "tensorboard",
-      "checkpoint",
-      "keep_settings"
-    ],
     "use_multiprocessing": true,
     "workers": 8
   },
-  "predict": true
+  "callbacks": [
+    "tensorboard",
+    "checkpoint",
+    "keep_settings"
+  ]
 }

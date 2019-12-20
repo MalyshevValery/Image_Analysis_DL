@@ -1,4 +1,5 @@
 """Directory storage"""
+import copy
 import os
 
 import numpy as np
@@ -69,9 +70,9 @@ class DirectoryStorage(AbstractStorage):
     @staticmethod
     def from_json(json, mode='r'):
         """Returns object generator from dict"""
-        copy = json.copy()
+        config = copy.deepcopy(json)
         if json['type'] != DirectoryStorage.type():
             raise ValueError('Type ' + json['type'] + ' is invalid type for DirectoryStorage')
-        del copy['dir']
-        del copy['type']
-        return DirectoryStorage(json['dir'], **copy)
+        del config['dir']
+        del config['type']
+        return DirectoryStorage(json['dir'], **config)
