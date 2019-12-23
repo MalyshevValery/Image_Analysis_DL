@@ -13,7 +13,7 @@ from .storages import AbstractStorage, storage_factory
 class Loader(JSONSerializable):
     """Loader of data for different image tasks (currently only Semantic segmentation is supported)"""
 
-    def __init__(self, images: AbstractStorage, masks: AbstractStorage = None,
+    def __init__(self, images: AbstractStorage = None, masks: AbstractStorage = None,
                  extensions: Dict[str, Union[AbstractExtension, List[AbstractExtension]]] = None):
         """Constructor
 
@@ -21,19 +21,8 @@ class Loader(JSONSerializable):
         :param masks: Storage with masks
         :param extensions: dictionary of apply : list of extensions. Where apply is from [image, mask]
         """
-        if not isinstance(images, AbstractStorage):
+        if images is not None and not isinstance(images, AbstractStorage):
             raise TypeError('Images have to be a Storage')
-
-        keys = images.get_keys()
-        self._images = images
-
-        if masks is not None:
-            if not isinstance(masks, AbstractStorage):
-                raise TypeError('Masks have to be a Storage')
-            keys = keys.intersection(masks.get_keys())
-        self._masks = masks
-
-        self._keys = list(keys)  # To ensure order
 
         self._extensions = {
             'image': [],
@@ -53,6 +42,20 @@ class Loader(JSONSerializable):
                         raise ValueError(extension + ' does not implements AbstractExtension')
                     extension.check_extension(apply)
                 self._extensions[apply] = extensions[apply]
+
+        if images is None:
+            print('Loader prediction mode')
+            return
+
+        keys = images.get_keys()
+        self._images = images
+
+        if masks is not None:
+            if not isinstance(masks, AbstractStorage):
+                raise TypeError('Masks have to be a Storage')
+            keys = keys.intersection(masks.get_keys())
+        self._masks = masks
+        self._keys = list(keys)  # To ensure order
 
     def split(self, train_val_test):
         """Splits indices on three fractures
@@ -83,6 +86,12 @@ class Loader(JSONSerializable):
     def get_image(self, key):
         """Get image"""
         image = self._images[key]
+        for apply in self._extensions['image']:
+            image = apply(image)
+        return image
+
+    def process_image(self, image):
+        """Process external image"""
         for apply in self._extensions['image']:
             image = apply(image)
         return image
@@ -130,23 +139,34 @@ class Loader(JSONSerializable):
         return json
 
     @staticmethod
-    def from_json(json):
+    def from_json(json: dict, predict=False):
         """Creates loader from JSON"""
+        if predict:
+            return Loader(extensions=Loader.__create_extensions(json.get('extensions', {})))
+
         config = copy.deepcopy(json)
+        images = config['images']
         del config['images']
         for k in config.keys():
             if k == 'extensions':
-                extensions = {}
-                extensions_conf = config['extensions']
-                for apply in extensions_conf:
-                    if not isinstance(extensions_conf[apply], list):
-                        extensions[apply] = extension_factory(extensions_conf[apply], apply)
-                    else:
-                        new_extensions = []
-                        for extension in extensions_conf[apply]:
-                            new_extensions.append(extension_factory(extension, apply))
-                        extensions[apply] = new_extensions
-                config[k] = extensions
+                config[k] = Loader.__create_extensions(config['extensions'])
             else:
                 config[k] = storage_factory(config[k])
-        return Loader(storage_factory(json['images']), **config)
+        return Loader(storage_factory(images), **config)
+
+    @staticmethod
+    def __create_extensions(config):
+        extensions = {}
+        for apply in config:
+            if not isinstance(config[apply], list):
+                extensions[apply] = extension_factory(config[apply], apply)
+            else:
+                new_extensions = []
+                for extension in config[apply]:
+                    new_extensions.append(extension_factory(extension, apply))
+                extensions[apply] = new_extensions
+        return extensions
+
+    def copy_for_storage(self, storage: AbstractStorage):
+        """Creates new storage with other images storage to use it for predictions"""
+        return Loader(images=storage, extensions=self._extensions)

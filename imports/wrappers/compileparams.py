@@ -6,8 +6,8 @@ import segmentation_models as seg
 from imports.jsonserializable import JSONSerializable
 
 LOSSES = {
-    'binary_focal': seg.losses.BinaryFocalLoss(),
-    'categorical_focal': seg.losses.CategoricalFocalLoss(),
+    'binary_focal': seg.losses.BinaryFocalLoss,
+    'categorical_focal': seg.losses.CategoricalFocalLoss,
     'dice': seg.losses.DiceLoss,
     'jaccard': seg.losses.JaccardLoss
 }

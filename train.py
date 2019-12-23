@@ -1,4 +1,4 @@
-"""Main launching script"""
+"""Training script"""
 import argparse
 import json
 import os
@@ -9,7 +9,7 @@ from multiprocessing import Process
 import matplotlib.pyplot as plt
 
 from imports.data.storages import DirectoryStorage
-from imports.training import TrainingWrapper
+from imports.train import TrainWrapper
 
 
 def train(settings='settings.json', show_sample=False, predict=False, extended=False):
@@ -23,7 +23,7 @@ def train(settings='settings.json', show_sample=False, predict=False, extended=F
 
     with open(settings, 'r') as file:
         config = json.load(file)
-    tw = TrainingWrapper.from_json(config, 'Jobs/', settings)
+    tw = TrainWrapper.from_json(config, 'Jobs/', settings)
     if show_sample:
         plt.axis('off')
         plt.imshow(tw.get_train_sample()[..., ::-1])
@@ -43,19 +43,8 @@ def train(settings='settings.json', show_sample=False, predict=False, extended=F
         tw.predict_save_test(DirectoryStorage(pred_dir, mode='w'))
 
 
-def check(settings='settings.json', **kwargs):
-    """Checks if settings are valid"""
-    with open(settings, 'r') as file:
-        config = json.load(file)
-    tw = TrainingWrapper.from_json(config, 'Jobs/test_', settings)
-    tw.check()
-    os.rmdir(tw.get_job_dir())
-    print('Everything is OK')
-
-
 if __name__ == '__main__':
     args = argparse.ArgumentParser()
-    args.add_argument('command', help='Command to execute', choices=['train', 'check'])
     args.add_argument('settings', help='File with settings or directory with different settings', nargs='?',
                       default='settings.json')
     args.add_argument('-p', help='Save predicted test set to job dir', action='store_true', dest='predict')
@@ -65,18 +54,10 @@ if __name__ == '__main__':
 
     kwargs = vars(parsed_args)
     settings_arg = parsed_args.settings
-    command = parsed_args.command
-    if command == 'train':
-        command = train
-    elif command == 'check':
-        command = check
-    else:
-        raise ValueError('Unknown command ' + command)
-    del parsed_args.command
 
     if os.path.isfile(settings_arg):
         print('File -', settings_arg)
-        command(**vars(parsed_args))
+        train(**vars(parsed_args))
     elif os.path.isdir(settings_arg):
         print('Dir -', settings_arg)
         for f in os.listdir(settings_arg):
@@ -84,7 +65,7 @@ if __name__ == '__main__':
             print('File -', settings_file)
             try:
                 kwargs['settings'] = settings_file
-                proc = Process(target=command, kwargs=kwargs)
+                proc = Process(target=train, kwargs=kwargs)
                 proc.start()
                 proc.join()
             except Exception as e:

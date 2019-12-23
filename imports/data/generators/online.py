@@ -20,4 +20,4 @@ class OnlineGenerator:
         """
         data = self.__augment(image=image)
         image = data['image']
-        return image[np.newaxis]
+        return image[np.newaxis, ..., np.newaxis]

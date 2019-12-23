@@ -5,7 +5,7 @@ import os
 
 import numpy as np
 from albumentations import BasicTransform, Compose
-from tensorflow.keras.models import Model, save_model
+from tensorflow.keras.models import Model
 
 from .data import Loader, image_mask, MaskGenerator, AbstractStorage
 from .jsonserializable import JSONSerializable
@@ -13,13 +13,13 @@ from .models import ModelsFactory
 from .wrappers import CallbacksWrapper, CompileParams, AlbumentationsWrapper
 
 
-class TrainingWrapper(JSONSerializable):
+class TrainWrapper(JSONSerializable):
     """Training process encapsulation"""
 
     def __init__(self, loader: Loader, model: Model, job_dir: str, model_compile: CompileParams = None,
                  train_val_test=(0.8, 0.1, 0.1), batch_size=1, restore_weights=True,
                  augmentation_train: BasicTransform = None, augmentation_all: BasicTransform = None,
-                 callbacks: CallbacksWrapper = None, training_params: dict = None):
+                 callbacks: CallbacksWrapper = None, generator_params: dict = None):
         """Constructor
 
         :param loader: Loader for data
@@ -32,7 +32,7 @@ class TrainingWrapper(JSONSerializable):
         :param augmentation_train: augmentations for train data (will be merged with augmentations_all)
         :param augmentation_all: augmentations applied to data from all sets
         :param callbacks: callbacks for training process
-        :param training_params: parameters for training
+        :param generator_params: parameters for training
         """
         self._loader = loader
         self._train_val_test = train_val_test
@@ -54,7 +54,7 @@ class TrainingWrapper(JSONSerializable):
 
         # Training params and callbacks
         self._callbacks = callbacks or None
-        self._training_params = training_params or {}
+        self._generator_params = generator_params or {}
 
         # Create model
         if not isinstance(model, Model):
@@ -80,23 +80,21 @@ class TrainingWrapper(JSONSerializable):
         """Train process. After training best weights are restored if checkpoint callback with save_best was used"""
         self._model.fit_generator(self._train_gen, validation_data=self._val_gen,
                                   callbacks=self._callbacks.get_callbacks() if self._callbacks else None,
-                                  **self._training_params)
+                                  **self._generator_params)
         self._model.save_weights(os.path.join(self._job_dir, 'weights_last.h5'))
         if self._restore_weights:
             self._model.load_weights(os.path.join(self._job_dir, "weights.h5"))
 
         if save_whole_model:
-            save_model(self._model, os.path.join(self._job_dir, 'model.h5'))
+            self._model.save(os.path.join(self._job_dir, 'model.h5'))
 
     def evaluate(self):
         """Evaluate test set"""
         ret = self._model.evaluate_generator(self._test_gen, **self.__get_eval_params())
         ret_val = {'loss': ret[0]}
-        if len(ret) > 1 and 'metrics' in self._training_params:
+        if len(ret) > 1 and 'metrics' in self._generator_params:
             for i, metric in enumerate([metric if isinstance(metric, str) else metric.name for metric in
-                                        self._training_params['metrics']]):
-                if metric == 'loss':
-                    continue
+                                        self._generator_params['metrics']]):
                 ret_val[metric] = ret[i + 1]
         print('Test results: ', ret_val)
         for key in ret_val:
@@ -127,7 +125,7 @@ class TrainingWrapper(JSONSerializable):
             'model': ModelsFactory.to_json(self._model),
             'job_dir': os.path.abspath(self._job_dir),
             'model_compile': self._model_compile.to_json(),
-            'training_params': self._training_params,
+            'generator_params': self._generator_params,
             'callbacks': self._callbacks.to_json()
         }
         if self._augmentation_all:
@@ -173,11 +171,11 @@ class TrainingWrapper(JSONSerializable):
         if 'model_compile' in config:
             config['model_compile'] = CompileParams.from_json(config['model_compile'])
 
-        return TrainingWrapper(loader, model, job_dir, **config)
+        return TrainWrapper(loader, model, job_dir, **config)
 
     def get_train_sample(self):
         """Returns random image with ground truth overlay from train generator"""
-        to_show = TrainingWrapper.__get_sample(self._train_gen)
+        to_show = TrainWrapper.__get_sample(self._train_gen)
         image = to_show[0]
         mask = to_show[1]
         return image_mask(image, mask)
@@ -194,6 +192,6 @@ class TrainingWrapper(JSONSerializable):
         return sample
 
     def __get_eval_params(self):
-        evaluate_params = copy.deepcopy(self._training_params)
+        evaluate_params = copy.deepcopy(self._generator_params)
         evaluate_params.pop('epochs', None)
         return evaluate_params
