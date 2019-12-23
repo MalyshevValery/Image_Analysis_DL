@@ -102,6 +102,15 @@ class TrainingWrapper(JSONSerializable):
         for key in ret_val:
             open(os.path.join(self._job_dir, '%.3f_' % ret_val[key] + key), 'w')
 
+    def check(self):
+        """Checks if anything is valid by running one batch through model"""
+        batches = [self._train_gen[0], self._val_gen[0], self._test_gen[0]]
+        x = [b[0] for b in batches]
+        y = [b[1] for b in batches]
+        self._model.train_on_batch(x[0], y[0])
+        self._model.test_on_batch(x[1], y[1])
+        self._model.predict_on_batch(x[2])
+
     def predict_save_test(self, storage):
         """Predicts test data"""
         if not isinstance(storage, AbstractStorage):
@@ -113,8 +122,6 @@ class TrainingWrapper(JSONSerializable):
         """Saves training process config to dict"""
         config = {
             'loader': self._loader.to_json(),
-            'augmentation_train': AlbumentationsWrapper.to_json(self._augmentation_train),
-            'augmentation_all': AlbumentationsWrapper.to_json(self._augmentation_all),
             'train_val_test': self._train_val_test,
             'batch_size': self._batch_size,
             'model': ModelsFactory.to_json(self._model),
@@ -123,6 +130,12 @@ class TrainingWrapper(JSONSerializable):
             'training_params': self._training_params,
             'callbacks': self._callbacks.to_json()
         }
+        if self._augmentation_all:
+            config['augmentation_all'] = AlbumentationsWrapper.to_json(self._augmentation_all),
+        if self._augmentation_all:
+            config['augmentation_train'] = AlbumentationsWrapper.to_json(self._augmentation_all),
+        if self._augmentation_all:
+            config['callbacks'] = self._callbacks.to_json()
         return config
 
     @staticmethod
@@ -168,6 +181,10 @@ class TrainingWrapper(JSONSerializable):
         image = to_show[0]
         mask = to_show[1]
         return image_mask(image, mask)
+
+    def get_job_dir(self):
+        """Returns path to job dir"""
+        return os.path.abspath(self._job_dir)
 
     @staticmethod
     def __get_sample(gen):

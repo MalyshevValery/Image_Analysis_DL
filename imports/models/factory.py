@@ -13,10 +13,11 @@ class ModelsFactory(JSONSerializable):
     @staticmethod
     def to_json(model: Model):
         """Turns model to JSON"""
-        if not hasattr(model, 'meta_inf'):
+        if not hasattr(model, 'meta_info'):
             raise TypeError('Model does not have saved meta info form its creation')
         json = copy.deepcopy(model.meta_info)
         json['name'] = model.name
+        return json
 
     @staticmethod
     def from_json(json, input_shape=None) -> Model:

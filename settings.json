@@ -60,7 +60,7 @@
   },
   "batch_size": 4,
   "training_params": {
-    "epochs": 10
+    "epochs": 1
   },
   "callbacks": [
     {
