@@ -43,25 +43,7 @@
     0.1,
     0.1
   ],
-  "augmentation": [
-    {
-      "transform": "Blur"
-    },
-    {
-      "transform": "GaussNoise"
-    },
-    {
-      "transform": "IAASharpen"
-    },
-    {
-      "transform": "ImageCompression",
-      "quality_lower": 50
-    },
-    {
-      "transform": "ShiftScaleRotate",
-      "border_mode": 1,
-      "rotate_limit": 15
-    },
+  "augmentation_all": [
     {
       "transform": "ToFloat"
     }
@@ -71,20 +53,25 @@
   },
   "model_compile": {
     "optimizer": "adam",
-    "loss": "binary_crossentropy",
+    "loss": "dice",
     "metrics": [
       "acc"
     ]
   },
   "batch_size": 4,
   "training_params": {
-    "epochs": 1,
-    "use_multiprocessing": true,
-    "workers": 8
+    "epochs": 10
   },
   "callbacks": [
-    "tensorboard",
-    "checkpoint",
-    "keep_settings"
+    {
+      "name": "tensorboard",
+      "log_dir": "$BASE$",
+      "profile_batch": 0
+    },
+    {
+      "name": "checkpoint",
+      "verbose": 1,
+      "save_best_only": true
+    }
   ]
 }

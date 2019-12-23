@@ -25,7 +25,7 @@ def train(settings='settings.json', show_sample=False, predict=False):
     tw = TrainingWrapper.from_json(config, 'Jobs/', settings)
     if show_sample:
         plt.axis('off')
-        plt.imshow(tw.get_train_sample())
+        plt.imshow(tw.get_train_sample()[..., ::-1])
         plt.show(bbox_inches='tight')
 
     tw.train(save_whole_model=True)

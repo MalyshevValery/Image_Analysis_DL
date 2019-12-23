@@ -1,7 +1,7 @@
 """Abstract Storage class"""
 from abc import abstractmethod
 
-from imports.utils.jsonserializable import JSONSerializable
+from imports.jsonserializable import JSONSerializable
 
 
 class AbstractStorage(JSONSerializable):

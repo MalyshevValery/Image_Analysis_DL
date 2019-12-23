@@ -6,7 +6,7 @@ import numpy as np
 from imports.data.extensions import extension_factory, AbstractExtension
 from imports.data.overlay import image_mask
 from imports.data.storages import AbstractStorage, storage_factory
-from imports.utils.jsonserializable import JSONSerializable
+from imports.jsonserializable import JSONSerializable
 
 
 class Loader(JSONSerializable):

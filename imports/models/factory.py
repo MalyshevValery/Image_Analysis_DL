@@ -3,7 +3,7 @@ import copy
 
 from tensorflow.keras.models import Model
 
-from imports.utils.jsonserializable import JSONSerializable
+from imports.jsonserializable import JSONSerializable
 from .unet import UNet
 
 

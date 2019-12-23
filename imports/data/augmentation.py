@@ -3,7 +3,7 @@ import copy
 import albumentations as ab
 from albumentations.core.serialization import SERIALIZABLE_REGISTRY
 
-from imports.utils.jsonserializable import JSONSerializable
+from imports.jsonserializable import JSONSerializable
 
 NAME_TO_REGISTRY = dict((k.split('.')[-1], k) for k in SERIALIZABLE_REGISTRY.keys())
 
