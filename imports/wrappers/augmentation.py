@@ -1,6 +1,8 @@
+"""Wrapper for albumentations package"""
 import copy
 
 import albumentations as ab
+from albumentations import BasicTransform
 from albumentations.core.serialization import SERIALIZABLE_REGISTRY
 
 from imports.jsonserializable import JSONSerializable
@@ -12,7 +14,7 @@ class AlbumentationsWrapper(JSONSerializable):
     """Wrapper for albumentations serialization procedure"""
 
     @staticmethod
-    def to_json(aug):
+    def to_json(aug: BasicTransform):
         """Turns albumentations to JSON"""
         raw_dict = ab.to_dict(aug)
         transform_dict = raw_dict['transform']
@@ -20,7 +22,7 @@ class AlbumentationsWrapper(JSONSerializable):
                                                   lambda s: s.split('.')[-1])
 
     @staticmethod
-    def from_json(json):
+    def from_json(json) -> BasicTransform:
         """Creates albumentations from JSON"""
         if isinstance(json, list):
             json = {"transform": "Compose", "transforms": json}

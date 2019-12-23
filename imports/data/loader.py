@@ -1,18 +1,20 @@
 """All-in-one loader for image tasks"""
 import copy
+from typing import List, Dict, Union
 
 import numpy as np
 
-from imports.data.extensions import extension_factory, AbstractExtension
-from imports.data.overlay import image_mask
-from imports.data.storages import AbstractStorage, storage_factory
 from imports.jsonserializable import JSONSerializable
+from .extensions import extension_factory, AbstractExtension
+from .overlay import image_mask
+from .storages import AbstractStorage, storage_factory
 
 
 class Loader(JSONSerializable):
     """Loader of data for different image tasks (currently only Semantic segmentation is supported)"""
 
-    def __init__(self, images, masks=None, extensions=None):
+    def __init__(self, images: AbstractStorage, masks: AbstractStorage = None,
+                 extensions: Dict[str, Union[AbstractExtension, List[AbstractExtension]]] = None):
         """Constructor
 
         :param images: Storage with images
@@ -94,7 +96,7 @@ class Loader(JSONSerializable):
             mask = apply(mask)
         return mask
 
-    def save_predicted(self, keys, predictions, storage):
+    def save_predicted(self, keys, predictions, storage: AbstractStorage):
         """Saves images with prediction overlay to storage.
 
         WARNING: currently works only for masks

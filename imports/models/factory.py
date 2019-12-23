@@ -11,7 +11,7 @@ class ModelsFactory(JSONSerializable):
     """Model serialization and deserialization from JSON"""
 
     @staticmethod
-    def to_json(model):
+    def to_json(model: Model):
         """Turns model to JSON"""
         if not hasattr(model, 'meta_inf'):
             raise TypeError('Model does not have saved meta info form its creation')

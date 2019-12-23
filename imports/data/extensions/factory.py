@@ -1,9 +1,10 @@
 """Factory of extensions"""
+from .abstract import AbstractExtension
 from .ignoreregion import IgnoreRegionExtension
 from .typescale import TypeScaleExtension
 
 
-def extension_factory(json, apply_to='all'):
+def extension_factory(json, apply_to='all') -> AbstractExtension:
     """Creates proper extension from specified json"""
     extension_type = json['type']
     if extension_type == TypeScaleExtension.type():

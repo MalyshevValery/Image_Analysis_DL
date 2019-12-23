@@ -1,5 +1,6 @@
 """Keras generator for semantic segmentation tasks"""
 import numpy as np
+from albumentations import BasicTransform
 from tensorflow.python.keras.utils import Sequence
 
 from imports.data.loader import Loader
@@ -8,7 +9,7 @@ from imports.data.loader import Loader
 class MaskGenerator(Sequence):
     """Keras generator for semantic segmentation build on top of loaders"""
 
-    def __init__(self, keys, loader, batch_size, augmentations=None, shuffle=True):
+    def __init__(self, keys, loader: Loader, batch_size, augmentations: BasicTransform = None, shuffle=True):
         """Constructor
 
         :param keys: keys for data in loader

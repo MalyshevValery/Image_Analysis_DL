@@ -9,7 +9,7 @@ from multiprocessing import Process
 import matplotlib.pyplot as plt
 
 from imports.data.storages import DirectoryStorage
-from imports.trainingwrapper import TrainingWrapper
+from imports.training import TrainingWrapper
 
 
 def train(settings='settings.json', show_sample=False, predict=False):

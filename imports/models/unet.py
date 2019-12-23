@@ -10,7 +10,7 @@ from .conv2dblock import Conv2DBlock
 
 
 def UNet(input_shape, out_channels=1, n_filters=16, dropout=0.5, batchnorm=True, kernel_size=3, activation='relu',
-         n_conv_layers=2):
+         n_conv_layers=2) -> Model:
     """U-Net architecture
 
     :param input_shape: shape of one input image

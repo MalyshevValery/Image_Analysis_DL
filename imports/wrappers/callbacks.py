@@ -2,8 +2,9 @@
 import copy
 import json
 import os
+from typing import List
 
-from tensorflow.keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint, Callback
 
 from imports.jsonserializable import JSONSerializable
 
@@ -42,7 +43,7 @@ class CallbacksWrapper(JSONSerializable):
             else:
                 self._callbacks.append(CALLBACK_MAP[name](os.path.join(base_dir, 'weights.h5'), **params))
 
-    def get_callbacks(self):
+    def get_callbacks(self) -> List[Callback]:
         """Returns created callbacks"""
         return self._callbacks
 

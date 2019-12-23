@@ -1,5 +1,4 @@
 """Import modules from this package"""
-from .augmentation import AlbumentationsWrapper
 from .extensions import AbstractExtension, extension_factory
 from .generators import MaskGenerator
 from .loader import Loader

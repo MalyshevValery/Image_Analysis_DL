@@ -4,30 +4,42 @@ import datetime
 import os
 
 import numpy as np
-from albumentations import BasicTransform
-from albumentations import Compose
+from albumentations import BasicTransform, Compose
 from tensorflow.keras.models import Model, save_model
 
-from imports.jsonserializable import JSONSerializable
-from .callbackswrapper import CallbacksWrapper
-from .compileparams import CompileParams
-from .data import Loader, image_mask, MaskGenerator, AbstractStorage, AlbumentationsWrapper
+from .data import Loader, image_mask, MaskGenerator, AbstractStorage
+from .jsonserializable import JSONSerializable
 from .models import ModelsFactory
+from .wrappers import CallbacksWrapper, CompileParams, AlbumentationsWrapper
 
 
 class TrainingWrapper(JSONSerializable):
     """Training process encapsulation"""
 
     def __init__(self, loader: Loader, model: Model, job_dir: str, model_compile: CompileParams = None,
-                 train_val_test=(0.8, 0.1, 0.1), batch_size=1, weights_path="weights.h5",
+                 train_val_test=(0.8, 0.1, 0.1), batch_size=1, restore_weights=True,
                  augmentation_train: BasicTransform = None, augmentation_all: BasicTransform = None,
                  callbacks: CallbacksWrapper = None, training_params: dict = None):
+        """Constructor
+
+        :param loader: Loader for data
+        :param model: Model
+        :param job_dir: directory to save model, events, predictions
+        :param model_compile: model compilation parameters
+        :param train_val_test: split on training, validation and test sets
+        :param batch_size: batch size
+        :param restore_weights: restores weights from "weights.h5" after training if True
+        :param augmentation_train: augmentations for train data (will be merged with augmentations_all)
+        :param augmentation_all: augmentations applied to data from all sets
+        :param callbacks: callbacks for training process
+        :param training_params: parameters for training
+        """
         self._loader = loader
         self._train_val_test = train_val_test
         self._batch_size = batch_size
         self._augmentation_train = augmentation_train
         self._augmentation_all = augmentation_all
-        self._weights_path = weights_path
+        self._restore_weights = restore_weights
         self._composed_augmentation = self._augmentation_train
         if self._augmentation_all and self._augmentation_train:
             self._composed_augmentation = Compose([self._augmentation_train, self._augmentation_all])
@@ -70,8 +82,8 @@ class TrainingWrapper(JSONSerializable):
                                   callbacks=self._callbacks.get_callbacks() if self._callbacks else None,
                                   **self._training_params)
         self._model.save_weights(os.path.join(self._job_dir, 'weights_last.h5'))
-        if self._weights_path in os.listdir(self._job_dir):
-            self._model.load_weights(os.path.join(self._job_dir, self._weights_path))
+        if self._restore_weights:
+            self._model.load_weights(os.path.join(self._job_dir, "weights.h5"))
 
         if save_whole_model:
             save_model(self._model, os.path.join(self._job_dir, 'model.h5'))
