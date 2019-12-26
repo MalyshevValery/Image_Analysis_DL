@@ -20,14 +20,16 @@ def check(settings='settings.json', show_sample=False):
     with open(settings, 'r') as file:
         config = json.load(file)
     tw = TrainWrapper.from_json(config, 'Jobs/test_', settings)
-
-    if show_sample:
-        plt.axis('off')
-        plt.imshow(tw.get_train_sample()[..., ::-1])
-        plt.show(bbox_inches='tight')
-
-    tw.check()
-    os.rmdir(tw.get_job_dir())
+    try:
+        if show_sample:
+            plt.axis('off')
+            plt.imshow(tw.get_train_sample()[..., ::-1])
+            plt.show(bbox_inches='tight')
+        tw.check()
+    except Exception as e:
+        raise e
+    finally:
+        os.rmdir(tw.get_job_dir())
     print('Everything is OK')
 
 
