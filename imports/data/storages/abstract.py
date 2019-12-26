@@ -33,9 +33,8 @@ class AbstractStorage(JSONSerializable):
         """Getter for key values"""
         return self._keys
 
-    @abstractmethod
     def save_array(self, keys, array):
-        """Saves array to this storage
+        """Saves array to this storage (by default call save_single in a loop)
 
         :param keys: keys to save with
         :param array: array of data to save
@@ -44,6 +43,19 @@ class AbstractStorage(JSONSerializable):
             raise ValueError('Save can be used only in write mode')
         if len(keys) != len(array):
             raise ValueError('Len of keys and array does not match')
+        for i, key in enumerate(keys):
+            self.save_single(key, array[i])
+
+    @abstractmethod
+    def save_single(self, key, data):
+        """Method to save single data object into storage
+
+        :param key: key for save
+        :param data: data to save
+        :return:
+        """
+        if self._mode != 'w':
+            raise ValueError('Save can be used only in write mode')
         pass
 
     @classmethod

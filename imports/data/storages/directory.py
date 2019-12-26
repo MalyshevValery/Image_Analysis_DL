@@ -48,11 +48,10 @@ class DirectoryStorage(AbstractStorage):
         image = cv2.imread(os.path.join(self._dir, item))
         return self._color_transform(image)
 
-    def save_array(self, keys, array):
-        """Saves array to directory specified in init"""
-        super().save_array(keys, array)
-        for i in range(len(keys)):
-            cv2.imwrite(os.path.join(self._dir, keys[i]), self._color_transform(array[i]))
+    def save_single(self, key, data):
+        """Saves one data entry to directory"""
+        super().save_single(key, data)
+        cv2.imwrite(os.path.join(self._dir, key), self._color_transform(data))
 
     @classmethod
     def type(cls):
