@@ -28,7 +28,7 @@ class IgnoreRegionExtension(AbstractExtension):
 
     def __call__(self, data):
         if data.shape[2] != 2:
-            raise Exception('Only two self._channel data can be used with ignore label')
+            raise Exception('Only two data can be used with ignore label')
         ignore = np.zeros(data.shape[:-1], dtype=np.float32)
         ignore += morph.binary_dilation(data[:, :, self._channel],
                                         selem=self._morph_element) - data[:, :, self._channel]
@@ -49,7 +49,7 @@ class IgnoreRegionExtension(AbstractExtension):
         """Returns IgnoreRegionExtension specified in json argument"""
         config = copy.deepcopy(json)
         if config.get('type', None) != IgnoreRegionExtension.type():
-            raise ValueError('Invalid type ' + config.get('type') + ' for TypeScaleExtension')
+            raise ValueError('Invalid type ' + config.get('type') + ' for SplitMaskExtension')
         del config['type']
 
         return IgnoreRegionExtension(**config)

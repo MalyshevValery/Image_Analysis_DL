@@ -6,14 +6,26 @@ import sys
 import traceback as tb
 from multiprocessing import Process
 
+import matplotlib.pyplot as plt
+
 from imports.train import TrainWrapper
 
 
-def check(settings='settings.json'):
-    """Checks if settings are valid"""
+def check(settings='settings.json', show_sample=False):
+    """Checks if settings are valid
+
+    :param settings: path to JSON file with setup
+    :param show_sample: shows sample from input data if True
+    """
     with open(settings, 'r') as file:
         config = json.load(file)
     tw = TrainWrapper.from_json(config, 'Jobs/test_', settings)
+
+    if show_sample:
+        plt.axis('off')
+        plt.imshow(tw.get_train_sample()[..., ::-1])
+        plt.show(bbox_inches='tight')
+
     tw.check()
     os.rmdir(tw.get_job_dir())
     print('Everything is OK')
@@ -23,6 +35,7 @@ if __name__ == '__main__':
     args = argparse.ArgumentParser()
     args.add_argument('settings', help='File with settings or directory with different settings', nargs='?',
                       default='settings.json')
+    args.add_argument('-s', help='Show sample', action='store_true', dest='show_sample')
     parsed_args = args.parse_args(sys.argv[1:])
 
     kwargs = vars(parsed_args)
@@ -30,7 +43,7 @@ if __name__ == '__main__':
 
     if os.path.isfile(settings_arg):
         print('File -', settings_arg)
-        check()
+        check(**vars(parsed_args))
     elif os.path.isdir(settings_arg):
         print('Dir -', settings_arg)
         for f in os.listdir(settings_arg):

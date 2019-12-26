@@ -6,17 +6,14 @@ import sys
 import traceback as tb
 from multiprocessing import Process
 
-import matplotlib.pyplot as plt
-
 from imports.data.storages import DirectoryStorage
 from imports.train import TrainWrapper
 
 
-def train(settings='settings.json', show_sample=False, predict=False, extended=False):
+def train(settings='settings.json', predict=False, extended=False):
     """Train model
 
     :param settings: path to settings file
-    :param show_sample: shows sample from input data if True
     :param predict: predicts and saves Test set if True
     :param extended: True to save extended version of settings
     """
@@ -24,10 +21,6 @@ def train(settings='settings.json', show_sample=False, predict=False, extended=F
     with open(settings, 'r') as file:
         config = json.load(file)
     tw = TrainWrapper.from_json(config, 'Jobs/', settings)
-    if show_sample:
-        plt.axis('off')
-        plt.imshow(tw.get_train_sample()[..., ::-1])
-        plt.show(bbox_inches='tight')
 
     with open(os.path.join(tw.get_job_dir(), 'settings.json'), 'w') as file:
         json.dump(config, file, indent=2)
@@ -48,7 +41,6 @@ if __name__ == '__main__':
     args.add_argument('settings', help='File with settings or directory with different settings', nargs='?',
                       default='settings.json')
     args.add_argument('-p', help='Save predicted test set to job dir', action='store_true', dest='predict')
-    args.add_argument('-s', help='Show sample', action='store_true', dest='show_sample')
     args.add_argument('-e', help='Save extended settings', action='store_true', dest='extended')
     parsed_args = args.parse_args(sys.argv[1:])
 

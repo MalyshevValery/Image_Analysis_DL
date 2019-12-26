@@ -18,6 +18,12 @@
           "src_max": 255,
           "target_type": "float32",
           "target_max": 1.0
+        },
+        {
+          "type": "split_mask"
+        },
+        {
+          "type": "ignore_region"
         }
       ],
       "save_image": [
