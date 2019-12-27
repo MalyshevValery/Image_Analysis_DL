@@ -77,17 +77,14 @@ class TrainWrapper(JSONSerializable):
         elif not os.path.isdir(job_dir):
             raise FileExistsError(job_dir + ' file exists, directory cannot be created')
 
-    def train(self, save_whole_model=False):
+    def train(self):
         """Train process. After training best weights are restored if checkpoint callback with save_best was used"""
         self._model.fit_generator(self._train_gen, validation_data=self._val_gen,
                                   callbacks=self._callbacks.get_callbacks() if self._callbacks else None,
                                   **self._generator_params)
-        self._model.save_weights(os.path.join(self._job_dir, 'weights_last.h5'))
+        self._model.save(os.path.join(self._job_dir, 'model.h5'))
         if self._restore_weights:
-            self._model.load_weights(os.path.join(self._job_dir, "weights.h5"))
-
-        if save_whole_model:
-            self._model.save(os.path.join(self._job_dir, 'model.h5'))
+            self._model.load_weights(os.path.join(self._job_dir, "best_model.h5"))
 
     def evaluate(self):
         """Evaluate test set"""
@@ -139,7 +136,12 @@ class TrainWrapper(JSONSerializable):
 
     @staticmethod
     def from_json(json, job_prefix=None, settings_filename='settings.json'):
-        """Restores training configuration to dict"""
+        """Restores training configuration to dict
+
+        :param json: configuration of training pipeline
+        :param job_prefix: prefix for job directory
+        :param settings_filename: filename of JSON file with settings
+        """
         config = copy.deepcopy(json)
         loader = Loader.from_json(config['loader'])
         del config['loader']

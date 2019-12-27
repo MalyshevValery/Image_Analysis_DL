@@ -43,25 +43,15 @@ class ModelsFactory(JSONSerializable):
             raise ValueError('Model name ' + name + ' is unknown')
 
     @staticmethod
-    def load(json, job_dir):
+    def load(job_dir):
         """Creates model from saved weights and settings (or from saved model)
 
-        :param json: settings for creating model
         :param job_dir: directory with saved data
         """
         files = os.listdir(job_dir)
-        for ext in MODEL_EXT:
-            if 'model.' + ext in files:
-                return load_model(os.path.join(job_dir, 'model.' + ext), compile=False, custom_objects=CUSTOMS)
-
-        if 'input_shape' in json:
-            model = ModelsFactory.from_json(json)
-            if 'weights.h5' in files:
-                model.load_weights(os.path.join(job_dir, 'weights.h5'))
-            elif 'weights_last.h5' in files:
-                model.load_weights(os.path.join(job_dir, 'weights_last.h5'))
-            else:
-                raise ValueError('No weights in job directory')
-            return model
+        if 'best_model.h5' in files:
+            return load_model(os.path.join(job_dir, 'best_model.h5'), compile=False, custom_objects=CUSTOMS)
+        elif 'model.h5' in files:
+            return load_model(os.path.join(job_dir, 'model.h5'), compile=False, custom_objects=CUSTOMS)
         else:
-            raise ValueError('Please provide input shape in settings')
+            raise ValueError('No model in job dir')

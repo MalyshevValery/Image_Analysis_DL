@@ -72,18 +72,24 @@
   },
   "batch_size": 4,
   "generator_params": {
-    "epochs": 1
+    "epochs": 10
   },
   "callbacks": [
     {
       "name": "tensorboard",
       "log_dir": "$BASE$",
-      "profile_batch": 0
+      "profile_batch": 0,
+      "histogram_freq": 1,
+      "write_images": true,
+      "update_freq": "batch",
+      "embeddings_freq": 1
     },
     {
       "name": "checkpoint",
-      "verbose": 1,
-      "save_best_only": true
+      "filepath": "$BASE$/check.h5"
+    },
+    {
+      "name": "save_best"
     }
   ]
 }

@@ -63,7 +63,7 @@ class PredictWrapper(JSONSerializable):
     def from_json(json, job_dir):
         """Creates Predictor from JSON config (either training or prediction configs"""
         loader = Loader.from_json(json['loader'], predict=True)
-        model = ModelsFactory.load(json['model'], job_dir)
+        model = ModelsFactory.load(job_dir)
 
         if 'augmentation_all' in json:
             augmentation = AlbumentationsWrapper.from_json(json['augmentation_all'])

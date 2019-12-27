@@ -18,23 +18,23 @@ COLOR_TRANSFORMS = {
 class DirectoryStorage(AbstractStorage):
     """Directory storage that loads all PNG images in directory"""
 
-    def __init__(self, data_dir, color_transform='none', mode='r'):
+    def __init__(self, dir_, color_transform='none', mode='r'):
         """Constructor
 
-        :param data_dir: directory with PNG images
+        :param dir_: directory with PNG images
         """
-        self._dir = data_dir
+        self._dir = dir_
         if mode is 'w':
-            if not os.path.exists(data_dir):
-                os.makedirs(data_dir)
+            if not os.path.exists(dir_):
+                os.makedirs(dir_)
             super().__init__(mode='w')
         elif mode is 'r':
-            if not os.path.isdir(data_dir):
-                raise ValueError(data_dir + ' is not a directory')
+            if not os.path.isdir(dir_):
+                raise ValueError(dir_ + ' is not a directory')
 
-            all_names = os.listdir(data_dir)
+            all_names = os.listdir(dir_)
             png_names = [name for name in all_names if name.endswith('.png')]
-            png_filenames = [name for name in png_names if os.path.isfile(os.path.join(data_dir, name))]
+            png_filenames = [name for name in png_names if os.path.isfile(os.path.join(dir_, name))]
 
             super().__init__(keys=set(png_filenames), mode=mode)
 

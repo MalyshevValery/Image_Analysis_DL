@@ -28,7 +28,7 @@ def train(settings='settings.json', predict=False, extended=False):
         with open(os.path.join(tw.get_job_dir(), 'settings_extended.json'), 'w') as file:
             json.dump(tw.to_json(), file, indent=2)
 
-    tw.train(save_whole_model=True)
+    tw.train()
     tw.evaluate()
 
     if predict:

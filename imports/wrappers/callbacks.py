@@ -12,7 +12,9 @@ from imports.jsonserializable import JSONSerializable
 CALLBACK_MAP = {
     'early_stop': EarlyStopping,
     'tensorboard': TensorBoard,
-    'checkpoint': ModelCheckpoint
+    'checkpoint': ModelCheckpoint,
+    'save_best': lambda filepath, **kwargs: ModelCheckpoint(filepath,
+                                                            save_best_only=True, save_weights_only=False, **kwargs)
 }
 
 
@@ -46,10 +48,13 @@ class CallbacksWrapper(JSONSerializable):
             name = params.get('name', None)
             del params['name']
 
-            if name != 'checkpoint':
-                self._callbacks.append(CALLBACK_MAP[name](**params))
+            if name == 'checkpoint':
+                filepath = params.pop('filepath', None)
+                self._callbacks.append(CALLBACK_MAP[name](filepath, **params))
+            elif name == 'save_best':
+                self._callbacks.append(CALLBACK_MAP[name](os.path.join(base_dir, 'best_model.h5'), **params))
             else:
-                self._callbacks.append(CALLBACK_MAP[name](os.path.join(base_dir, 'weights.h5'), **params))
+                self._callbacks.append(CALLBACK_MAP[name](**params))
 
     def get_callbacks(self) -> List[Callback]:
         """Returns created callbacks"""
