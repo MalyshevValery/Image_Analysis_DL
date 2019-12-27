@@ -5,17 +5,17 @@ from tensorflow.keras.layers import Conv2D
 
 
 class Conv2DBlock(layers.Layer):
-    """Block of some 2D convolution blocks of same size and kernel"""
+    """Keras layer which includes some 2D convolution layers of same kernel and channel size, activation function,
+    and batchnorm parameter"""
 
     def __init__(self, n_filters, n_layers=2, activation='relu', kernel_size=3, batchnorm=True):
-        """Creates block of some 2D convolution blocks of same size and kernel
+        """Constructor
 
         :param n_filters: number of output channels
         :param n_layers: number of convolutions in block
         :param activation: activations function
         :param kernel_size: size of kernel
         :param batchnorm: True if batchnorm should be applied
-        :return: output of last layer
         """
         super(Conv2DBlock, self).__init__()
         self.layers = []

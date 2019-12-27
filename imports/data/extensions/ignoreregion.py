@@ -8,8 +8,15 @@ from .abstract import AbstractExtension
 
 
 class IgnoreRegionExtension(AbstractExtension):
-    """This extension creates empty region on all channels of provided mask
-    based on morphological operations performed on one mask channel"""
+    """This extension creates empty region on all channels of provided mask,
+    based on morphological operations performed on one mask channel
+
+    This extensions selects region in which empty space will be created by making region from one dilation and one
+    erosion of specified radius. Ignore region is added to add some level of freedom to ML predictions
+
+    **IMPORTANT** If chosen loss function penalize for high rate of false positives this approach won't work.
+    (jaccard and dice losses penalize for false predictions when cross-entropy doesn't)
+    """
 
     def __init__(self, radius=3, channel=1):
         """Constructor
@@ -27,6 +34,7 @@ class IgnoreRegionExtension(AbstractExtension):
         return "ignore_region"
 
     def __call__(self, data):
+        """Creates empty region which will be ignored due to lack of any ground truth data on this region"""
         if data.shape[2] != 2:
             raise Exception('Only two data can be used with ignore label')
         ignore = np.zeros(data.shape[:-1], dtype=np.float32)

@@ -5,6 +5,7 @@ import segmentation_models as seg
 
 from imports.jsonserializable import JSONSerializable
 
+# Additional losses that can not be passed as strong to Model.compile()
 LOSSES = {
     'binary_focal': seg.losses.BinaryFocalLoss,
     'categorical_focal': seg.losses.CategoricalFocalLoss,
@@ -12,6 +13,7 @@ LOSSES = {
     'jaccard': seg.losses.JaccardLoss
 }
 
+# Additional losses that can not be passed as strong to Model.compile()
 METRICS = {
     'iou': seg.metrics.IOUScore(name='iou'),
     'f1': seg.metrics.FScore(beta=1, name='f1'),
@@ -22,7 +24,8 @@ METRICS = {
 
 
 class CompileParams(JSONSerializable):
-    """Wraps string to metrics and loss conversion"""
+    """This class manages JSON serialization of parameters needed for keras model compilation.
+    Also it wraps string to metrics and loss conversion"""
 
     def __init__(self, json):
         self._json = copy.deepcopy(json)

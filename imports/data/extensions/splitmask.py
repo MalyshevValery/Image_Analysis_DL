@@ -7,7 +7,12 @@ from .abstract import AbstractExtension
 
 
 class SplitMaskExtension(AbstractExtension):
-    """Extension that split one channel mask into several channel mask according to provided codes"""
+    """Extension that split one channel mask into several channel mask according to provided codes
+
+    Provided codes can be list or integer. In case of integer codes are setup as [0...n-1] if n is provided integer.
+    This extension finds all values on mask equal to code from list and use these values to generate new binary mask for
+    specified code and inserts it as one channel of new multi-channel mask.
+    """
 
     def __init__(self, codes=2):
         """Constructor
@@ -30,6 +35,10 @@ class SplitMaskExtension(AbstractExtension):
         return 'split_mask'
 
     def __call__(self, data):
+        """Provided mask is split into some channels that are merged to create one multi-channel mask according to
+        provided codes
+
+        Extension can be applied only to one channel masks (grayscale)"""
         if data.shape[-1] != 1:
             raise ValueError('Data should be grayscale image with single channel - (n, m, 1)')
         data = data[:, :, 0]

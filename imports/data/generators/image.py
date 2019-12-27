@@ -7,7 +7,8 @@ from imports.data.loader import Loader
 
 
 class ImageGenerator(Sequence):
-    """Keras generator for inference by providing only images"""
+    """Keras generator which provides only input images. Can be used for large-scale static inference because it allows
+    batches."""
 
     def __init__(self, keys, loader: Loader, batch_size, augmentations: BasicTransform = None, shuffle=True):
         """Constructor

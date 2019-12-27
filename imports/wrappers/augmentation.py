@@ -7,11 +7,13 @@ from albumentations.core.serialization import SERIALIZABLE_REGISTRY
 
 from imports.jsonserializable import JSONSerializable
 
-NAME_TO_REGISTRY = dict((k.split('.')[-1], k) for k in SERIALIZABLE_REGISTRY.keys())
+NAME_TO_REGISTRY = dict((k.split('.')[-1], k) for k in SERIALIZABLE_REGISTRY.keys())  # Create simple names
 
 
 class AlbumentationsWrapper(JSONSerializable):
-    """Wrapper for albumentations serialization procedure"""
+    """This wrappers allows simple serialization for albumentations library. Though albumentations have JSOn
+    serialization it uses complex names for classes which can not be used in human readable/writeable config for
+    pipeline setup"""
 
     @staticmethod
     def to_json(aug: BasicTransform):
@@ -23,7 +25,7 @@ class AlbumentationsWrapper(JSONSerializable):
 
     @staticmethod
     def from_json(json) -> BasicTransform:
-        """Creates albumentations from JSON"""
+        """Creates albumentations object from JSON"""
         if isinstance(json, list):
             json = {"transform": "Compose", "transforms": json}
         copied_dict = copy.deepcopy(json)
@@ -33,6 +35,14 @@ class AlbumentationsWrapper(JSONSerializable):
 
     @staticmethod
     def __deep_apply(to_change, from_key, to_key, transform_function):
+        """Recursive change of JSON object
+
+        :param to_change: object to change (dictionary or list)
+        :param from_key: key which should be changed to to_key
+        :param to_key: new key
+        :param transform_function: function which will be applied to value under from_key
+        :return: Changes object
+        """
         if isinstance(to_change, dict):
             if from_key in to_change:
                 to_change[to_key] = transform_function(to_change[from_key])

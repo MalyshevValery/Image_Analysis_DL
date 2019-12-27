@@ -14,7 +14,8 @@ from .wrappers import CallbacksWrapper, CompileParams, AlbumentationsWrapper
 
 
 class TrainWrapper(JSONSerializable):
-    """Training process encapsulation"""
+    """This class encapsulate model training process.
+    It allows training, evaluation as well as checking is the configuration valid."""
 
     def __init__(self, loader: Loader, model: Model, job_dir: str, model_compile: CompileParams = None,
                  train_val_test=(0.8, 0.1, 0.1), batch_size=1, restore_weights=True,
@@ -101,7 +102,7 @@ class TrainWrapper(JSONSerializable):
             open(os.path.join(self._job_dir, '%.3f_' % ret_val[key] + key), 'w')
 
     def check(self):
-        """Checks if anything is valid by running one batch through model"""
+        """Checks if everything in configuration is valid by running one batch through model"""
         batches = [self._train_gen[0], self._val_gen[0], self._test_gen[0]]
         x = [b[0] for b in batches]
         y = [b[1] for b in batches]
@@ -110,7 +111,7 @@ class TrainWrapper(JSONSerializable):
         self._model.predict_on_batch(x[2])
 
     def predict_save_test(self, storage):
-        """Predicts test data"""
+        """Predicts test data and saves it to given storage"""
         if not isinstance(storage, AbstractStorage):
             raise TypeError('storage is not an instance of', AbstractStorage)
         predicted = self._model.predict_generator(self._test_gen, **self.__get_eval_params())
@@ -192,6 +193,9 @@ class TrainWrapper(JSONSerializable):
         return sample
 
     def __get_eval_params(self):
+        """Transforms model training fit_generator parameters to the ones used by valuate_generator or
+        predict_generator. This is done by removing some key-value pairs from parameter dictionary
+        """
         evaluate_params = copy.deepcopy(self._generator_params)
         evaluate_params.pop('epochs', None)
         return evaluate_params

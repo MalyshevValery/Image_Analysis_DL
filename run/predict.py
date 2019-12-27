@@ -11,7 +11,7 @@ from imports.predict import PredictWrapper
 
 
 def predict(job_dir, image_dir):
-    """Predict masks from images in provided directory
+    """Predict masks from images in provided directory (in future it's planned to add configurable storage for it)
 
     :param job_dir: directory with job (settings and weights are necessary
     :param image_dir: directory with images to predict

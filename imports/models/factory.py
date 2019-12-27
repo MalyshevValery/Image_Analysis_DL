@@ -8,12 +8,16 @@ from imports.jsonserializable import JSONSerializable
 from .conv2dblock import Conv2DBlock
 from .unet import UNet
 
-CUSTOMS = {'Conv2DBlock': Conv2DBlock}
-MODEL_EXT = {'h5', 'tf', 'h5py'}
+CUSTOMS = {'Conv2DBlock': Conv2DBlock}  # Custom Layers for load_model functions
+MODEL_EXT = {'h5', 'tf', 'h5py'}  # Available extensions
 
 
 class ModelsFactory(JSONSerializable):
-    """Model serialization and deserialization from JSON"""
+    """Factory for creating raw models from JSON configs, saving them and loading models with weights.
+
+    This class can work with other models, not related to this repo till they don't use custom layers. If they do just
+    add that layers to CUSTOMS dictionary
+    """
 
     @staticmethod
     def to_json(model: Model):

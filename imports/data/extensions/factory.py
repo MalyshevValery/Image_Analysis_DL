@@ -6,7 +6,7 @@ from .typescale import TypeScaleExtension
 
 
 def extension_factory(json, apply_to='all') -> AbstractExtension:
-    """Creates proper extension from specified json"""
+    """Creates proper extension from specified JSON and checks its application permission"""
     extension_type = json['type']
     if extension_type == TypeScaleExtension.type():
         extension = TypeScaleExtension.from_json(json)

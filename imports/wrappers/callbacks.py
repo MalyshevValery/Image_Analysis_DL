@@ -8,6 +8,7 @@ from tensorflow.keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoi
 
 from imports.jsonserializable import JSONSerializable
 
+# Available callbacks
 CALLBACK_MAP = {
     'early_stop': EarlyStopping,
     'tensorboard': TensorBoard,
@@ -16,9 +17,16 @@ CALLBACK_MAP = {
 
 
 class CallbacksWrapper(JSONSerializable):
-    """Wrapper for callbacks creation"""
+    """Wrapper for tensorflow callbacks JSON serialization, deserialization.
+    Consult CALLBACK_MAP to see available callbacks.
+    """
 
     def __init__(self, json_params, base_dir=None):
+        """Constructor
+
+        :param json_params: parameters of desired callbacks written in JSON
+        :param base_dir: directory in which all stuff from callbacks (weights, logs) will be saved
+        """
         config = copy.deepcopy(json_params)
         self._config_json = copy.deepcopy(json_params)
         if not isinstance(config, list):

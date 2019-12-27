@@ -26,8 +26,8 @@ def check(settings='settings.json', show_sample=False):
             plt.imshow(tw.get_train_sample()[..., ::-1])
             plt.show(bbox_inches='tight')
         tw.check()
-    except Exception as e:
-        raise e
+    except Exception as exc:
+        raise exc
     finally:
         os.rmdir(tw.get_job_dir())
     print('Everything is OK')

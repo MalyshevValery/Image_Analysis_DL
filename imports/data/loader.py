@@ -11,7 +11,18 @@ from .storages import AbstractStorage, storage_factory
 
 
 class Loader(JSONSerializable):
-    """Loader of data for different image tasks (currently only Semantic segmentation is supported)"""
+    """Loader of data for different image tasks (currently only Semantic segmentation is supported)
+
+    Loader is a middleware between storages and generators. It has two main tasks:
+        1. Unite data from different storage to create bundles of input and ground truth data which can be passed to
+        generators;
+        2. Preprocess data by pushing it through specified extensions, which allows to change data types, scale it, add
+        other effects.
+
+    The further work on this class will be made in direction of adding other tasks to it.
+    (bounding boxes, object detection and segmentation etc.). So this class will be configurable and flexible to provide
+    any type of input data to generators.
+    """
 
     def __init__(self, images: AbstractStorage = None, masks: AbstractStorage = None,
                  extensions: Dict[str, Union[AbstractExtension, List[AbstractExtension]]] = None):
@@ -58,7 +69,7 @@ class Loader(JSONSerializable):
         self._keys = list(keys)  # To ensure order
 
     def split(self, train_val_test):
-        """Splits indices on three fractures
+        """Splits indices on three groups to create training, test and validation sets.
 
         :param train_val_test: tuple or list of three elements with sum of 1,
         which contains fractures of whole set for train/validation/test split
@@ -84,7 +95,7 @@ class Loader(JSONSerializable):
         return self.get_image(self._keys[0]).shape
 
     def get_image(self, key):
-        """Get image"""
+        """Getter for input image"""
         image = self._images[key]
         for apply in self._extensions['image']:
             image = apply(image)
@@ -108,12 +119,11 @@ class Loader(JSONSerializable):
     def save_predicted(self, keys, predictions, storage: AbstractStorage):
         """Saves images with prediction overlay to storage.
 
-        WARNING: currently works only for masks
+        WARNING: currently works only for masks. In plans to add other types of ground truth data to it
 
         :param keys: keys of predictions
         :param predictions: array of predictions
         :param storage: storage to save to
-        :return:
         """
         if not isinstance(storage, AbstractStorage):
             raise TypeError('parameter storage is expected to be instance of Storage')

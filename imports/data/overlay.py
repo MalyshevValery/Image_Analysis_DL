@@ -3,8 +3,8 @@ import numpy as np
 
 
 def image_mask(images, pred):
-    """Draw predictions as masks on images
-    :return: image with drawn blue mask
+    """Draw predictions as masks of semantic segmentation on images
+    :return: image with drawn blue mask. Currently this is not developed to handle mask with more than 3 channels
     """
     if images.shape[-1] == 1:
         images = np.repeat(images, 3, len(images.shape) - 1)

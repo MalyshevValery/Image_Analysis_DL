@@ -5,7 +5,10 @@ from .image import ImageGenerator
 
 
 class MaskGenerator(ImageGenerator):
-    """Keras generator for semantic segmentation build on top of loaders"""
+    """Keras generator for semantic segmentation.
+
+    This generator provides semantic masks acquired from loader, in addition to input images.
+    """
 
     def __getitem__(self, index):
         """Generate one batch of data"""
