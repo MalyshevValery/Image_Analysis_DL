@@ -72,7 +72,7 @@
   },
   "batch_size": 4,
   "generator_params": {
-    "epochs": 10
+    "epochs": 1
   },
   "callbacks": [
     {

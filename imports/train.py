@@ -89,14 +89,11 @@ class TrainWrapper(JSONSerializable):
     def evaluate(self):
         """Evaluate test set"""
         ret = self._model.evaluate_generator(self._test_gen, **self.__get_eval_params())
-        ret_val = {'loss': ret[0]}
-        if len(ret) > 1 and 'metrics' in self._generator_params:
-            for i, metric in enumerate([metric if isinstance(metric, str) else metric.name for metric in
-                                        self._generator_params['metrics']]):
-                ret_val[metric] = ret[i + 1]
+        metrics = ['loss'] + self._model_compile.to_json().get('metrics', [])
+        ret_val = zip(metrics, ret)
         print('Test results: ', ret_val)
-        for key in ret_val:
-            open(os.path.join(self._job_dir, '%.3f_' % ret_val[key] + key), 'w')
+        for entry in ret_val:
+            open(os.path.join(self._job_dir, '%.3f_' % entry[1] + entry[0]), 'w')
 
     def check(self):
         """Checks if everything in configuration is valid by running one batch through model"""
