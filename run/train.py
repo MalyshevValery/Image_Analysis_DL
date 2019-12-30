@@ -6,6 +6,7 @@ import sys
 import traceback as tb
 from multiprocessing import Process
 
+sys.path.append(os.path.dirname(__file__))
 from imports.data.storages import DirectoryStorage
 from imports.train import TrainWrapper
 

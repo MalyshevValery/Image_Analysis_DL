@@ -5,6 +5,7 @@ import os
 import sys
 from collections import Iterable
 
+sys.path.append(os.path.dirname(__file__))
 from imports.data import Loader, storage_factory
 
 
