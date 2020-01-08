@@ -1,5 +1,5 @@
-# XRay_Segmentation
-Project for developing Neural Networks for XRay
+# Image Analysis pipeline 
+JSON configurable and expansible pipeline for image analysis based on deep learning.
 
 ## Prerequisites
 ```
