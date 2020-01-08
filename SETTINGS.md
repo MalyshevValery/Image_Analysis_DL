@@ -10,6 +10,8 @@ Settings are listed in a next way: `<setting name> (<default value if exists>) -
 ### Main
 *This configuration is root object of JSON file and is used by train, test and check scripts*
 
+All values can be used for [hyperparameter optimization](#hypopt)
+
 - **loader** - main data source
     - [**images**](#storage) - source with input images
     - [*masks*](#storage) - source of masks for semantic segmentation
@@ -38,6 +40,7 @@ checkpoint callback
     - *use_multiprocessing*: (False) - if true process-based threading will be used
     - *shuffle* (True) - shuffle generator indices
     - *initial_epoch* (0) - starting epoch
+- *eval_metric* (loss) - metric which is used for evaluation test set during hyperparameter optimization
 
 
 <a name="storage"></a>
@@ -183,3 +186,20 @@ Example:
  "p": 0.5
 }
 ```
+
+<a name="hypopt"></a>
+### Hyperparameter optimization
+For every value in config parameter optimization can be used. To apply it instead of
+specifying value add additional JSON object which specifies range of check:
+- **type** - Type of value distribution, one of [O_CHOICE, O_RANDINT, O_UNIFORM, O_QUNIFORM, O_LOG_UNIFORM, O_QLOG_UNIFORM, O_UNIFORM_INT, O_NORMAL, O_QNORMAL, O_LOG_NORMAL, O_QLOG_NORMAL].
+For *CHOICE* add *options* list, for *UNIFORM*-like *low* and *high* parameters are required. For *RANDINT* only low is needed.
+For *NORMAL*-like *mu*(mean) and *sigma*(std). Prefix *Q* adds quantization to distribution and parameter *q* is needed for that.
+*LOG* means that logarithm of value will be uniformly or normally distributed
+- *low* - *UNIFORM*-like - specifies lowest value
+- *high* - *UNIFORM*-like and *RANDINT* - specifies max value. For *RANDINT* interval will be `[0, high)`
+- *options* - list of possible options for *CHOICE*
+- *mu* - mean for *NORMAL*-like
+- *sigma* - std for *NORMAL*-like
+- *q* - for *Q* prefix types it means `round(<distribution>/q)*q` what adds quantization
+
+More information in `imports/optim.py` and in [repo of hyperopt](https://github.com/hyperopt/hyperopt)

@@ -20,7 +20,7 @@ class TrainWrapper(JSONSerializable):
     def __init__(self, loader: Loader, model: Model, job_dir: str, model_compile: CompileParams = None,
                  train_val_test=(0.8, 0.1, 0.1), batch_size=1, restore_weights=True,
                  augmentation_train: BasicTransform = None, augmentation_all: BasicTransform = None,
-                 callbacks: CallbacksWrapper = None, generator_params: dict = None):
+                 callbacks: CallbacksWrapper = None, generator_params: dict = None, eval_metric='loss'):
         """Constructor
 
         :param loader: Loader for data
@@ -34,6 +34,7 @@ class TrainWrapper(JSONSerializable):
         :param augmentation_all: augmentations applied to data from all sets
         :param callbacks: callbacks for training process
         :param generator_params: parameters for training
+        :param eval_metric: metric for hyper parameter evaluation
         """
         self._loader = loader
         self._train_val_test = train_val_test
@@ -41,6 +42,7 @@ class TrainWrapper(JSONSerializable):
         self._augmentation_train = augmentation_train
         self._augmentation_all = augmentation_all
         self._restore_weights = restore_weights
+        self._eval_metric = eval_metric
         self._composed_augmentation = self._augmentation_train
         if self._augmentation_all and self._augmentation_train:
             self._composed_augmentation = Compose([self._augmentation_train, self._augmentation_all])
@@ -87,13 +89,18 @@ class TrainWrapper(JSONSerializable):
             self._model.load_weights(os.path.join(self._job_dir, "best_model.h5"))
 
     def evaluate(self):
-        """Evaluate test set"""
+        """Evaluate test set and returns value of selected metric"""
         ret = self._model.evaluate_generator(self._test_gen, **self.__get_eval_params())
         metrics = ['loss'] + self._model_compile.to_json().get('metrics', [])
         ret_val = zip(metrics, ret)
-        print('Test results: ', ret_val)
         for entry in ret_val:
             open(os.path.join(self._job_dir, '%.3f_' % entry[1] + entry[0]), 'w')
+        k = 1
+        eval_metric = self._eval_metric
+        if self._eval_metric[0] == '-':
+            k = -1
+            eval_metric = self._eval_metric[1:]
+        return ret[metrics.index(eval_metric)] * k
 
     def check(self):
         """Checks if everything in configuration is valid by running one batch through model"""
@@ -121,7 +128,8 @@ class TrainWrapper(JSONSerializable):
             'job_dir': os.path.abspath(self._job_dir),
             'model_compile': self._model_compile.to_json(),
             'generator_params': self._generator_params,
-            'callbacks': self._callbacks.to_json()
+            'callbacks': self._callbacks.to_json(),
+            'eval_metric': self._eval_metric
         }
         if self._augmentation_all:
             config['augmentation_all'] = AlbumentationsWrapper.to_json(self._augmentation_all),

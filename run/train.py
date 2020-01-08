@@ -5,23 +5,28 @@ import os
 import sys
 import traceback as tb
 from multiprocessing import Process
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from imports.data.storages import DirectoryStorage
 from imports.train import TrainWrapper
+from imports.optim import optimize, get_space_for_json
 
 
-def train(settings='settings.json', predict=False, extended=False):
+def train_single(settings='settings.json', predict=False, extended=False, prefix='Jobs/'):
     """Train model
 
-    :param settings: path to settings file
-    :param predict: predicts and saves Test set if True
-    :param extended: True to save extended version of settings
-    """
+        :param settings: path to settings file
+        :param predict: predicts and saves Test set if True
+        :param extended: True to save extended version of settings
+        :param prefix: directory for jobs, adds custom prefixes for params
+        """
 
-    with open(settings, 'r') as file:
-        config = json.load(file)
-    tw = TrainWrapper.from_json(config, 'Jobs/', settings)
+    if settings is str:
+        with open(settings, 'r') as file:
+            config = json.load(file)
+            tw = TrainWrapper.from_json(config, prefix, settings)
+    else:
+        config = settings
+        tw = TrainWrapper.from_json(config, prefix)
 
     with open(os.path.join(tw.get_job_dir(), 'settings.json'), 'w') as file:
         json.dump(config, file, indent=2)
@@ -30,11 +35,24 @@ def train(settings='settings.json', predict=False, extended=False):
             json.dump(tw.to_json(), file, indent=2)
 
     tw.train()
-    tw.evaluate()
+    ret_val = tw.evaluate()
 
     if predict:
         pred_dir = os.path.join(tw.get_job_dir(), 'predicted')
         tw.predict_save_test(DirectoryStorage(pred_dir, mode='w'))
+    print('TEST EVALUATION METRIC: ', ret_val)
+    return ret_val
+
+
+def train(settings='settings.json', predict=False, extended=False):
+    with open(settings, 'r') as file:
+        config = json.load(file)
+    space = get_space_for_json(config)
+    if len(space) == 0:
+        return train_single(config, predict, extended)
+    best = optimize(lambda new_config, param_string: train_single(new_config, predict, extended, 'Jobs/' + param_string)
+                    , config, space)
+    print('BEST RESULTS: ', best)
 
 
 if __name__ == '__main__':

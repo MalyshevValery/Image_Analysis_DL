@@ -55,12 +55,7 @@
     }
   ],
   "model": {
-    "name": "UNet",
-    "input_shape": [
-      256,
-      256,
-      1
-    ]
+    "name": "UNet"
   },
   "model_compile": {
     "optimizer": "adam",
@@ -72,21 +67,22 @@
   },
   "batch_size": 4,
   "generator_params": {
-    "epochs": 1
+    "epochs": {
+      "type": "O_UNIFORM_INT",
+      "low": 1,
+      "high": 10
+    }
   },
   "callbacks": [
     {
-      "name": "tensorboard",
-      "log_dir": "$BASE$",
-      "profile_batch": 0,
-      "histogram_freq": 1,
-      "write_images": true,
-      "update_freq": "batch",
-      "embeddings_freq": 1
+      "name": "early_stop",
+      "patience": 5,
+      "restore_best_weights": true
     },
     {
-      "name": "checkpoint",
-      "filepath": "$BASE$/check.h5"
+      "name": "tensorboard",
+      "log_dir": "$BASE$",
+      "profile_batch": 0
     },
     {
       "name": "save_best"
