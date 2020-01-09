@@ -40,7 +40,9 @@ checkpoint callback
     - *use_multiprocessing*: (False) - if true process-based threading will be used
     - *shuffle* (True) - shuffle generator indices
     - *initial_epoch* (0) - starting epoch
-- *eval_metric* (loss) - metric which is used for evaluation test set during hyperparameter optimization
+- *eval_metric* (loss) - metric which is used for evaluation test set during hyperparameter optimization (add - if
+max is required, for example `-acc`)
+- *eval_runs* (10) - number of hyperparameter evaluation runs
 
 
 <a name="storage"></a>

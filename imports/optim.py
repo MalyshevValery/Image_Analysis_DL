@@ -53,7 +53,7 @@ def get_space_for_json(json):
     return space
 
 
-def optimize(fun, json, space, trials=10):
+def optimize(fun, json, space, n_runs=10):
     """Starts running trials
 
     :param fun: function to optimize
@@ -62,8 +62,12 @@ def optimize(fun, json, space, trials=10):
     :param trials: number of trials for selecting best parameter
     :return:
     """
-    best = hyperopt.fmin(__get_fun_with_json(fun, json), space, hyperopt.tpe.suggest, trials, show_progressbar=False)
-    return best
+    trials = hyperopt.Trials()
+    best_opt = hyperopt.fmin(__get_fun_with_json(fun, json), space, hyperopt.tpe.suggest, n_runs,
+                             show_progressbar=False, return_argmin=True, trials=trials, verbose=1)
+    best_res = trials.best_trial['result']['loss']
+    best_opt['result'] = best_res
+    return best_opt
 
 
 def fill_json_with_params(json, params):

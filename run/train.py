@@ -5,6 +5,7 @@ import os
 import sys
 import traceback as tb
 from multiprocessing import Process
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from imports.data.storages import DirectoryStorage
 from imports.train import TrainWrapper
@@ -47,11 +48,16 @@ def train_single(settings='settings.json', predict=False, extended=False, prefix
 def train(settings='settings.json', predict=False, extended=False):
     with open(settings, 'r') as file:
         config = json.load(file)
+    n_runs = 10
+    if 'eval_runs' in config:
+        n_runs = config['eval_runs']
+        del config['eval_runs']
+
     space = get_space_for_json(config)
     if len(space) == 0:
         return train_single(config, predict, extended)
     best = optimize(lambda new_config, param_string: train_single(new_config, predict, extended, 'Jobs/' + param_string)
-                    , config, space)
+                    , config, space, n_runs=n_runs)
     print('BEST RESULTS: ', best)
 
 

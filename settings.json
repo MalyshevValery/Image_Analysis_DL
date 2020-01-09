@@ -87,5 +87,7 @@
     {
       "name": "save_best"
     }
-  ]
+  ],
+  "eval_metric": "-iou",
+  "eval_runs": 2
 }
