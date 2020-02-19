@@ -1,67 +1,80 @@
 """HDF5 storage"""
-import copy
+from typing import List, Type, Tuple
 
 import h5py
+import numpy as np
+from ordered_set import OrderedSet
 
-from .abstract import AbstractStorage
+from .abstract import AbstractStorage, Mode
+
+_keys_dataset = '__keys'
 
 
 class HDF5Storage(AbstractStorage):
-    """Storage to work with .h5 files"""
+    """Storage to work with HDF5 (.h5) files
 
-    def __init__(self, filename, dataset_name, mode='r', shape=None, dtype=None):
+    :param filename: Filename of h5 file
+    :param dataset_name: Name of dataset in h5 file
+    :param mode: READ/WRITE mode
+    :param dtype: Type of data in that dataset
+    """
+
+    def __init__(self, filename: str, dataset_name: str, mode: Mode = Mode.READ,
+                 shape: Tuple[int, ...] = None,
+                 dtype: Type[np.generic] = None):
         self._filename = filename
+        if dataset_name == _keys_dataset:
+            raise ValueError('%s is equal kto key dataset name' % dataset_name)
         self._dataset_name = dataset_name
 
-        file = h5py.File(filename, 'a')
-        if mode == 'r':
-            self._dataset = file[dataset_name]
-        else:
+        self._file = h5py.File(filename, 'a')
+        if mode is Mode.WRITE:
             if shape is None or dtype is None:
-                raise ValueError('shape or value has not been provided for write storage')
-            if dataset_name in file:
+                raise ValueError(
+                    'Shape or Value has not been provided for write storage')
+            if dataset_name in self._file:
                 print('Replacing dataset ' + dataset_name)
-                del file[dataset_name]
-            self._dataset = file.create_dataset(dataset_name, shape=shape, dtype=dtype)
-            self._counter = 0
-        super().__init__(set(range(len(self._dataset))), mode=mode)
+                del self._file[dataset_name]
+            self._dataset = self._file.create_dataset(dataset_name, shape,
+                                                      dtype)
+        elif mode is Mode.READ:
+            self._dataset = self._file[dataset_name]
 
-    def __getitem__(self, item):
+        keys: OrderedSet[str] = OrderedSet()
+        if _keys_dataset in self._file:
+            self._keys_dataset = self._file[_keys_dataset]
+            keys = OrderedSet(self._keys_dataset)
+            keys.remove('')
+        else:
+            stype = h5py.string_dtype()
+            size = len(self._dataset)
+            self._keys_dataset = self._file.create_dataset(_keys_dataset, size,
+                                                           stype)
+        super().__init__(keys, mode)
+
+    def __getitem__(self, item: str) -> np.ndarray:
         """Returns item from dataset"""
         super().__getitem__(item)
-        return self._dataset[item]
 
-    def save_array(self, keys, array):
+        idx = int(item)
+        if isinstance(self._keys, OrderedSet):
+            idx = self._keys.index(item)
+        return self._dataset[idx]
+
+    def save_array(self, keys: List[str], array: np.ndarray) -> None:
         """Saves array to h5 file"""
         super().save_array(keys, array)
 
-        self._dataset[list(range(self._counter, self._counter + len(keys)))] = array
-        self._counter += len(keys)
+        start = len(self._keys)
+        self._dataset[start:start + len(keys)] = array
+        self._keys_dataset[start:start + len(keys)] = keys
+        self._keys.update(keys)
 
-    def save_single(self, key, data):
+    def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves single object to data storage"""
-        self._dataset[self._counter] = data
-        self._counter += 1
+        self.save_array([key], data[np.newaxis])
 
     @classmethod
-    def type(cls):
+    def type(cls) -> str:
         """Returns type of this storage"""
         return 'hdf5'
-
-    def to_json(self):
-        """Returns JSON config of this class"""
-        return {
-            'type': HDF5Storage.type(),
-            'filename': self._filename,
-            'dataset_name': self._dataset_name
-        }
-
-    @staticmethod
-    def from_json(json, mode='r'):
-        """Creates object of this class from JSON"""
-        config = copy.deepcopy(json)
-        if config.pop('type', None) != HDF5Storage.type():
-            raise ValueError('Type ' + json['type'] + ' is invalid type for HDF5Storage')
-        filename = config.pop('filename', None)
-        dataset_name = config.pop('dataset_name', None)
-        return HDF5Storage(filename, dataset_name, mode=mode, **config)

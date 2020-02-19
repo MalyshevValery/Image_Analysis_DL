@@ -1,77 +1,61 @@
 """Directory storage"""
-import copy
 import os
+from typing import Set
 
 import numpy as np
 from cv2 import cv2
 
-from .abstract import AbstractStorage
-
-COLOR_TRANSFORMS = {
-    'none': lambda image: image,
-    'to_gray': lambda image: cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[:, :, np.newaxis],
-    'from_gray': lambda image: cv2.cvtColor(image, cv2.COLOR_GRAY2BGR) if len(image.shape) == 2 else
-    cv2.cvtColor(image[:, :, 0], cv2.COLOR_GRAY2BGR)
-}
+from .abstract import AbstractStorage, Mode
 
 
 class DirectoryStorage(AbstractStorage):
-    """Directory storage that loads all PNG images in directory"""
+    """Directory storage that loads all **PNG** images in directory
 
-    def __init__(self, dir_, color_transform='none', mode='r'):
-        """Constructor
+    :param directory: directory with PNG images
+    :param gray_transform: True to transform images to grayscale after reading
+        and before writing
+    :param mode: Mode.READ for read Mode.WRITE for write
+    """
 
-        :param dir_: directory with PNG images
-        """
-        self._dir = dir_
-        if mode is 'w':
-            if not os.path.exists(dir_):
-                os.makedirs(dir_)
-            super().__init__(mode='w')
-        elif mode is 'r':
-            if not os.path.isdir(dir_):
-                raise ValueError(dir_ + ' is not a directory')
+    def __init__(self, directory: str,
+                 gray_transform: bool = False,
+                 mode: Mode = Mode.READ):
+        self.__dir = directory
+        if mode is Mode.WRITE:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            init_keys: Set[str] = set()
+            super().__init__(init_keys, mode)
+        elif mode is Mode.READ:
+            if not os.path.isdir(directory):
+                raise ValueError(directory + ' is not a directory')
 
-            all_names = os.listdir(dir_)
+            all_names = os.listdir(directory)
             png_names = [name for name in all_names if name.endswith('.png')]
-            png_filenames = [name for name in png_names if os.path.isfile(os.path.join(dir_, name))]
+            png_filenames = [name for name in png_names if
+                             os.path.isfile(os.path.join(directory, name))]
 
             super().__init__(keys=set(png_filenames), mode=mode)
 
-        if color_transform not in COLOR_TRANSFORMS:
-            raise ValueError(color_transform + ' is not a valid color representation')
-        self._color_transform = COLOR_TRANSFORMS[color_transform]
-        self._color_transform_label = color_transform
+        self.__gray_transform = gray_transform
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> np.ndarray:
         super().__getitem__(item)
-        image = cv2.imread(os.path.join(self._dir, item))
-        return self._color_transform(image)
+        image = cv2.imread(os.path.join(self.__dir, item))
+        if self.__gray_transform:
+            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return image
 
-    def save_single(self, key, data):
+    def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves one data entry to directory"""
         super().save_single(key, data)
-        cv2.imwrite(os.path.join(self._dir, key), self._color_transform(data))
+        self._keys.add(key)
+        path = os.path.join(self.__dir, key)
+        if self.__gray_transform:
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
+        cv2.imwrite(path, data)
 
     @classmethod
-    def type(cls):
+    def type(cls) -> str:
         """Returns type of this decorator"""
         return 'directory'
-
-    def to_json(self):
-        """Returns python dict to transform to JSON"""
-        return {
-            'type': DirectoryStorage.type(),
-            'dir': self._dir,
-            'color_transform': self._color_transform_label
-        }
-
-    @staticmethod
-    def from_json(json, mode='r'):
-        """Returns object generator from dict"""
-        config = copy.deepcopy(json)
-        if json['type'] != DirectoryStorage.type():
-            raise ValueError('Type ' + json['type'] + ' is invalid type for DirectoryStorage')
-        del config['dir']
-        del config['type']
-        return DirectoryStorage(json['dir'], **config)
