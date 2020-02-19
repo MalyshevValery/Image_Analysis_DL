@@ -1,23 +1,24 @@
 """All-in-one loader for image tasks"""
-import copy
 from typing import List, Dict, Union
 
 import numpy as np
 
-from imports.jsonserializable import JSONSerializable
-from .extensions import extension_factory, AbstractExtension
+from .extensions import AbstractExtension
 from .overlay import image_mask
-from .storages import AbstractStorage, storage_factory
+from .storages import AbstractStorage
 
 
-class Loader(JSONSerializable):
-    """Loader of data for different image tasks (currently only Semantic segmentation is supported)
+class Loader:
+    """Loader of data for different image tasks (currently only Semantic
+    segmentation is supported)
 
-    Loader is a middleware between storages and generators. It has two main tasks:
-        1. Unite data from different storage to create bundles of input and ground truth data which can be passed to
-        generators;
-        2. Preprocess data by pushing it through specified extensions, which allows to change data types, scale it, add
-        other effects.
+    Loader is a middleware between storage and generators. It has two main
+    tasks:
+        1. Unite data from different storage to create bundles of input and
+        ground truth data which can be passed to generators;
+
+        2. Preprocess data by pushing it through specified extensions, which
+        allows to change data types, scale it, add other effects.
 
     The further work on this class will be made in direction of adding other tasks to it.
     (bounding boxes, object detection and segmentation etc.). So this class will be configurable and flexible to provide
@@ -135,47 +136,6 @@ class Loader(JSONSerializable):
             array = apply(array)
             predictions = apply(predictions)
         storage.save_array(keys, array)
-
-    def to_json(self):
-        """Returns JSON representation of Loader"""
-        json = {'images': self._images.to_json()}
-        if self._masks is not None:
-            json['masks'] = self._masks.to_json()
-        if self._extensions is not None:
-            to_save = {}
-            for k in self._extensions.keys():
-                to_save[k] = [extension.to_json() for extension in self._extensions[k]]
-            json['extensions'] = to_save
-        return json
-
-    @staticmethod
-    def from_json(json: dict, predict=False):
-        """Creates loader from JSON"""
-        if predict:
-            return Loader(extensions=Loader.__create_extensions(json.get('extensions', {})))
-
-        config = copy.deepcopy(json)
-        images = config['images']
-        del config['images']
-        for k in config.keys():
-            if k == 'extensions':
-                config[k] = Loader.__create_extensions(config['extensions'])
-            else:
-                config[k] = storage_factory(config[k])
-        return Loader(storage_factory(images), **config)
-
-    @staticmethod
-    def __create_extensions(config):
-        extensions = {}
-        for apply in config:
-            if not isinstance(config[apply], list):
-                extensions[apply] = extension_factory(config[apply], apply)
-            else:
-                new_extensions = []
-                for extension in config[apply]:
-                    new_extensions.append(extension_factory(extension, apply))
-                extensions[apply] = new_extensions
-        return extensions
 
     def copy_for_storage(self, storage: AbstractStorage):
         """Creates new storage with other images storage to use it for predictions"""
