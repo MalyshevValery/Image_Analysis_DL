@@ -7,3 +7,4 @@ Data
 Jobs/
 *__pycache__*
 Experiments/*
+.mypy_cache
