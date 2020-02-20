@@ -61,15 +61,15 @@ class TrainWrapper:
         # Training params and callbacks
         self._generator_params = generator_params or {}
 
-        # Create model
-        if not isinstance(model, Model):
-            raise TypeError('Provided model is not a keras Model')
+        # # Create model
+        # if not isinstance(model, Model):
+        #     raise TypeError('Provided model is not a keras Model')
 
         self._input_shape = loader.get_input_shape()
-        if model.input_shape != (None, *self._input_shape):
-            raise ValueError('Shape of model ' + str(model.input_shape) +
-                             ' is different from shape of data ' + str(
-                self._input_shape))
+        # if model.input_shape != (None, *self._input_shape):
+        #     raise ValueError('Shape of model ' + str(model.input_shape) +
+        #                      ' is different from shape of data ' + str(
+        #         self._input_shape))
         self._model = model
 
         self._job_dir = job_dir
@@ -78,9 +78,12 @@ class TrainWrapper:
         elif not os.path.isdir(job_dir):
             raise FileExistsError(
                 job_dir + ' file exists, directory cannot be created')
+        self._metrics = []
 
     @functools.wraps(tf.keras.Model.compile)
     def compile(self, **kwargs):
+        if 'metrics' in kwargs:
+            self._metrics = kwargs['metrics']
         self._model.compile(**kwargs)
         self._model.summary()
 
@@ -98,13 +101,14 @@ class TrainWrapper:
 
     def evaluate(self):
         """Evaluate test set and returns value of selected metric"""
-        ret = self._model.evaluate_generator(self._test_gen,
-                                             **self.__get_eval_params())
-        metrics = ['loss'] + self._model_compile.to_json().get('metrics', [])
+        ret = self._model.evaluate(self._test_gen,
+                                   **self.__get_eval_params())
+        metrics = ['loss'] + [m if isinstance(m, str) else m.name for m in
+                              self._metrics]
         ret_val = zip(metrics, ret)
-        for entry in ret_val:
-            open(os.path.join(self._job_dir, '%.3f_' % entry[1] + entry[0]),
-                 'w')
+        # for entry in ret_val:
+        #     open(os.path.join(self._job_dir, '%.3f_' % entry[1] + entry[0]),
+        #          'w')
         k = 1
         eval_metric = self._eval_metric
         if self._eval_metric[0] == '-':
@@ -125,8 +129,8 @@ class TrainWrapper:
         """Predicts test data and saves it to given storage"""
         if not isinstance(storage, AbstractStorage):
             raise TypeError('storage is not an instance of', AbstractStorage)
-        predicted = self._model.predict_generator(self._test_gen,
-                                                  **self.__get_eval_params())
+        predicted = self._model.predict(self._test_gen,
+                                        **self.__get_eval_params())
         self._loader.save_predicted(self._test_gen.keys, predicted, storage)
 
     def get_train_sample(self):

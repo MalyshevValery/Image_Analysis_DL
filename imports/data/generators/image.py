@@ -1,7 +1,7 @@
 """Keras generator for inference"""
 import numpy as np
 from albumentations import BasicTransform
-from tensorflow.python.keras.utils import Sequence
+from tensorflow.keras.utils import Sequence
 
 from imports.data.loader import Loader
 

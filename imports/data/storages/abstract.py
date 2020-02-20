@@ -13,7 +13,7 @@ class Mode(enum.Enum):
     WRITE = 0
 
 
-KeySet = Union[Set[str], OrderedSet[str]]
+KeySet = Union[Set[str], OrderedSet]
 
 
 class AbstractStorage:
@@ -56,8 +56,8 @@ class AbstractStorage:
         :raises ValueError if wrong mode or lengths of keys and array do not
             match
         """
-        if self._mode != Mode.WRITE:
-            raise ValueError('Save can be used only in write mode')
+        # if self._mode != Mode.WRITE:
+        #     raise ValueError('Save can be used only in write mode')
         for i, key in enumerate(keys):
             self.save_single(key, array[i])
 
@@ -68,8 +68,8 @@ class AbstractStorage:
         :param key: key for save
         :param data: data to save
         """
-        if self._mode != Mode.WRITE:
-            raise ValueError('Save can be used only in write mode')
+        # if self._mode != Mode.WRITE:
+        #     raise ValueError('Save can be used only in write mode')
         pass
 
     @classmethod

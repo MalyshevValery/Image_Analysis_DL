@@ -20,4 +20,4 @@ class MaskGenerator(ImageGenerator):
             data = [self._augment(image=images[i], mask=masks[i]) for i in range(len(batch_keys))]
             images = [d['image'] for d in data]
             masks = [d['mask'] for d in data]
-        return np.array(images), np.array(masks)
+        return np.array(images), np.array(masks), None

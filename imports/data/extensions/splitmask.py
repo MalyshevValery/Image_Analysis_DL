@@ -41,9 +41,10 @@ class SplitMaskExtension(AbstractExtension):
         :param data: NumPy array with data to process
         :raises ValueError if DataShape is not (n, m, 1)
         """
-        if data.shape[-1] != 1:
-            raise ValueError('Data shape have to be (n, m, 1)')
-        data = data[:, :, 0]
+        if len(data.shape) == 3:
+            if data.shape[-1] != 1:
+                raise ValueError('Data shape have to be (n, m, 1)')
+            data = data[:, :, 0]
         new_data = np.zeros([*data.shape, len(self.__codes)], dtype=data.dtype)
         for i, c in enumerate(self.__codes):
             new_data[..., i] = data == c

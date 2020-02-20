@@ -43,16 +43,16 @@ class DirectoryStorage(AbstractStorage):
         super().__getitem__(item)
         image = cv2.imread(os.path.join(self.__dir, item))
         if self.__gray_transform:
-            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[..., np.newaxis]
         return image
 
     def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves one data entry to directory"""
         super().save_single(key, data)
-        self._keys.add(key)
+        # self._keys.add(key)
         path = os.path.join(self.__dir, key)
         if self.__gray_transform:
-            data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)
+            data = cv2.cvtColor(data, cv2.COLOR_BGR2GRAY)[..., np.newaxis]
         cv2.imwrite(path, data)
 
     @classmethod

@@ -52,20 +52,19 @@ class Loader:
                 for extension in extensions[apply]:
                     if not isinstance(extension, AbstractExtension):
                         raise ValueError(extension + ' does not implements AbstractExtension')
-                    extension.check_extension(apply)
                 self._extensions[apply] = extensions[apply]
 
         if images is None:
             print('Loader prediction mode')
             return
 
-        keys = images.get_keys()
+        keys = images.keys
         self._images = images
 
         if masks is not None:
             if not isinstance(masks, AbstractStorage):
                 raise TypeError('Masks have to be a Storage')
-            keys = keys.intersection(masks.get_keys())
+            keys = keys.intersection(masks.keys)
         self._masks = masks
         self._keys = list(keys)  # To ensure order
 
@@ -87,7 +86,7 @@ class Loader:
         test_count = train_val_test_counts[2]
         return self._keys[:train_count], self._keys[train_count:-test_count], self._keys[-test_count:]
 
-    def get_keys(self):
+    def keys(self):
         """Getter for keys"""
         return self._keys
 

@@ -1,71 +1,9 @@
 {
-  "loader": {
-    "images": {
-      "type": "directory",
-      "dir": "Data/Test_Images",
-      "color_transform": "to_gray"
-    },
-    "masks": {
-      "type": "directory",
-      "dir": "Data/Masks",
-      "color_transform": "to_gray"
-    },
-    "extensions": {
-      "image": [],
-      "mask": [
-        {
-          "type": "type_scale",
-          "src_max": 255,
-          "target_type": "float32",
-          "target_max": 1.0
-        },
-        {
-          "type": "split_mask"
-        },
-        {
-          "type": "ignore_region"
-        }
-      ],
-      "save_image": [
-        {
-          "type": "type_scale",
-          "src_max": 255,
-          "target_type": "float32",
-          "target_max": 1.0
-        }
-      ],
-      "save": [
-        {
-          "type": "type_scale",
-          "src_max": 1,
-          "target_type": "uint8",
-          "target_max": 255
-        }
-      ]
-    }
-  },
-  "train_val_test": [
-    0.8,
-    0.1,
-    0.1
-  ],
   "augmentation_all": [
     {
       "transform": "ToFloat"
     }
   ],
-  "model": {
-    "name": "UNet"
-  },
-  "model_compile": {
-    "optimizer": "adam",
-    "loss": "dice",
-    "metrics": [
-      "acc",
-      "iou"
-    ]
-  },
-  "batch_size": 4,
   "generator_params": {
     "epochs": {
       "type": "O_UNIFORM_INT",
@@ -73,21 +11,5 @@
       "high": 10
     }
   },
-  "callbacks": [
-    {
-      "name": "early_stop",
-      "patience": 5,
-      "restore_best_weights": true
-    },
-    {
-      "name": "tensorboard",
-      "log_dir": "$BASE$",
-      "profile_batch": 0
-    },
-    {
-      "name": "save_best"
-    }
-  ],
-  "eval_metric": "-iou",
   "eval_runs": 2
 }
