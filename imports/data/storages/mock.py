@@ -26,7 +26,7 @@ class MockStorage(AbstractStorage):
 
     def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves single object to data storage"""
-        print('Key %s saved' % key)
+        print(f'Key {key} saved')
 
     @classmethod
     def type(cls) -> str:

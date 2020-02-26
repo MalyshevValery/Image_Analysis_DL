@@ -26,7 +26,7 @@ class HDF5Storage(AbstractStorage):
 
         self._filename = filename
         if dataset_name == _keys_dataset:
-            raise ValueError('%s is equal kto key dataset name' % dataset_name)
+            raise ValueError(f'{dataset_name} is equal kto key dataset name')
         self._dataset_name = dataset_name
 
         self._file = h5py.File(filename, 'a')
