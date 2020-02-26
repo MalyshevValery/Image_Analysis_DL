@@ -1,10 +1,12 @@
 """Abstract Storage class"""
 import enum
 from abc import abstractmethod
-from typing import Set, Union, List
+from typing import Set, Union, List, Tuple
 
 import numpy as np
-from ordered_set import OrderedSet
+
+from imports.data import AbstractExtension
+from imports.utils.torderedset import TOrderedSet
 
 
 class Mode(enum.Enum):
@@ -13,22 +15,25 @@ class Mode(enum.Enum):
     WRITE = 0
 
 
-KeySet = Union[Set[str], OrderedSet]
+KeySet = Union[Set[str], TOrderedSet[str]]
+ExtensionType = Union[AbstractExtension, Tuple[AbstractExtension]]
 
 
 class AbstractStorage:
-    """Storage class with declared methods required by storage"""
+    """Storage class with declared methods required by storage
 
-    def __init__(self, keys: KeySet, mode: Mode = Mode.READ):
-        """Constructor
+    :param keys: keys for this storage
+    :param mode: Mode.READ for read Mode.WRITE for write
+    :param extensions: Extensions to apply to this storage
+    """
 
-        :param keys: keys for this storage
-        :param mode: Mode.READ for read Mode.WRITE for write
-        """
+    def __init__(self, keys: KeySet, mode: Mode = Mode.READ,
+                 extensions: ExtensionType = None):
         if mode == Mode.READ and keys is None:
             raise ValueError('Keys must be set in read mode')
         self._keys = keys.copy()
         self._mode = mode
+        self._extensions = extensions
 
     @abstractmethod
     def __getitem__(self, item: str) -> np.ndarray:
@@ -60,6 +65,17 @@ class AbstractStorage:
         #     raise ValueError('Save can be used only in write mode')
         for i, key in enumerate(keys):
             self.save_single(key, array[i])
+
+    def _apply_extensions(self, data: np.ndarray) -> np.ndarray:
+        cur = data
+        if self._extensions is None:
+            return cur
+        elif isinstance(self._extensions, AbstractExtension):
+            return self._extensions(cur)
+        else:
+            for ext in self._extensions:
+                cur = ext(cur)
+            return cur
 
     @abstractmethod
     def save_single(self, key: str, data: np.ndarray) -> None:

@@ -3,9 +3,9 @@ from typing import List, Type, Tuple
 
 import h5py
 import numpy as np
-from ordered_set import OrderedSet
 
-from .abstract import AbstractStorage, Mode
+from imports.utils.torderedset import TOrderedSet
+from .abstract import AbstractStorage, Mode, ExtensionType
 
 _keys_dataset = '__keys'
 
@@ -20,8 +20,10 @@ class HDF5Storage(AbstractStorage):
     """
 
     def __init__(self, filename: str, dataset_name: str, mode: Mode = Mode.READ,
+                 extensions: ExtensionType = None,
                  shape: Tuple[int, ...] = None,
                  dtype: Type[np.generic] = None):
+
         self._filename = filename
         if dataset_name == _keys_dataset:
             raise ValueError('%s is equal kto key dataset name' % dataset_name)
@@ -40,26 +42,26 @@ class HDF5Storage(AbstractStorage):
         elif mode is Mode.READ:
             self._dataset = self._file[dataset_name]
 
-        keys: OrderedSet[str] = OrderedSet()
+        keys: TOrderedSet[str] = TOrderedSet()
         if _keys_dataset in self._file:
             self._keys_dataset = self._file[_keys_dataset]
-            keys = OrderedSet(self._keys_dataset)
+            keys = TOrderedSet(self._keys_dataset)
             keys.remove('')
         else:
             stype = h5py.string_dtype()
             size = len(self._dataset)
             self._keys_dataset = self._file.create_dataset(_keys_dataset, size,
                                                            stype)
-        super().__init__(keys, mode)
+        super().__init__(keys, mode, extensions)
 
     def __getitem__(self, item: str) -> np.ndarray:
         """Returns item from dataset"""
         super().__getitem__(item)
 
         idx = int(item)
-        if isinstance(self._keys, OrderedSet):
+        if isinstance(self._keys, TOrderedSet):
             idx = self._keys.index(item)
-        return self._dataset[idx]
+        return self._apply_extensions(self._dataset[idx])
 
     def save_array(self, keys: List[str], array: np.ndarray) -> None:
         """Saves array to h5 file"""

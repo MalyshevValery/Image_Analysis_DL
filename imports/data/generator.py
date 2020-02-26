@@ -1,16 +1,23 @@
-"""Keras generator for inference"""
+"""Keras generator for semantic segmentation tasks"""
+from typing import List, Tuple, Iterable
+
 import numpy as np
 from albumentations import BasicTransform
 from tensorflow.keras.utils import Sequence
 
-from imports.data.loader import Loader
+from .loader import Loader
+
+_DataType = Tuple[Iterable[np.ndarray], Iterable[np.ndarray]]
 
 
-class ImageGenerator(Sequence):
-    """Keras generator which provides only input images. Can be used for large-scale static inference because it allows
-    batches."""
+class DataGenerator(Sequence):
+    """Keras generator for loader and storages system.
 
-    def __init__(self, keys, loader: Loader, batch_size, augmentations: BasicTransform = None, shuffle=True):
+    Can be used for large-scale static inference because it allows batches.
+    """
+
+    def __init__(self, keys: List[str], loader: Loader, batch_size: int = 1,
+                 augmentations: BasicTransform = None, shuffle: bool = True):
         """Constructor
 
         :param keys: keys for data in loader
@@ -28,26 +35,25 @@ class ImageGenerator(Sequence):
         self._augment = augmentations
         self.on_epoch_end()
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Denotes the number of batches per epoch"""
         return int(np.ceil(len(self._keys) / self._batch_size))
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> _DataType:
         """Generate one batch of data"""
-        batch_keys = self._keys[index * self._batch_size:(index + 1) * self._batch_size]
+        batch_keys = self._keys[
+                     index * self._batch_size:(index + 1) * self._batch_size]
+        input_ = self._loader.get_input(batch_keys)
+        output_ = self._loader.get_output(batch_keys)
+        # TODO: augment
+        return input_, output_
 
-        images = [self._loader.get_image(key) for key in batch_keys]
-        if self._augment is not None:
-            data = [self._augment(image=images[i]) for i in range(len(batch_keys))]
-            images = [d['image'] for d in data]
-        return np.array(images)
-
-    def on_epoch_end(self):
+    def on_epoch_end(self) -> None:
         """This function is automatically called on epoch end"""
         if self._shuffle:
             np.random.shuffle(self._keys)
 
     @property
-    def keys(self):
+    def keys(self) -> List[str]:
         """Getter for keys"""
         return self._keys.copy()
