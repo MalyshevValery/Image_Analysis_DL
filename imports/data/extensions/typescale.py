@@ -1,5 +1,5 @@
 """Transforms data in [0, ?] to [0, X] of specified type"""
-from typing import Type
+from typing import Type, Dict
 
 import numpy as np
 
@@ -27,18 +27,22 @@ class TypeScaleExtension(AbstractExtension):
     def __init__(self, src_max: float = None,
                  target_type: Type[np.number] = np.uint8,
                  target_max: float = None):
-        self._target_type = target_type
-        self._src_max = src_max
-        self._target_max = target_max
+        self.__target_type = target_type
+        self.__src_max = src_max
+        self.__target_max = target_max
         if target_max is None:
-            self._target_max = np.iinfo(target_type).max
+            self.__target_max = np.iinfo(target_type).max
 
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Apply scale and type transform"""
-        scaled_data = data.astype(np.float32) / self._src_max
-        return (scaled_data * self._target_max).astype(self._target_type)
+        scaled_data = data.astype(np.float32) / self.__src_max
+        return (scaled_data * self.__target_max).astype(self.__target_type)
 
-    @classmethod
-    def type(cls) -> str:
-        """Returns type of this image"""
-        return 'type_scale'
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this Extension"""
+        return {
+            'type': 'type_scale',
+            'target_type': self.__target_type.__name__,
+            'src_max': self.__src_max,
+            'target_max': self.__target_max
+        }

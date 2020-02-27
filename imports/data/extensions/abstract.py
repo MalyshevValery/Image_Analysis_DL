@@ -1,5 +1,6 @@
 """Abstract extension"""
 from abc import abstractmethod
+from typing import Dict
 
 import numpy as np
 
@@ -24,3 +25,8 @@ class AbstractExtension:
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Apply transformation to data and returns transformed data"""
         raise NotImplementedError
+
+    @abstractmethod
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this Extension"""
+        raise NotImplementedError()

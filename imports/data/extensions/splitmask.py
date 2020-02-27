@@ -1,5 +1,5 @@
 """Class for mask channel splitting"""
-from typing import Union, List
+from typing import Union, List, Dict
 
 import numpy as np
 
@@ -49,3 +49,10 @@ class SplitMaskExtension(AbstractExtension):
         for i, c in enumerate(self.__codes):
             new_data[..., i] = data == c
         return new_data
+
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this Extension"""
+        return {
+            'type': 'split_mask',
+            'codes': self.__codes
+        }

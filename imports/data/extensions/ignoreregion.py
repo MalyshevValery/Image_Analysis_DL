@@ -1,4 +1,6 @@
 """Ignore region extension"""
+from typing import Dict
+
 import numpy as np
 import skimage.morphology as morph
 
@@ -45,3 +47,11 @@ class IgnoreRegionExtension(AbstractExtension):
         ignore -= morph.binary_erosion(channel, selem=self.__morph_element)
         data *= (1 - ignore[:, :, np.newaxis])
         return data
+
+    def to_json(self) -> Dict[str, object]:
+        """JSON configuration for this Extension"""
+        return {
+            'type': 'ignore_region',
+            'radius': self.__radius,
+            'channel': self.__channel
+        }
