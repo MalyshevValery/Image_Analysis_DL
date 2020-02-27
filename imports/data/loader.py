@@ -1,6 +1,6 @@
 """All-in-one loader for image tasks"""
 from itertools import chain
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Dict
 
 import numpy as np
 
@@ -26,7 +26,7 @@ class Loader:
 
         keys = input_[0].keys
         for storage in chain(input_, output_):
-            keys = keys.intersection(storage.keys)
+            keys = keys.intersection(tuple(storage.keys))
         self._keys = list(keys)  # To ensure order
 
         self._input = input_
@@ -71,3 +71,10 @@ class Loader:
     def get_output(self, batch_keys: List[str]) -> Iterable[np.ndarray]:
         """Returns elements from output storages with specified keys"""
         return [np.array([s[key] for key in batch_keys]) for s in self._output]
+
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON config for loader"""
+        return {
+            'input': [s.to_json() for s in self._input],
+            'output': [s.to_json() for s in self._output]
+        }

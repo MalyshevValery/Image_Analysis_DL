@@ -30,11 +30,6 @@ class IgnoreRegionExtension(AbstractExtension):
         self.__channel = channel
         self.__morph_element = morph.disk(self.__radius)
 
-    @classmethod
-    def type(cls) -> str:
-        """Returns type of this extension"""
-        return 'ignore_region'
-
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Creates empty region which will be ignored due to lack of any ground
         truth data on this region"""

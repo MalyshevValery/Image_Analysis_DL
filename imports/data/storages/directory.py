@@ -1,6 +1,6 @@
 """Directory storage"""
 import os
-from typing import Set
+from typing import Set, Dict
 
 import numpy as np
 import skimage.color as color
@@ -53,13 +53,21 @@ class DirectoryStorage(AbstractStorage):
     def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves one data entry to directory"""
         super().save_single(key, data)
-        # self._keys.add(key)
+        self._keys.add(key)
         path = os.path.join(self.__dir, key)
         if self.__gray:
             data = color.rgb2gray(data)
         io.imsave(path, data)
 
-    @classmethod
-    def type(cls) -> str:
-        """Returns type of this decorator"""
-        return 'directory'
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this Storage"""
+        if self._extensions is None:
+            extensions = None
+        else:
+            extensions = [ext.to_json() for ext in self._extensions]
+        return {
+            'type': 'directory',
+            'directory': self.__dir,
+            'gray': self.__gray,
+            'extensions': extensions
+        }

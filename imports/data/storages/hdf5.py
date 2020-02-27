@@ -1,5 +1,5 @@
 """HDF5 storage"""
-from typing import List, Type, Tuple
+from typing import List, Type, Tuple, Dict
 
 import h5py
 import numpy as np
@@ -24,34 +24,34 @@ class HDF5Storage(AbstractStorage):
                  shape: Tuple[int, ...] = None,
                  dtype: Type[np.generic] = None):
 
-        self._filename = filename
+        self.__filename = filename
         if dataset_name == _keys_dataset:
             raise ValueError(f'{dataset_name} is equal kto key dataset name')
-        self._dataset_name = dataset_name
+        self.__dataset_name = dataset_name
 
-        self._file = h5py.File(filename, 'a')
+        self.__file = h5py.File(filename, 'a')
         if mode is Mode.WRITE:
             if shape is None or dtype is None:
                 raise ValueError(
                     'Shape or Value has not been provided for write storage')
-            if dataset_name in self._file:
+            if dataset_name in self.__file:
                 print('Replacing dataset ' + dataset_name)
-                del self._file[dataset_name]
-            self._dataset = self._file.create_dataset(dataset_name, shape,
-                                                      dtype)
+                del self.__file[dataset_name]
+            self.__dataset = self.__file.create_dataset(dataset_name, shape,
+                                                        dtype)
         elif mode is Mode.READ:
-            self._dataset = self._file[dataset_name]
+            self.__dataset = self.__file[dataset_name]
 
         keys: TOrderedSet[str] = TOrderedSet()
-        if _keys_dataset in self._file:
-            self._keys_dataset = self._file[_keys_dataset]
+        if _keys_dataset in self.__file:
+            self._keys_dataset = self.__file[_keys_dataset]
             keys = TOrderedSet(self._keys_dataset)
             keys.remove('')
         else:
             stype = h5py.string_dtype()
-            size = len(self._dataset)
-            self._keys_dataset = self._file.create_dataset(_keys_dataset, size,
-                                                           stype)
+            size = len(self.__dataset)
+            self._keys_dataset = self.__file.create_dataset(_keys_dataset, size,
+                                                            stype)
         super().__init__(keys, mode, extensions)
 
     def __getitem__(self, item: str) -> np.ndarray:
@@ -61,14 +61,14 @@ class HDF5Storage(AbstractStorage):
         idx = int(item)
         if isinstance(self._keys, TOrderedSet):
             idx = self._keys.index(item)
-        return self._apply_extensions(self._dataset[idx])
+        return self._apply_extensions(self.__dataset[idx])
 
     def save_array(self, keys: List[str], array: np.ndarray) -> None:
         """Saves array to h5 file"""
         super().save_array(keys, array)
 
         start = len(self._keys)
-        self._dataset[start:start + len(keys)] = array
+        self.__dataset[start:start + len(keys)] = array
         self._keys_dataset[start:start + len(keys)] = keys
         self._keys.update(keys)
 
@@ -76,7 +76,15 @@ class HDF5Storage(AbstractStorage):
         """Saves single object to data storage"""
         self.save_array([key], data[np.newaxis])
 
-    @classmethod
-    def type(cls) -> str:
-        """Returns type of this storage"""
-        return 'hdf5'
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this Storage"""
+        if self._extensions is None:
+            extensions = None
+        else:
+            extensions = [ext.to_json() for ext in self._extensions]
+        return {
+            'type': 'hdf5',
+            'filename': self.__filename,
+            'dataset_name': self.__dataset_name,
+            'extensions': extensions
+        }

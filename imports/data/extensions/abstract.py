@@ -15,12 +15,6 @@ class AbstractExtension:
     for Keras training and test processes.
     """
 
-    @classmethod
-    @abstractmethod
-    def type(cls) -> str:
-        """Returns string which identifies extension"""
-        raise NotImplementedError
-
     @abstractmethod
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Apply transformation to data and returns transformed data"""

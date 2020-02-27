@@ -1,7 +1,7 @@
 """Abstract Storage class"""
 import enum
 from abc import abstractmethod
-from typing import Set, Union, List, Tuple
+from typing import Set, Union, List, Tuple, Dict
 
 import numpy as np
 
@@ -33,7 +33,11 @@ class AbstractStorage:
             raise ValueError('Keys must be set in read mode')
         self._keys = keys.copy()
         self._mode = mode
-        self._extensions = extensions
+
+        if not isinstance(extensions, AbstractExtension):
+            self._extensions = extensions
+        else:
+            self._extensions = (extensions,)
 
     @abstractmethod
     def __getitem__(self, item: str) -> np.ndarray:
@@ -70,8 +74,6 @@ class AbstractStorage:
         cur = data
         if self._extensions is None:
             return cur
-        elif isinstance(self._extensions, AbstractExtension):
-            return self._extensions(cur)
         else:
             for ext in self._extensions:
                 cur = ext(cur)
@@ -88,8 +90,7 @@ class AbstractStorage:
         #     raise ValueError('Save can be used only in write mode')
         pass
 
-    @classmethod
     @abstractmethod
-    def type(cls) -> str:
-        """Returns type of storage"""
-        raise NotImplementedError
+    def to_json(self) -> Dict[str, object]:
+        """Returns configuration of Storage in JSON format"""
+        raise NotImplementedError()

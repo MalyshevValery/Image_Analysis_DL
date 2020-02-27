@@ -1,5 +1,5 @@
 """HDF5 storage"""
-from typing import Set
+from typing import Set, Dict
 
 import numpy as np
 
@@ -28,7 +28,13 @@ class MockStorage(AbstractStorage):
         """Saves single object to data storage"""
         print(f'Key {key} saved')
 
-    @classmethod
-    def type(cls) -> str:
-        """Returns type of this storage"""
-        return 'mock'
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this Storage"""
+        if self._extensions is None:
+            extensions = None
+        else:
+            extensions = [ext.to_json() for ext in self._extensions]
+        return {
+            'type': 'mock',
+            'extensions': extensions
+        }

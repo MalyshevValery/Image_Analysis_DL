@@ -26,11 +26,6 @@ class SplitMaskExtension(AbstractExtension):
         else:
             self.__codes = list(codes)
 
-    @classmethod
-    def type(cls) -> str:
-        """Returns name of this extension"""
-        return 'split_mask'
-
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Provided mask is split into some channels that are merged to create
         one multi-channel mask according to
