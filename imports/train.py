@@ -1,15 +1,17 @@
 """Class that encapsulates training process"""
 import os
-from typing import Tuple, Union
+from typing import Tuple, Union, Iterable
 
 from albumentations import BasicTransform, Compose
+from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import Model
 
 from .data import Loader, DataGenerator, AbstractStorage
-from .utils import RunParams
-from .utils.runparams import DEFAULT_PARAMS
+from .utils import RunParams, DEFAULT_PARAMS
 
-Storages = Union[AbstractStorage, Tuple[AbstractStorage, ...]]
+_Storages = Union[AbstractStorage, Tuple[AbstractStorage, ...]]
+_TrainValTest = Tuple[float, float, float]
+_Callbacks = Iterable[Callback]
 
 
 class TrainWrapper:
@@ -42,8 +44,8 @@ class TrainWrapper:
     """
 
     def __init__(self, loader: Loader, model: Model, job_dir: str,
-                 train_val_test=(0.8, 0.1, 0.1), batch_size=1,
-                 augmentation_train: BasicTransform = None,
+                 train_val_test: _TrainValTest = (0.8, 0.1, 0.1),
+                 batch_size: int = 1, augmentation_train: BasicTransform = None,
                  augmentation_all: BasicTransform = None,
                  generator_params: RunParams = DEFAULT_PARAMS):
         self._loader = loader
@@ -77,7 +79,7 @@ class TrainWrapper:
             raise FileExistsError(
                 job_dir + ' file exists, directory cannot be created')
 
-    def train(self, callbacks, weights_path=None):
+    def train(self, callbacks: _Callbacks, weights_path: str = None) -> None:
         """
         Train process. After training best weights are restored if checkpoint
         callback with save_best was used
@@ -88,22 +90,33 @@ class TrainWrapper:
         if weights_path:
             self._model.load_weights(os.path.join(self._job_dir, weights_path))
 
-    def evaluate(self, eval_metric: str) -> float:
+    def evaluate(self, eval_metric: str = None) -> float:
         """
-        Evaluate test set and returns value of eval_metric.
+        Evaluate test set and returns value of eval_metric. Saves all metrics to
+        job_dir
 
         Add '-' symbol before metric name to change its sign.
         Can be useful for hyper parameter optimization/
         """
         ret = self._model.evaluate(self._test_gen,
                                    **self._generator_params.eval_dict)
+        if ret is None:
+            raise ValueError('No return from evaluate')
+        if isinstance(ret, float):
+            gen_ret = (ret,)
+        else:
+            gen_ret = ret
+
         ret_val = zip(self._model.metrics_names, ret)
         for entry in ret_val:
             filename = f'{entry[1]:.3f}_{entry[0]}'
-            file = open(os.path.join(self._job_dir, filename), 'w')
-            file.close()
+            open(os.path.join(self._job_dir, filename), 'w').close()
+
+        if eval_metric is None:
+            return gen_ret[0]
+
         k = -1 if eval_metric[0] == '-' else 1
-        return ret[self._model.metrics_names.index(eval_metric)] * k
+        return gen_ret[self._model.metrics_names.index(eval_metric)] * k
 
     def check(self) -> None:
         """Checks if model works by training and testing on one batch"""
@@ -114,7 +127,7 @@ class TrainWrapper:
         self._model.test_on_batch(x[1], y[1])
         self._model.predict_on_batch(x[2])
 
-    def predict_save_test(self, storages: Storages) -> None:
+    def predict_save_test(self, storages: _Storages) -> None:
         """Predicts test data and saves it to given storage"""
         predicted = self._model.predict(self._test_gen,
                                         **self._generator_params.eval_dict)
