@@ -64,11 +64,11 @@ class Loader:
         key = self._keys[0]
         return (storage[key].shape for storage in self._input)
 
-    def get_input(self, batch_keys: List[str]) -> Iterable[np.ndarray]:
+    def get_input(self, batch_keys: List[str]) -> List[np.ndarray]:
         """Returns elements from input storages with specified keys"""
         return [np.array([s[key] for key in batch_keys]) for s in self._input]
 
-    def get_output(self, batch_keys: List[str]) -> Iterable[np.ndarray]:
+    def get_output(self, batch_keys: List[str]) -> List[np.ndarray]:
         """Returns elements from output storages with specified keys"""
         return [np.array([s[key] for key in batch_keys]) for s in self._output]
 

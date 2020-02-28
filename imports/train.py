@@ -1,12 +1,12 @@
 """Class that encapsulates training process"""
 import os
-from typing import Tuple, Union, Iterable
+from typing import Tuple, Union, Iterable, Dict
 
-from albumentations import BasicTransform, Compose
+from albumentations import BasicTransform, Compose, to_dict
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import Model
 
-from .data import Loader, DataGenerator, AbstractStorage
+from .data import Loader, DataGenerator, AbstractStorage, AugmentationMap
 from .utils import RunParams, DEFAULT_PARAMS
 
 _Storages = Union[AbstractStorage, Tuple[AbstractStorage, ...]]
@@ -40,6 +40,7 @@ class TrainWrapper:
     :param augmentation_train: Augmentations for train data
         (will be merged with augmentations_all)
     :param augmentation_all: Augmentations applied to data from all sets
+    :param augmentation_map: Augmentation mapping to input/output
     :param generator_params: Parameters for training
     """
 
@@ -47,30 +48,30 @@ class TrainWrapper:
                  train_val_test: _TrainValTest = (0.8, 0.1, 0.1),
                  batch_size: int = 1, augmentation_train: BasicTransform = None,
                  augmentation_all: BasicTransform = None,
+                 augmentation_map: AugmentationMap = None,
                  generator_params: RunParams = DEFAULT_PARAMS):
         self._loader = loader
         self._train_val_test = train_val_test
         self._generator_params = generator_params
         self._model = model
+        self._batch_size = batch_size
 
-        self._augmentation_train = augmentation_train
-        self._augmentation_all = augmentation_all
-        self._composed_augmentation = self._augmentation_train
-        if self._augmentation_all and self._augmentation_train:
-            self._composed_augmentation = Compose(
-                [self._augmentation_train, self._augmentation_all])
-        elif self._augmentation_all:
-            self._composed_augmentation = self._augmentation_all
+        self._aug_train = augmentation_train
+        self._aug_all = augmentation_all
+        self._aug_map = augmentation_map
+        self._aug_composed = self._aug_train
+        if self._aug_all and self._aug_train:
+            self._aug_composed = Compose([self._aug_train, self._aug_all])
+        elif self._aug_all:
+            self._aug_composed = self._aug_all
 
         train_keys, val_keys, test_keys = loader.split(train_val_test)
         self._train_gen = DataGenerator(train_keys, loader, batch_size,
-                                        self._composed_augmentation)
+                                        self._aug_map, self._aug_composed, True)
         self._val_gen = DataGenerator(val_keys, loader, batch_size,
-                                      shuffle=False,
-                                      augmentations=self._augmentation_all)
+                                      self._aug_map, self._aug_all, False)
         self._test_gen = DataGenerator(test_keys, loader, batch_size,
-                                       shuffle=False,
-                                       augmentations=self._augmentation_all)
+                                       self._aug_map, self._aug_all, False)
 
         self._job_dir = job_dir
         if not os.path.exists(job_dir):
@@ -146,3 +147,21 @@ class TrainWrapper:
     def model(self) -> Model:
         """Returns model of this train"""
         return self._model
+
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON configuration for this train wrapper"""
+        aug_all = to_dict(self._aug_all) if self._aug_all else None
+        aug_train = to_dict(self._aug_train) if self._aug_train else None
+        aug_map = self._aug_map.to_json() if self._aug_map else None
+
+        return {
+            'loader': self._loader.to_json(),
+            'job_dir': self._job_dir,
+            'generator_params': self._generator_params.dict,
+            'batch_size': self._batch_size,
+            'train_val_test': self._train_val_test,
+            'augmentation_map': aug_map,
+            'augmentation_all': aug_all,
+            'augmentation_train': aug_train,
+            'model': self._model.to_json()
+        }

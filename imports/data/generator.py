@@ -1,38 +1,36 @@
 """Keras generator for semantic segmentation tasks"""
-from typing import List, Tuple, Iterable
+from typing import List
 
 import numpy as np
 from albumentations import BasicTransform
 from tensorflow.keras.utils import Sequence
 
+from .augmentationmap import AugmentationMap, _DataType
 from .loader import Loader
-
-_DataType = Tuple[Iterable[np.ndarray], Iterable[np.ndarray]]
 
 
 class DataGenerator(Sequence):
     """Keras generator for loader and storages system.
 
     Can be used for large-scale static inference because it allows batches.
+
+    :param keys: Keys for data in loader
+    :param loader: Loader for masks and images
+    :param batch_size: Batch size
+    :param aug_map: Composed augmentations from albumentations package
+    :param transform: Albumentations transform to augment with it
+    :param shuffle: Shuffle data after every epoch
     """
 
-    def __init__(self, keys: List[str], loader: Loader, batch_size: int = 1,
-                 augmentations: BasicTransform = None, shuffle: bool = True):
-        """Constructor
-
-        :param keys: keys for data in loader
-        :param loader: loader for masks and images
-        :param batch_size: batch size
-        :param augmentations: composed augmentations from albumentations package
-        :param shuffle: shuffle data after every epoch
-        """
-        assert isinstance(loader, Loader)
-
+    def __init__(self, keys: List[str], loader: Loader,
+                 batch_size: int = 1, aug_map: AugmentationMap = None,
+                 transform: BasicTransform = None, shuffle: bool = True):
         self._loader = loader
         self._batch_size = batch_size
         self._keys = keys
         self._shuffle = shuffle
-        self._augment = augmentations
+        self._augment = aug_map
+        self._transform = transform
         self.on_epoch_end()
 
     def __len__(self) -> int:
@@ -45,7 +43,8 @@ class DataGenerator(Sequence):
                      index * self._batch_size:(index + 1) * self._batch_size]
         input_ = self._loader.get_input(batch_keys)
         output_ = self._loader.get_output(batch_keys)
-        # TODO: augment
+        if self._augment is not None and self._transform is not None:
+            self._augment(input_, output_, self._transform)
         return input_, output_
 
     def on_epoch_end(self) -> None:
