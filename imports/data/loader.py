@@ -55,11 +55,13 @@ class Loader:
         test_keys = self._keys[-test_count:]
         return train_keys, val_keys, test_keys
 
+    @property
     def keys(self) -> List[str]:
         """Getter for keys"""
         return self._keys
 
-    def get_input_shape(self) -> Iterable[Tuple[int]]:
+    @property
+    def input_shape(self) -> Iterable[Tuple[int]]:
         """Returns input shape of data"""
         key = self._keys[0]
         return (storage[key].shape for storage in self._input)

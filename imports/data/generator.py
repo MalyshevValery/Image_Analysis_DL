@@ -1,5 +1,5 @@
 """Keras generator for semantic segmentation tasks"""
-from typing import List
+from typing import List, Union
 
 import numpy as np
 from albumentations import BasicTransform
@@ -20,28 +20,36 @@ class DataGenerator(Sequence):
     :param aug_map: Composed augmentations from albumentations package
     :param transform: Albumentations transform to augment with it
     :param shuffle: Shuffle data after every epoch
+    :param only_input: Generator returns only input if true
     """
 
     def __init__(self, keys: List[str], loader: Loader,
                  batch_size: int = 1, aug_map: AugmentationMap = None,
-                 transform: BasicTransform = None, shuffle: bool = True):
+                 transform: BasicTransform = None, shuffle: bool = True,
+                 only_input: bool = False):
         self._loader = loader
         self._batch_size = batch_size
         self._keys = keys
         self._shuffle = shuffle
         self._augment = aug_map
         self._transform = transform
+        self._only_input = only_input
         self.on_epoch_end()
 
     def __len__(self) -> int:
         """Denotes the number of batches per epoch"""
         return int(np.ceil(len(self._keys) / self._batch_size))
 
-    def __getitem__(self, index: int) -> _DataType:
+    def __getitem__(self, index: int) -> Union[_DataType, List[np.ndarray]]:
         """Generate one batch of data"""
         batch_keys = self._keys[
                      index * self._batch_size:(index + 1) * self._batch_size]
         input_ = self._loader.get_input(batch_keys)
+        if self._only_input:
+            if self._augment is not None and self._transform is not None:
+                self._augment(input_, [], self._transform)
+            return input_
+
         output_ = self._loader.get_output(batch_keys)
         if self._augment is not None and self._transform is not None:
             self._augment(input_, output_, self._transform)

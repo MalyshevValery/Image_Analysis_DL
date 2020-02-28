@@ -1,9 +1,4 @@
 {
-  "augmentation_all": [
-    {
-      "transform": "ToFloat"
-    }
-  ],
   "generator_params": {
     "epochs": {
       "type": "O_UNIFORM_INT",
