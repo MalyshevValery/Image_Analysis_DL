@@ -1,6 +1,6 @@
 """Test architecture"""
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Dropout, concatenate
+from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow_core.python.keras.layers import Conv2DTranspose
 
@@ -8,18 +8,12 @@ from tensorflow_core.python.keras.layers import Conv2DTranspose
 def TestNet() -> Model:
     """Test architecture with two inputs and two outputs"""
     input_img1 = Input([256, 256, 1])
-    input_img2 = Input([256, 256, 1])
 
     c1 = Conv2D(32, 3, activation='relu', padding='same')(input_img1)
     p1 = MaxPooling2D((2, 2))(c1)
     d1 = Dropout(0.1)(p1)
 
-    c2 = Conv2D(32, 3, activation='relu', padding='same')(input_img2)
-    p2 = MaxPooling2D((2, 2))(c2)
-    d2 = Dropout(0.1)(p2)
-
-    concatenated = concatenate([d1, d2], axis=3)
-    c3 = Conv2D(128, 3, activation='relu', padding='same')(concatenated)
+    c3 = Conv2D(128, 3, activation='relu', padding='same')(d1)
     p3 = MaxPooling2D((2, 2))(c3)
 
     c4 = Conv2D(256, 3, activation='relu', padding='same')(p3)
@@ -44,6 +38,6 @@ def TestNet() -> Model:
     d1 = Dense(64, activation='relu')(flat)
     d2 = Dense(16, activation='relu')(d1)
     res = Dense(1, activation='sigmoid')(d2)
-    model = Model(inputs=(input_img1, input_img2), outputs=(c8, res),
+    model = Model(inputs=input_img1, outputs=c8,
                   name='TestNet')
     return model

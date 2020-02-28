@@ -1,15 +1,15 @@
 """Class that encapsulates training process"""
 import os
-from typing import Tuple, Union, Iterable, Dict
+from typing import Tuple, Iterable, Dict
 
 from albumentations import BasicTransform, Compose, to_dict
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import Model
 
+from imports.utils.types import OneMany, to_seq
 from .data import Loader, DataGenerator, AbstractStorage, AugmentationMap
 from .utils import RunParams, DEFAULT_PARAMS
 
-_Storages = Union[AbstractStorage, Tuple[AbstractStorage, ...]]
 _TrainValTest = Tuple[float, float, float]
 _Callbacks = Iterable[Callback]
 
@@ -128,14 +128,12 @@ class TrainWrapper:
         self._model.test_on_batch(x[1], y[1])
         self._model.predict_on_batch(x[2])
 
-    def predict_save_test(self, storages: _Storages) -> None:
+    def predict_save_test(self, storages: OneMany[AbstractStorage]) -> None:
         """Predicts test data and saves it to given storage"""
         predicted = self._model.predict(self._test_gen,
                                         **self._generator_params.eval_dict)
-
-        if isinstance(storages, AbstractStorage):
-            storages = (storages,)
-        for i, storage in enumerate(storages):
+        predicted = to_seq(predicted)
+        for i, storage in enumerate(to_seq(storages)):
             storage.save_array(self._test_gen.keys, predicted[i])
 
     @property

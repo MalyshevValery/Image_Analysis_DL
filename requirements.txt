@@ -32,7 +32,7 @@ h5py==2.10.0
 HeapDict==1.0.1
 histomicstk==1.0.3.dev61
 hyperopt==0.2.3
-idna==2.9
+idna==2.7
 image-classifiers==1.0.0
 imageio==2.8.0
 imgaug==0.2.6

@@ -1,9 +1,11 @@
 """Wrapper for Augmentation mapping to data in generator"""
 import enum
-from typing import Tuple, Callable, List, Dict, Iterator
+from typing import Tuple, Callable, List, Dict, Iterator, Sequence
 
 import numpy as np
 from albumentations import BasicTransform
+
+from imports.utils.types import to_seq, apply_as_seq, OMArray
 
 
 class IO(enum.Enum):
@@ -15,8 +17,8 @@ class IO(enum.Enum):
 _DataId = Tuple[IO, int]
 _AL = List[np.ndarray]
 _AT = Tuple[np.ndarray]
-_DataType = Tuple[_AL, _AL]
 _IterType = Tuple[_AT, _AT]
+_FuncType = Callable[[Sequence[np.ndarray]], Sequence[np.ndarray]]
 _NAMES = ('image', 'mask', 'bboxes', 'keypoints')
 
 
@@ -36,8 +38,8 @@ class AugmentationMap:
         gen = zip(_NAMES, [image, mask, bboxes, keypoints])
         self._dict = {e[0]: e[1] for e in gen if e[1] is not None}
 
-    def __call__(self, input_: _AL, output_: _AL,
-                 augmentation: BasicTransform) -> None:
+    def __call__(self, input_: OMArray, output_: OMArray,
+                 augmentation: BasicTransform) -> Tuple[OMArray, OMArray]:
         """Applies given augmentation to given data. This operation mutates
             given NumPy arrays.
 
@@ -49,20 +51,22 @@ class AugmentationMap:
         :param augmentation: Augmentation to apply
         :return: Augmented input and output
         """
-        output_dict: Dict[str, _AL] = {k: [] for k in self._dict.keys()}
-        data_iter: Iterator[_IterType] = zip(zip(*input_), zip(*output_))
+        result: Dict[str, _AL] = {k: [] for k in self._dict.keys()}
+        data_iter: Iterator[_IterType] = zip(zip(*to_seq(input_)),
+                                             zip(*to_seq(output_)))
         for input_entry, output_entry in data_iter:
             map_function = AugmentationMap.__mapper(input_entry, output_entry)
             input_dict = {k: map_function(*v) for k, v in self._dict.items()}
             for k, v in augmentation(**input_dict).items():
-                output_dict[k].append(v)
+                result[k].append(v)
 
-        for k, v in output_dict.items():
-            io, index = self._dict[k]
-            if io is IO.INPUT:
-                input_[index] = np.stack(v)
-            elif io is IO.OUTPUT:
-                output_[index] = np.stack(v)
+        new_input = apply_as_seq(input_, self.__get_data(result, IO.INPUT))
+        new_output = apply_as_seq(output_, self.__get_data(result, IO.OUTPUT))
+        return new_input, new_output
+
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON config for Augmentation data mapping"""
+        return {k: (str(io), index) for k, (io, index) in self._dict.items()}
 
     @staticmethod
     def __mapper(input_: _AT,
@@ -70,12 +74,20 @@ class AugmentationMap:
         def map_function(io: IO, index: int) -> np.ndarray:
             """Function which maps IO and index to data"""
             if io is IO.INPUT:
-                return input_[index]
+                return to_seq(input_)[index]
             elif io is IO.OUTPUT:
-                return output_[index]
+                return to_seq(output_)[index]
 
         return map_function
 
-    def to_json(self) -> Dict[str, object]:
-        """Returns JSON config for Augmentation data mapping"""
-        return {k: (str(io), index) for k, (io, index) in self._dict.items()}
+    def __get_data(self, dict_: Dict[str, _AL], io: IO) -> _FuncType:
+        def set_data(seq: Sequence[np.ndarray]) -> Sequence[np.ndarray]:
+            """Changes data entries on augmented ones"""
+            seq = list(seq)
+            for k, v in dict_.items():
+                io_, index = self._dict[k]
+                if io_ is io and index in range(len(seq)):
+                    seq[index] = np.stack(v)
+            return seq
+
+        return set_data

@@ -5,6 +5,7 @@ from typing import Set, Dict
 import numpy as np
 import skimage.color as color
 import skimage.io as io
+import skimage.util as util
 
 from .abstract import AbstractStorage, Mode, ExtensionType
 
@@ -57,7 +58,7 @@ class DirectoryStorage(AbstractStorage):
         path = os.path.join(self.__dir, key)
         if self.__gray:
             data = color.rgb2gray(data)
-        io.imsave(path, data)
+        io.imsave(path, util.img_as_ubyte(data))
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this Storage"""

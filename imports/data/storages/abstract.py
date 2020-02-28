@@ -5,7 +5,7 @@ from typing import Set, Union, List, Tuple, Dict
 
 import numpy as np
 
-from imports.data import AbstractExtension
+from imports.data.extensions import AbstractExtension
 from imports.utils.torderedset import TOrderedSet
 
 

@@ -1,9 +1,10 @@
 """Predictor"""
-from typing import List, Tuple, Union
+from typing import List, Union
 
 import numpy as np
 from tensorflow.keras.models import Model
 
+from imports.utils.types import to_seq, OneMany
 from .data import DataGenerator
 from .data import Loader, AbstractStorage
 from .utils import RunParams, DEFAULT_PARAMS
@@ -38,18 +39,17 @@ class InferenceWrapper:
         input_ = [i[np.newaxis] for i in input_]
         return self.__model.predict(input_)
 
-    def predict_storage(self, storages_from: Tuple[AbstractStorage],
-                        storages_to: Tuple[AbstractStorage]) -> None:
+    def predict_storage(self, storages_from: OneMany[AbstractStorage],
+                        storages_to: OneMany[AbstractStorage]) -> None:
         """Inference for static data from storages. Prediction results are saved
             in provided storages_to"""
-        loader = Loader(storages_from, tuple())
+        loader = Loader(storages_from, ())
         gen = DataGenerator(loader.keys, loader, self.__batch_size,
-                            shuffle=False, only_input=True)
+                            shuffle=False, predict=True)
         predictions = self.__model.predict(gen,
                                            **self.__generator_params.eval_dict)
-        for i, storage in enumerate(storages_to):
-            if storage is None:
-                continue
+        predictions = to_seq(predictions)
+        for i, storage in enumerate(to_seq(storages_to)):
             storage.save_array(loader.keys, predictions[i])
 
     @property

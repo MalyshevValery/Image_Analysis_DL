@@ -1,12 +1,14 @@
 """All-in-one loader for image tasks"""
 from itertools import chain
-from typing import List, Tuple, Iterable, Dict
+from typing import List, Tuple, Iterable, Dict, Callable, Sequence
 
 import numpy as np
 
+from imports.utils.types import OneMany, to_seq, apply_as_seq, OMArray
 from .storages import AbstractStorage
 
 TrainValTest = Tuple[List[str], List[str], List[str]]
+_FunType = Callable[[Sequence[AbstractStorage]], Sequence[np.ndarray]]
 
 
 class Loader:
@@ -21,16 +23,18 @@ class Loader:
     :param output_: Storage or Storages for output
     """
 
-    def __init__(self, input_: Tuple[AbstractStorage, ...],
-                 output_: Tuple[AbstractStorage, ...]):
+    def __init__(self, input_: OneMany[AbstractStorage],
+                 output_: OneMany[AbstractStorage]):
+        self.__input = input_
+        self.__output = output_
 
-        keys = input_[0].keys
-        for storage in chain(input_, output_):
+        self.__tuple_input = to_seq(input_)
+        self.__tuple_output = to_seq(output_)
+
+        keys = self.__tuple_input[0].keys
+        for storage in chain(self.__tuple_input, self.__tuple_output):
             keys = keys.intersection(tuple(storage.keys))
-        self._keys = list(keys)  # To ensure order
-
-        self._input = input_
-        self._output = output_
+        self.__keys = list(keys)
 
     def split(self, train_val_test: Tuple[float, float, float]) -> TrainValTest:
         """Splits indices on three groups to create training, test and
@@ -44,39 +48,48 @@ class Loader:
             raise ValueError('Split', train_val_test, 'is greater than 1')
         if len(train_val_test) != 3:
             raise ValueError('Split', train_val_test, 'must have 3 elements')
-        np.random.shuffle(self._keys)
+        np.random.shuffle(self.__keys)
         train_val_test_counts = (
-                np.array(train_val_test) * len(self._keys)).astype(int)
+                np.array(train_val_test) * len(self.__keys)).astype(int)
         train_count = train_val_test_counts[0]
         test_count = train_val_test_counts[2]
 
-        train_keys = self._keys[:train_count]
-        val_keys = self._keys[train_count:-test_count]
-        test_keys = self._keys[-test_count:]
+        train_keys = self.__keys[:train_count]
+        val_keys = self.__keys[train_count:-test_count]
+        test_keys = self.__keys[-test_count:]
         return train_keys, val_keys, test_keys
 
     @property
     def keys(self) -> List[str]:
         """Getter for keys"""
-        return self._keys
+        return self.__keys
 
     @property
-    def input_shape(self) -> Iterable[Tuple[int]]:
+    def input_shape(self) -> Iterable[Tuple[int, ...]]:
         """Returns input shape of data"""
-        key = self._keys[0]
-        return (storage[key].shape for storage in self._input)
+        key = self.__keys[0]
+        return (storage[key].shape for storage in to_seq(self.__input))
 
-    def get_input(self, batch_keys: List[str]) -> List[np.ndarray]:
+    def get_input(self, batch_keys: List[str]) -> OMArray:
         """Returns elements from input storages with specified keys"""
-        return [np.array([s[key] for key in batch_keys]) for s in self._input]
+        return apply_as_seq(self.__input, Loader.__key_group(batch_keys))
 
-    def get_output(self, batch_keys: List[str]) -> List[np.ndarray]:
+    def get_output(self, batch_keys: List[str]) -> OMArray:
         """Returns elements from output storages with specified keys"""
-        return [np.array([s[key] for key in batch_keys]) for s in self._output]
+        return apply_as_seq(self.__output, Loader.__key_group(batch_keys))
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON config for loader"""
         return {
-            'input': [s.to_json() for s in self._input],
-            'output': [s.to_json() for s in self._output]
+            'input': [s.to_json() for s in to_seq(self.__input)],
+            'output': [s.to_json() for s in to_seq(self.__output)]
         }
+
+    @staticmethod
+    def __key_group(keys: List[str]) -> _FunType:
+        def group_fun(arr: Sequence[AbstractStorage]) -> Sequence[np.ndarray]:
+            """Function returns list where every element is batch from one
+                Storage"""
+            return [np.array([s[key] for key in keys]) for s in arr]
+
+        return group_fun
