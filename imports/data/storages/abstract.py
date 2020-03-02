@@ -1,6 +1,6 @@
 """Abstract Storage class"""
 from abc import abstractmethod
-from typing import Set, Union, List, Dict, FrozenSet, Optional, Sequence
+from typing import Set, Union, List, Dict, Optional, Sequence
 
 import numpy as np
 
@@ -41,11 +41,11 @@ class AbstractStorage:
         return len(self.__keys)
 
     @property
-    def keys(self) -> FrozenSet[str]:
+    def keys(self) -> Set[str]:
         """Getter for key values"""
         if self.__keys is None:
             raise ValueError('Keys are None')
-        return frozenset(self.__keys)
+        return self.__keys.copy()
 
     @property
     def writable(self) -> bool:

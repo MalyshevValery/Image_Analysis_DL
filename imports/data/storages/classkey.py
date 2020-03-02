@@ -24,7 +24,7 @@ class ClassKeyStorage(AbstractStorage):
     :param writable: True if writable
     """
 
-    def __init__(self, keys: KeySet[str], pattern: str, one_hot: bool = False,
+    def __init__(self, keys: KeySet, pattern: str, one_hot: bool = False,
                  extensions: ExtensionType = None, writable: bool = False):
         self.__pattern = re.compile(pattern)
         self.__keys = keys
