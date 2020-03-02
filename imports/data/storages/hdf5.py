@@ -48,7 +48,8 @@ class HDF5Storage(AbstractStorage):
         if _keys_dataset in self.__file:
             self.__keys_dataset = self.__file[_keys_dataset]
             keys = TOrderedSet(self.__keys_dataset)
-            keys.remove('')
+            if '' in keys:
+                keys.remove('')
         else:
             stype = h5py.string_dtype()
             size = len(self.__dataset)
@@ -77,13 +78,9 @@ class HDF5Storage(AbstractStorage):
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this Storage"""
-        if self.__extensions is None:
-            extensions = None
-        else:
-            extensions = [ext.to_json() for ext in self.__extensions]
         return {
             'type': 'hdf5',
             'filename': self.__filename,
             'dataset_name': self.__dataset_name,
-            'extensions': extensions
+            'extensions': self._extensions_json()
         }

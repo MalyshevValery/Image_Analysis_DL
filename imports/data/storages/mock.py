@@ -30,11 +30,7 @@ class MockStorage(AbstractStorage):
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this Storage"""
-        if self.__extensions is None:
-            extensions = None
-        else:
-            extensions = [ext.to_json() for ext in self.__extensions]
         return {
             'type': 'mock',
-            'extensions': extensions
+            'extensions': self._extensions_json()
         }
