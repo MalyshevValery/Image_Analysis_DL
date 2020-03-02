@@ -1,61 +1,56 @@
 """Abstract Storage class"""
-import enum
 from abc import abstractmethod
-from typing import Set, Union, List, Tuple, Dict
+from typing import Set, Union, List, Dict, FrozenSet, Optional, Sequence
 
 import numpy as np
 
 from imports.data.extensions import AbstractExtension
+from imports.utils import to_seq
 from imports.utils.torderedset import TOrderedSet
 
-
-class Mode(enum.Enum):
-    """Enum for READ and WRITE storage mods"""
-    READ = 0,
-    WRITE = 0
-
-
 KeySet = Union[Set[str], TOrderedSet[str]]
-ExtensionType = Union[AbstractExtension, Tuple[AbstractExtension]]
+ExtensionType = Union[AbstractExtension, Sequence[AbstractExtension]]
 
 
 class AbstractStorage:
     """Storage class with declared methods required by storage
 
     :param keys: keys for this storage
-    :param mode: Mode.READ for read Mode.WRITE for write
+    :param writable: True to allow writing to storage
     :param extensions: Extensions to apply to this storage
     """
 
-    def __init__(self, keys: KeySet, mode: Mode = Mode.READ,
-                 extensions: ExtensionType = None):
-        if mode == Mode.READ and keys is None:
+    def __init__(self, keys: KeySet, extensions: ExtensionType = None,
+                 writable: bool = False):
+        if not writable and keys is None:
             raise ValueError('Keys must be set in read mode')
-        self._keys = keys.copy()
-        self._mode = mode
-
-        if not isinstance(extensions, AbstractExtension):
-            self._extensions = extensions
+        self.__keys = keys.copy()
+        self.__writable = writable
+        if extensions is None:
+            self.__extensions = None
         else:
-            self._extensions = (extensions,)
+            self.__extensions = to_seq(extensions)
 
     @abstractmethod
     def __getitem__(self, item: str) -> np.ndarray:
-        if self._mode is Mode.WRITE:
-            raise ValueError('Write mode')
-        return np.array([])
+        raise NotImplementedError()
 
     def __len__(self) -> int:
-        if self._keys is None:
+        if self.__keys is None:
             raise ValueError('Keys are None')
-        return len(self._keys)
+        return len(self.__keys)
 
     @property
-    def keys(self) -> KeySet:
+    def keys(self) -> FrozenSet[str]:
         """Getter for key values"""
-        if self._keys is None:
+        if self.__keys is None:
             raise ValueError('Keys are None')
-        return self._keys
+        return frozenset(self.__keys)
+
+    @property
+    def writable(self) -> bool:
+        """Returns writable property"""
+        return self.__writable
 
     def save_array(self, keys: List[str], array: np.ndarray) -> None:
         """Saves array to this storage (by default call save_single in a loop)
@@ -65,30 +60,40 @@ class AbstractStorage:
         :raises ValueError if wrong mode or lengths of keys and array do not
             match
         """
-        # if self._mode != Mode.WRITE:
-        #     raise ValueError('Save can be used only in write mode')
+        if not self.__writable:
+            raise ValueError('Not writable')
         for i, key in enumerate(keys):
             self.save_single(key, array[i])
 
     def _apply_extensions(self, data: np.ndarray) -> np.ndarray:
         cur = data
-        if self._extensions is None:
+        if self.__extensions is None:
             return cur
         else:
-            for ext in self._extensions:
+            for ext in self.__extensions:
                 cur = ext(cur)
             return cur
 
+    def _add_keys(self, keys: Union[str, Sequence[str]]) -> None:
+        """Adds key to set of keys"""
+        self.__keys.update(to_seq(keys))
+
+    def _extensions_json(self) -> Optional[List[object]]:
+        if self.__extensions is None:
+            return None
+        else:
+            return [ext.to_json() for ext in self.__extensions]
+
     @abstractmethod
     def save_single(self, key: str, data: np.ndarray) -> None:
-        """Method to save single data object into storage
+        """Method to save single data object into storage.
+
+        Don't forget to check for writable parameter.
 
         :param key: key for save
         :param data: data to save
         """
-        # if self._mode != Mode.WRITE:
-        #     raise ValueError('Save can be used only in write mode')
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     def to_json(self) -> Dict[str, object]:

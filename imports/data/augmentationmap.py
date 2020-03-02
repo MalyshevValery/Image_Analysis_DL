@@ -5,7 +5,7 @@ from typing import Tuple, Callable, List, Dict, Iterator, Sequence
 import numpy as np
 from albumentations import BasicTransform
 
-from imports.utils.types import to_seq, apply_as_seq, OMArray
+from imports.utils.types import to_seq, seq_apply, OMArray
 
 
 class IO(enum.Enum):
@@ -60,8 +60,8 @@ class AugmentationMap:
             for k, v in augmentation(**input_dict).items():
                 result[k].append(v)
 
-        new_input = apply_as_seq(input_, self.__get_data(result, IO.INPUT))
-        new_output = apply_as_seq(output_, self.__get_data(result, IO.OUTPUT))
+        new_input = seq_apply(input_, self.__get_data(result, IO.INPUT))
+        new_output = seq_apply(output_, self.__get_data(result, IO.OUTPUT))
         return new_input, new_output
 
     def to_json(self) -> Dict[str, object]:
@@ -69,8 +69,8 @@ class AugmentationMap:
         return {k: (str(io), index) for k, (io, index) in self._dict.items()}
 
     @staticmethod
-    def __mapper(input_: _AT,
-                 output_: _AT) -> Callable[[IO, int], np.ndarray]:
+    def __mapper(input_: OMArray,
+                 output_: OMArray) -> Callable[[IO, int], np.ndarray]:
         def map_function(io: IO, index: int) -> np.ndarray:
             """Function which maps IO and index to data"""
             if io is IO.INPUT:

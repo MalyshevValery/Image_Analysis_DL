@@ -4,9 +4,8 @@ from typing import List, Union
 import numpy as np
 from tensorflow.keras.models import Model
 
-from imports.utils.types import to_seq, OneMany
-from .data import DataGenerator
-from .data import Loader, AbstractStorage
+from imports.utils.types import to_seq
+from .data import DataGenerator, Loader, StorageType
 from .utils import RunParams, DEFAULT_PARAMS
 
 _ReturnType = Union[float, None, List[float], np.ndarray, List[np.ndarray]]
@@ -39,8 +38,8 @@ class InferenceWrapper:
         input_ = [i[np.newaxis] for i in input_]
         return self.__model.predict(input_)
 
-    def predict_storage(self, storages_from: OneMany[AbstractStorage],
-                        storages_to: OneMany[AbstractStorage]) -> None:
+    def predict_storage(self, storages_from: StorageType,
+                        storages_to: StorageType) -> None:
         """Inference for static data from storages. Prediction results are saved
             in provided storages_to"""
         loader = Loader(storages_from, ())

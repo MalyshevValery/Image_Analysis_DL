@@ -1,14 +1,15 @@
 """All-in-one loader for image tasks"""
 from itertools import chain
-from typing import List, Tuple, Iterable, Dict, Callable, Sequence
+from typing import List, Tuple, Iterable, Dict, Callable, Sequence, Union
 
 import numpy as np
 
-from imports.utils.types import OneMany, to_seq, apply_as_seq, OMArray
+from imports.utils.types import to_seq, seq_apply, OMArray
 from .storages import AbstractStorage
 
 TrainValTest = Tuple[List[str], List[str], List[str]]
 _FunType = Callable[[Sequence[AbstractStorage]], Sequence[np.ndarray]]
+StorageType = Union[AbstractStorage, Sequence[AbstractStorage]]
 
 
 class Loader:
@@ -23,8 +24,7 @@ class Loader:
     :param output_: Storage or Storages for output
     """
 
-    def __init__(self, input_: OneMany[AbstractStorage],
-                 output_: OneMany[AbstractStorage]):
+    def __init__(self, input_: StorageType, output_: StorageType):
         self.__input = input_
         self.__output = output_
 
@@ -72,11 +72,11 @@ class Loader:
 
     def get_input(self, batch_keys: List[str]) -> OMArray:
         """Returns elements from input storages with specified keys"""
-        return apply_as_seq(self.__input, Loader.__key_group(batch_keys))
+        return seq_apply(self.__input, Loader.__key_group(batch_keys))
 
     def get_output(self, batch_keys: List[str]) -> OMArray:
         """Returns elements from output storages with specified keys"""
-        return apply_as_seq(self.__output, Loader.__key_group(batch_keys))
+        return seq_apply(self.__output, Loader.__key_group(batch_keys))
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON config for loader"""

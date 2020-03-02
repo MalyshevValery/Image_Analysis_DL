@@ -5,11 +5,10 @@ import numpy as np
 
 T = TypeVar('T')
 R = TypeVar('R')
-OneMany = Union[T, Sequence[T]]
-OMArray = OneMany[np.ndarray]
+OMArray = Union[np.ndarray, Sequence[np.ndarray]]
 
 
-def to_seq(obj: OneMany[T]) -> Sequence[T]:
+def to_seq(obj: Union[T, Sequence[T]]) -> Sequence[T]:
     """Returns tuple from OneMany type"""
     if isinstance(obj, Sequence):
         return obj
@@ -17,8 +16,8 @@ def to_seq(obj: OneMany[T]) -> Sequence[T]:
         return [obj]
 
 
-def apply_as_seq(obj: OneMany[T],
-                 f: Callable[[Sequence[T]], Sequence[R]]) -> OneMany[R]:
+def seq_apply(obj: Union[T, Sequence[T]],
+              f: Callable[[Sequence[T]], Sequence[R]]) -> Union[R, Sequence[R]]:
     """Applies function f which works with tuples to OneMany obj"""
     if isinstance(obj, Sequence):
         return f(obj)

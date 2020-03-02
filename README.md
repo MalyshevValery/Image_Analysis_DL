@@ -1,5 +1,4 @@
-# Image Analysis pipeline 
-JSON configurable and expansible pipeline for image analysis based on deep learning.
+# Deep Learning tools and pipeline
 
 ## Installation
 ```
@@ -11,3 +10,10 @@ pyenv activate 37_base
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+## Packages and modules inside
+- data
+- models
+- utils
+- *inference*
+- *train*

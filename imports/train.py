@@ -6,8 +6,8 @@ from albumentations import BasicTransform, Compose, to_dict
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import Model
 
-from imports.utils.types import OneMany, to_seq
-from .data import Loader, DataGenerator, AbstractStorage, AugmentationMap
+from imports.utils.types import to_seq
+from .data import Loader, DataGenerator, AugmentationMap, StorageType
 from .utils import RunParams, DEFAULT_PARAMS
 
 _TrainValTest = Tuple[float, float, float]
@@ -128,7 +128,7 @@ class TrainWrapper:
         self._model.test_on_batch(x[1], y[1])
         self._model.predict_on_batch(x[2])
 
-    def predict_save_test(self, storages: OneMany[AbstractStorage]) -> None:
+    def predict_save_test(self, storages: StorageType) -> None:
         """Predicts test data and saves it to given storage"""
         predicted = self._model.predict(self._test_gen,
                                         **self._generator_params.eval_dict)

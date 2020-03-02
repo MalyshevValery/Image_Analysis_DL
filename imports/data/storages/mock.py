@@ -3,7 +3,7 @@ from typing import Set, Dict
 
 import numpy as np
 
-from .abstract import AbstractStorage, Mode, ExtensionType
+from .abstract import AbstractStorage, ExtensionType
 
 
 class MockStorage(AbstractStorage):
@@ -11,13 +11,13 @@ class MockStorage(AbstractStorage):
 
     :param val: Value that will be returned on every __getitem__ call
     :param keys: Set of keys
-    :param mode: READ/WRITE mode
+    :param writable: True to write in dataset
     """
 
-    def __init__(self, val: np.ndarray, keys: Set[str], mode: Mode = Mode.READ,
+    def __init__(self, val: np.ndarray, keys: Set[str], writable: bool = False,
                  extensions: ExtensionType = None):
         self.__val = val.copy()
-        super().__init__(keys, mode, extensions)
+        super().__init__(keys, extensions, writable)
 
     def __getitem__(self, item: str) -> np.ndarray:
         """Returns item from dataset"""
@@ -30,10 +30,10 @@ class MockStorage(AbstractStorage):
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this Storage"""
-        if self._extensions is None:
+        if self.__extensions is None:
             extensions = None
         else:
-            extensions = [ext.to_json() for ext in self._extensions]
+            extensions = [ext.to_json() for ext in self.__extensions]
         return {
             'type': 'mock',
             'extensions': extensions
