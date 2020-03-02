@@ -1,3 +1,4 @@
+numpy==1.18.1
 absl-py==0.8.1
 albumentations==0.4.3
 astor==0.8.1
@@ -67,7 +68,6 @@ nbformat==5.0.4
 networkx==2.2
 nimfa==1.4.0
 notebook==6.0.3
-numpy==1.18.1
 oauthlib==3.1.0
 opencv-python==4.2.0.32
 openslide-python==1.1.1

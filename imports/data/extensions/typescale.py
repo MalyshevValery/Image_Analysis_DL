@@ -35,7 +35,10 @@ class TypeScaleExtension(AbstractExtension):
 
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Apply scale and type transform"""
-        scaled_data = data.astype(np.float32) / self.__src_max
+        if self.__src_max is not None:
+            scaled_data = data.astype(np.float32) / self.__src_max
+        else:
+            scaled_data = data.astype(np.float32) / np.max(data)
         return (scaled_data * self.__target_max).astype(self.__target_type)
 
     def to_json(self) -> Dict[str, object]:

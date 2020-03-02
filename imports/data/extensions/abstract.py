@@ -18,7 +18,7 @@ class AbstractExtension:
     @abstractmethod
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Apply transformation to data and returns transformed data"""
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
     def to_json(self) -> Dict[str, object]:
