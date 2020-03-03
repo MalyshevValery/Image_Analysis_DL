@@ -1,6 +1,6 @@
 """Directory storage"""
 import os
-from typing import Set, Dict
+from typing import Dict
 
 import numpy as np
 import skimage.color as color
@@ -15,7 +15,8 @@ class DirectoryStorage(AbstractStorage):
 
     :param directory: directory with PNG images
     :param gray: True to transform images to grayscale after reading
-        and before writing
+        and before writing. **NOTE:** when using this param return value will be
+        [0, 1] float64
     :param writable: True to allow writing into directory
     :param extensions: Extensions to apply to this storage
     """
@@ -28,17 +29,15 @@ class DirectoryStorage(AbstractStorage):
         if writable:
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            init_keys: Set[str] = set()
-            keys = init_keys
         else:
             if not os.path.isdir(directory):
                 raise ValueError(directory + ' is not a directory')
 
-            all_names = os.listdir(directory)
-            png_names = [name for name in all_names if name.endswith('.png')]
-            png_filenames = [name for name in png_names if
-                             os.path.isfile(os.path.join(directory, name))]
-            keys = set(png_filenames)
+        all_names = os.listdir(directory)
+        png_names = [name for name in all_names if name.endswith('.png')]
+        png_filenames = [name for name in png_names if
+                         os.path.isfile(os.path.join(directory, name))]
+        keys = set(png_filenames)
 
         super().__init__(keys, extensions, writable)
 
