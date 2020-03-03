@@ -21,16 +21,22 @@ class ComposeStorage(AbstractStorage):
     """
 
     def __init__(self, storages: _StorageType, extensions: ExtensionType = None,
-                 writable: bool = True):
+                 writable: bool = False):
         keys: Set[str] = set()
         self.__storages = to_seq(storages)
+
+        storages_writable = all(s.writable for s in self.__storages)
+        if writable and not storages_writable:
+            raise ValueError('Storages inside are not writable')
+
         for i, storage in enumerate(self.__storages):
             keys.update(f'{i}/{key}' for key in storage.keys)
         super().__init__(keys, extensions, writable)
 
     def __getitem__(self, item: str) -> np.ndarray:
         idx = item.find('/')
-        return self.__storages[int(item[:idx])][item[idx + 1:]]
+        data = self.__storages[int(item[:idx])][item[idx + 1:]]
+        return self._apply_extensions(data)
 
     def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves single data entry with given key"""
@@ -38,11 +44,12 @@ class ComposeStorage(AbstractStorage):
             raise ValueError('Not writable')
         idx = key.find('/')
         self.__storages[int(key[:idx])].save_single(key[idx + 1:], data)
+        self._add_keys(key)
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration of this Storage"""
         return {
-            'type': 'composed',
+            'type': 'compose',
             'storages': [storage.to_json() for storage in self.__storages],
             'extensions': self._extensions_json()
         }

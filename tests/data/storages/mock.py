@@ -15,6 +15,7 @@ class MockStorageTester(unittest.TestCase):
         self.assertEqual(len(ms), 2)
         self.assertEqual(ms['1'], 255)
         self.assertEqual(ms['2'], 255)
+        self.assertRaises(ValueError, lambda: ms.save_single('-', np.array(-1)))
 
     def test_write(self) -> None:
         keys: Set[str] = set()
