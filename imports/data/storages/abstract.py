@@ -76,7 +76,10 @@ class AbstractStorage:
 
     def _add_keys(self, keys: Union[str, Sequence[str]]) -> None:
         """Adds key to set of keys"""
-        self.__keys.update(to_seq(keys))
+        if isinstance(keys, str):
+            self.__keys.add(keys)
+        else:
+            self.__keys.update(keys)
 
     def _extensions_json(self) -> Optional[List[object]]:
         if self.__extensions is None:

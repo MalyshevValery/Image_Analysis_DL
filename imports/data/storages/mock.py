@@ -7,7 +7,8 @@ from .abstract import AbstractStorage, ExtensionType
 
 
 class MockStorage(AbstractStorage):
-    """Storage for tests, emits same value for all given keys
+    """Storage for tests, emits same value for all given keys (even for keys not
+        in keys argument)
 
     :param val: Value that will be returned on every __getitem__ call
     :param keys: Set of keys
@@ -21,16 +22,19 @@ class MockStorage(AbstractStorage):
 
     def __getitem__(self, item: str) -> np.ndarray:
         """Returns item from dataset"""
-        super().__getitem__(item)
         return self._apply_extensions(self.__val)
 
     def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves single object to data storage"""
+        if not self.writable:
+            raise ValueError('Not writable')
+        self._add_keys(key)
         print(f'Key {key} saved')
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this Storage"""
         return {
             'type': 'mock',
+            'val': self.__val.tolist(),
             'extensions': self._extensions_json()
         }
