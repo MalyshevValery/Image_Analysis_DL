@@ -47,11 +47,11 @@ class ClassKeyStorage(AbstractStorage):
         clazz = match.group(1)
         label = self.__class_dict[clazz]
         if not self.__one_hot:
-            return np.array(label, dtype=np.float32)
+            return self._apply_extensions(np.array(label, dtype=np.float32))
         else:
             one_hot = np.zeros(len(self.__class_dict))
             one_hot[label] = 1
-            return one_hot
+            return self._apply_extensions(one_hot)
 
     def save_single(self, key: str, data: np.ndarray) -> None:
         """
@@ -65,6 +65,7 @@ class ClassKeyStorage(AbstractStorage):
         """Returns JSON configuration for this ClassKeyStorage"""
         return {
             'type': 'class_key',
+            'class_dict': self.__class_dict,
             'pattern': self.__pattern.pattern,
             'extensions': self._extensions_json()
         }
