@@ -59,3 +59,4 @@ class AbstractStorageTester(unittest.TestCase):
         self.assertRaises(NotImplementedError, lambda: storage['-'])
         self.assertRaises(NotImplementedError,
                           lambda: storage.save_single('1', np.array([])))
+        self.assertRaises(NotImplementedError, lambda: storage.to_json())
