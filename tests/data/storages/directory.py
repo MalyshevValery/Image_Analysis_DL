@@ -59,7 +59,7 @@ class DirectoryStorageTester(unittest.TestCase):
 
     def test_new_exceptions(self) -> None:
         new_dir = 'test_dir_new'
-        storage = DirectoryStorage(new_dir, writable=True)
+        DirectoryStorage(new_dir, writable=True)
         self.assertTrue(os.path.isdir(new_dir))
         os.rmdir(new_dir)
         with open(new_dir, 'w') as file:

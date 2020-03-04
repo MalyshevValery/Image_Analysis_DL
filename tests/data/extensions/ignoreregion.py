@@ -8,6 +8,7 @@ from imports.data.extensions import IgnoreRegionExtension
 
 class IgnoreRegionTester(unittest.TestCase):
     def setUp(self) -> None:
+        """Create array to test ignore region on"""
         self.__image = np.array([
             [0, 0, 1, 0, 0],
             [0, 1, 1, 1, 0],
