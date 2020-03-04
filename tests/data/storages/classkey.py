@@ -43,3 +43,8 @@ class ClassKeyStorageTester(unittest.TestCase):
             'extensions': [type_scale.to_json()]
         }
         self.assertEqual(storage.to_json(), json_ret)
+
+    def test_exception(self) -> None:
+        storage = ClassKeyStorage({'11', '22', '23', '33'}, '\\d(\\d)')
+        self.assertRaises(ValueError, lambda: storage['abc'])
+        self.assertRaises(KeyError, lambda: storage['14'])

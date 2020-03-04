@@ -41,3 +41,21 @@ class AbstractStorageTester(unittest.TestCase):
         self.assertEqual(ds['0'], 0.0)
         self.assertEqual(ds['1'], 1.0)
         self.assertEqual(ds['2'], 2.0)
+
+    def test_exception(self) -> None:
+        class __EmptyStorage(AbstractStorage):
+            def __getitem__(self, item: str) -> np.ndarray:
+                return super().__getitem__(item)
+
+            def save_single(self, key: str, data: np.ndarray) -> None:
+                """Dummy saves single"""
+                return super().save_single(key, data)
+
+            def to_json(self) -> Dict[str, object]:
+                """Dummy to json"""
+                return super().to_json()
+
+        storage = __EmptyStorage(set())
+        self.assertRaises(NotImplementedError, lambda: storage['-'])
+        self.assertRaises(NotImplementedError,
+                          lambda: storage.save_single('1', np.array([])))

@@ -57,6 +57,16 @@ class DirectoryStorageTester(unittest.TestCase):
         self.assertEqual(len(os.listdir(self._dir)), self._n + 3)
         self.assertTrue(np.all(imread(f'{self._dir}/t2.png') == images[1]))
 
+    def test_new_exceptions(self) -> None:
+        new_dir = 'test_dir_new'
+        storage = DirectoryStorage(new_dir, writable=True)
+        self.assertTrue(os.path.isdir(new_dir))
+        os.rmdir(new_dir)
+        with open(new_dir, 'w') as file:
+            file.write('123')
+        self.assertRaises(ValueError, lambda: DirectoryStorage(new_dir))
+        os.remove(new_dir)
+
     def test_json(self) -> None:
         type_scale = TypeScaleExtension(src_max=255, target_type=np.float32,
                                         target_max=1.0)

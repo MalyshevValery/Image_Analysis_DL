@@ -22,8 +22,6 @@ class AbstractStorage:
 
     def __init__(self, keys: KeySet, extensions: ExtensionType = None,
                  writable: bool = False):
-        if not writable and keys is None:
-            raise ValueError('Keys must be set in read mode')
         self.__keys = keys.copy()
         self.__writable = writable
         if extensions is None:
@@ -36,15 +34,11 @@ class AbstractStorage:
         raise NotImplementedError()
 
     def __len__(self) -> int:
-        if self.__keys is None:
-            raise ValueError('Keys are None')
         return len(self.__keys)
 
     @property
     def keys(self) -> Set[str]:
         """Getter for key values"""
-        if self.__keys is None:
-            raise ValueError('Keys are None')
         return self.__keys.copy()
 
     @property

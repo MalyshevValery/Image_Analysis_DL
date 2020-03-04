@@ -1,5 +1,5 @@
 """HDF5 storage"""
-from typing import List, Type, Tuple, Dict
+from typing import List, Type, Tuple, Dict, Sequence
 
 import h5py
 import numpy as np
@@ -16,13 +16,15 @@ class HDF5Storage(AbstractStorage):
     :param filename: Filename of h5 file
     :param dataset_name: Name of dataset in h5 file
     :param writable: True to make writable storage
+    :param replace: True if writable and existing dataset have to be replaced
+        **This parameter cause keys dataset replacement too**
     :param shape: Shape of dataset to create
     :param dtype: Type of data in that dataset
     """
 
     def __init__(self, filename: str, dataset_name: str,
                  extensions: ExtensionType = None,
-                 writable: bool = False,
+                 writable: bool = False, replace: bool = False,
                  shape: Tuple[int, ...] = None,
                  dtype: Type[np.generic] = None):
 
@@ -32,10 +34,10 @@ class HDF5Storage(AbstractStorage):
         self.__dataset_name = dataset_name
 
         self.__file = h5py.File(filename, 'a')
-        if writable:
+        if writable and (dataset_name not in self.__file or replace):
+            error_str = 'Shape or Value was not provided for write storage'
             if shape is None or dtype is None:
-                raise ValueError(
-                    'Shape or Value has not been provided for write storage')
+                raise ValueError(error_str)
             if dataset_name in self.__file:
                 print('Replacing dataset ' + dataset_name)
                 del self.__file[dataset_name]
@@ -46,15 +48,20 @@ class HDF5Storage(AbstractStorage):
 
         keys: TOrderedSet[str] = TOrderedSet()
         if _keys_dataset in self.__file:
-            self.__keys_dataset = self.__file[_keys_dataset]
-            keys = TOrderedSet(self.__keys_dataset)
-            if '' in keys:
-                keys.remove('')
+            if replace:
+                del self.__file[_keys_dataset]
+                self.__create_key_dataset()
+            else:
+                self.__keys_dataset = self.__file[_keys_dataset]
+                keys = TOrderedSet(self.__keys_dataset)
+                if '' in keys:
+                    keys.remove('')
+
+        elif writable:
+            self.__create_key_dataset()
         else:
-            stype = h5py.string_dtype()
-            size = len(self.__dataset)
-            self.__keys_dataset = self.__file.create_dataset(_keys_dataset,
-                                                             size, stype)
+            raise ValueError('No Keys in read-only storage')
+
         self.__ordered_keys = keys
         super().__init__(self.__ordered_keys, extensions, writable)
 
@@ -67,10 +74,21 @@ class HDF5Storage(AbstractStorage):
         """Saves array to h5 file"""
         if not self.writable:
             raise ValueError('Not writable')
+        new_keys = []
+        indexes = []
+        for i, k in enumerate(keys):
+            if k in self.keys:
+                idx = self.__ordered_keys.index(k)
+                self.__dataset[idx] = array[i]
+            else:
+                indexes.append(i)
+                new_keys.append(k)
         start = len(self.keys)
-        self.__dataset[start:start + len(keys)] = array
-        self.__keys_dataset[start:start + len(keys)] = keys
-        self._add_keys(keys)
+        if start + len(new_keys) > self.__dataset.shape[0]:
+            raise ValueError('Size of dataset is not enough for writing')
+        self.__dataset[start:start + len(new_keys)] = array[indexes]
+        self.__keys_dataset[start:start + len(new_keys)] = new_keys
+        self._add_keys(new_keys)
 
     def save_single(self, key: str, data: np.ndarray) -> None:
         """Saves single object to data storage"""
@@ -81,6 +99,16 @@ class HDF5Storage(AbstractStorage):
         return {
             'type': 'hdf5',
             'filename': self.__filename,
-            'dataset_name': self.__dataset_name,
+            'dataset': self.__dataset_name,
             'extensions': self._extensions_json()
         }
+
+    def _add_keys(self, keys: Sequence[str]) -> None:
+        super()._add_keys(keys)
+        self.__ordered_keys.update(keys)
+
+    def __create_key_dataset(self) -> None:
+        stype = h5py.string_dtype()
+        size = len(self.__dataset)
+        self.__keys_dataset = self.__file.create_dataset(_keys_dataset,
+                                                         (size,), stype)

@@ -3,7 +3,6 @@ import os
 from typing import Dict
 
 import numpy as np
-import skimage.color as color
 import skimage.io as io
 import skimage.util as util
 
@@ -26,12 +25,11 @@ class DirectoryStorage(AbstractStorage):
         self.__dir = directory
         self.__gray = gray
 
-        if writable:
+        if writable and not os.path.exists(directory):
             if not os.path.exists(directory):
                 os.makedirs(directory)
-        else:
-            if not os.path.isdir(directory):
-                raise ValueError(directory + ' is not a directory')
+        elif not os.path.isdir(directory):
+            raise ValueError(f'{directory} is not a directory')
 
         all_names = os.listdir(directory)
         png_names = [name for name in all_names if name.endswith('.png')]
@@ -53,8 +51,6 @@ class DirectoryStorage(AbstractStorage):
             raise ValueError("Not writable")
         self._add_keys(key)
         path = os.path.join(self.__dir, key)
-        if self.__gray:
-            data = color.rgb2gray(data)
         io.imsave(path, util.img_as_ubyte(data))
 
     def to_json(self) -> Dict[str, object]:
