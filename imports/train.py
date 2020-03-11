@@ -1,7 +1,8 @@
 """Class that encapsulates training process"""
 import os
-from typing import Tuple, Iterable, Dict
+from typing import Tuple, Iterable, Dict, Optional, Sequence
 
+import numpy as np
 from albumentations import BasicTransform, Compose, to_dict
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import Model
@@ -89,7 +90,7 @@ class TrainWrapper:
                         callbacks=callbacks, **self._generator_params.dict)
         self._model.save(os.path.join(self._job_dir, 'model.h5'))
         if weights_path:
-            self._model.load_weights(os.path.join(self._job_dir, weights_path))
+            self._model.load_weights(weights_path)
 
     def evaluate(self, eval_metric: str = None) -> float:
         """
@@ -117,6 +118,8 @@ class TrainWrapper:
             return gen_ret[0]
 
         k = -1 if eval_metric[0] == '-' else 1
+        if eval_metric[0] == '-':
+            eval_metric = eval_metric[1:]
         return gen_ret[self._model.metrics_names.index(eval_metric)] * k
 
     def check(self) -> None:
@@ -128,18 +131,37 @@ class TrainWrapper:
         self._model.test_on_batch(x[1], y[1])
         self._model.predict_on_batch(x[2])
 
-    def predict_save_test(self, storages: StorageType) -> None:
-        """Predicts test data and saves it to given storage"""
+    def predict_test(self,
+                     storages: StorageType = None) -> Optional[np.ndarray]:
+        """
+        Predicts test data and saves it to given storage
+
+        :param storages: List of storages to save predicted values,
+            None to return numpy array
+        """
         predicted = self._model.predict(self._test_gen,
                                         **self._generator_params.eval_dict)
-        predicted = to_seq(predicted)
-        for i, storage in enumerate(to_seq(storages)):
-            storage.save_array(self._test_gen.keys, predicted[i])
+        if storages is None:
+            return predicted
+        else:
+            predicted = to_seq(predicted)
+            for i, storage in enumerate(to_seq(storages)):
+                storage.save_array(self._test_gen.keys, predicted[i])
+            return None
 
     @property
     def job_dir(self) -> str:
         """Returns path to job dir"""
         return os.path.abspath(self._job_dir)
+
+    @property
+    def test_ground(self) -> Sequence[np.ndarray]:
+        """Returns ground truth for test set"""
+        return_data = []
+        data = [batch[1] for batch in self._test_gen]
+        for i in range(len(data[0])):
+            return_data.append(np.concatenate([d[i] for d in data]))
+        return return_data
 
     @property
     def model(self) -> Model:

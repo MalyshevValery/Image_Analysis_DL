@@ -52,10 +52,11 @@ class Loader:
         train_val_test_counts = (
                 np.array(train_val_test) * len(self.__keys)).astype(int)
         train_count = train_val_test_counts[0]
+        val_count = train_val_test_counts[1]
         test_count = train_val_test_counts[2]
 
         train_keys = self.__keys[:train_count]
-        val_keys = self.__keys[train_count:-test_count]
+        val_keys = self.__keys[train_count:(train_count + val_count)]
         test_keys = self.__keys[-test_count:]
         return train_keys, val_keys, test_keys
 
