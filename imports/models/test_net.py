@@ -1,8 +1,8 @@
 """Test architecture"""
 from tensorflow.keras import Model
+from tensorflow.keras.layers import Conv2DTranspose
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense
-from tensorflow_core.python.keras.layers import Conv2DTranspose
 
 
 def TestNet() -> Model:

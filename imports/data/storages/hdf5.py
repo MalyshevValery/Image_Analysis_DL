@@ -112,3 +112,7 @@ class HDF5Storage(AbstractStorage):
         size = len(self.__dataset)
         self.__keys_dataset = self.__file.create_dataset(_keys_dataset,
                                                          (size,), stype)
+
+    def close(self) -> None:
+        """Closes file in hdf5 context"""
+        self.__file.close()

@@ -37,6 +37,7 @@ class TrainWrapper:
     :param model: Model
     :param job_dir: directory to save model, events, predictions
     :param train_val_test: split on training, validation and test sets
+    :param split_pattern: Pattern to split data in Loader
     :param batch_size: batch size
     :param augmentation_train: Augmentations for train data
         (will be merged with augmentations_all)
@@ -47,6 +48,7 @@ class TrainWrapper:
 
     def __init__(self, loader: Loader, model: Model, job_dir: str,
                  train_val_test: _TrainValTest = (0.8, 0.1, 0.1),
+                 split_pattern: str = None,
                  batch_size: int = 1, augmentation_train: BasicTransform = None,
                  augmentation_all: BasicTransform = None,
                  augmentation_map: AugmentationMap = None,
@@ -66,7 +68,8 @@ class TrainWrapper:
         elif self._aug_all:
             self._aug_composed = self._aug_all
 
-        train_keys, val_keys, test_keys = loader.split(train_val_test)
+        train_keys, val_keys, test_keys = loader.split(train_val_test,
+                                                       split_pattern)
         self._train_gen = DataGenerator(train_keys, loader, batch_size,
                                         self._aug_map, self._aug_composed, True)
         self._val_gen = DataGenerator(val_keys, loader, batch_size,
