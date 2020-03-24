@@ -46,11 +46,11 @@ class DataGenerator(Sequence):
         """Generate one batch of data"""
         batch_keys = self._keys[
                      index * self._batch_size:(index + 1) * self._batch_size]
-        input_ = list(to_seq(self._loader.get_input(batch_keys)))
+        input_ = to_seq(self._loader.get_input(batch_keys))
         if self._predict:
             return input_
 
-        output_ = list(to_seq(self._loader.get_output(batch_keys)))
+        output_ = to_seq(self._loader.get_output(batch_keys))
         if self._augment is not None and self._transform is not None:
             return self._augment(input_, output_, self._transform)
         return input_, output_

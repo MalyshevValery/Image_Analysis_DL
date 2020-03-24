@@ -35,4 +35,4 @@ def customVGG16(top: Sequence[int] = None, weights: Optional[str] = 'imagenet',
         for channels in top:
             fc = Dense(channels, activation='relu')(fc)
         custom_output = Dense(classes, activation=classifier_activation)(fc)
-        return Model(inputs=input_, outputs=custom_output)
+        return Model(inputs=(input_,), outputs=(custom_output,))
