@@ -5,19 +5,17 @@ import numpy as np
 from .abstract import AbstractExtension
 
 
-class OneHotExtension(AbstractExtension):
-    def __init__(self, n_classes: int):
-        self.__n_classes = n_classes
+class ChannelExtension(AbstractExtension):
+    def __init__(self, axis=-1):
+        self.__axis = axis
 
     def __call__(self, data: np.ndarray) -> np.ndarray:
         """Apply scale and type transform"""
-        arr = np.zeros(self.__n_classes)
-        arr[data] = 1.0
-        return arr
+        return np.expand_dims(data, self.__axis)
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this Extension"""
         return {
-            'type': 'one_hot',
-            'n_classes': self.__n_classes
+            'type': 'channel',
+            'axis': self.__axis
         }
