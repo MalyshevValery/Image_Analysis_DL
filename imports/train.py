@@ -1,6 +1,6 @@
 """Class that encapsulates training process"""
 import os
-from typing import Tuple, Iterable, Dict, Optional, Sequence
+from typing import Tuple, Iterable, Dict, Optional, Sequence, List
 
 import numpy as np
 from albumentations import BasicTransform, Compose, to_dict
@@ -165,6 +165,11 @@ class TrainWrapper:
         for i in range(len(data[0])):
             return_data.append(np.concatenate([d[i] for d in data]))
         return return_data
+
+    @property
+    def test_keys(self) -> List[str]:
+        """Returns test keys"""
+        return list(self._test_gen.keys)
 
     @property
     def model(self) -> Model:
