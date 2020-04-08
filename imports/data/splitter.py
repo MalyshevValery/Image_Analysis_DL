@@ -1,7 +1,7 @@
 """Classes for data splitting and DataGenerator creation"""
 import numpy as np
 import re
-from typing import NamedTuple, Tuple, List, Dict
+from typing import NamedTuple, Tuple, List, Dict, Generator
 from albumentations import BasicTransform, Compose
 
 from .augmentationmap import AugmentationMap
@@ -55,7 +55,7 @@ class Splitter:
 
     def random_split(self, train_val_test: _TrainValTest,
                      pattern: str = '(.*)') -> Split:
-        """Splits indices on three groups to create training, test and
+        """Splits indices randomly on three groups to create training, test and
                 validation sets.
 
         :param train_val_test: tuple or list of three elements with sum of 1,
@@ -64,7 +64,7 @@ class Splitter:
         :param pattern: Apply this pattern to keys to get entities for split.
             This regex pattern must have one group catch. Default pattern
             matches whole keys.
-        :returns shuffled keys for train , validation, test split
+        :returns Shuffled keys for train , validation, test split
         """
         if sum(train_val_test) > 1:
             raise ValueError('Split', train_val_test, 'is greater than 1')
@@ -73,21 +73,38 @@ class Splitter:
 
         keys = np.array(self.__loader.keys)
         np.random.shuffle(keys)
-        keys_to_split, inverse_idx, counts = self.__get_groups(keys, pattern)
-        shuffled_gid = np.arange(0, len(keys_to_split))
-        np.random.shuffle(shuffled_gid)
-        shuffled_counts = counts[shuffled_gid]
-
-        split_keys = []
-        c = 0
-        for s in self.__balanced_sep(train_val_test, counts):
-            idx = [k in shuffled_gid[c:s] for k in inverse_idx]
-            split_keys.append(keys[idx])
-            c = s
+        split_keys = self.__split_keys(keys, np.array(train_val_test), pattern)
         return self.__keys_to_split(*split_keys)
 
-    def k_fold(self):
-        pass
+    def k_fold(self, val: float, n_fold: int,
+               pattern: str) -> Generator[Split, None, None]:
+        """Returns n_fold splits according to K-Fold technique on shuffled keys
+
+        :param val: Fracture of validation part in train fold
+        :param n_fold: Number of folds
+        :param pattern: Apply this pattern to keys to get entities for split.
+            This regex pattern must have one group catch. Default pattern
+            matches whole keys.
+        """
+        if not 0 < val < 1:
+            raise ValueError(f'Validation frac {val} must be in (0,1) interval')
+        if not 1 <= n_fold <= len(self.__loader.keys):
+            raise ValueError(f'Number of folds must be in [1, len(keys)]')
+
+        keys = np.array(self.__loader.keys)
+        np.random.shuffle(keys)
+        split = np.linspace(1 / n_fold, 1, n_fold)
+        tv_split = np.array([1 - val, val])
+        split_keys = self.__split_keys(keys, split, pattern)
+
+        for i in range(n_fold):
+            test_keys = list(split_keys[i])
+            tv_keys = [k for j, k in enumerate(split_keys) if j != i]
+            tv_keys = np.concatenate(tv_keys)
+            t_v_keys = self.__split_keys(tv_keys, tv_split, pattern)
+            yield self.__keys_to_split(list(t_v_keys[0]),
+                                       list(t_v_keys[1]),
+                                       test_keys)
 
     def __keys_to_split(self, train_keys: List[str], val_keys: List[str],
                         test_keys: List[str]) -> Split:
@@ -114,9 +131,24 @@ class Splitter:
         return keys_to_split, inverse_idx, counts
 
     @staticmethod
-    def __balanced_sep(train_val_test: _TrainValTest,
-                       counts: np.ndarray) -> np.ndarray:
+    def __balanced_sep(split: np.ndarray, counts: np.ndarray) -> np.ndarray:
         """Returns the most balanced separation"""
         counts_cum = np.cumsum(counts)
-        sep = np.cumsum(train_val_test) * counts_cum[-1]
+        sep = np.cumsum(split) * counts_cum[-1]
         return np.argmin(np.abs(counts_cum[:, np.newaxis] - sep), axis=0) + 1
+
+    @staticmethod
+    def __split_keys(keys: np.ndarray, split: np.ndarray,
+                     pattern: str) -> List[np.ndarray]:
+        to_split, inverse_idx, counts = Splitter.__get_groups(keys, pattern)
+        shuffled_gid = np.arange(0, len(to_split))
+        np.random.shuffle(shuffled_gid)
+        shuffled_counts = counts[shuffled_gid]
+
+        split_keys = []
+        c = 0
+        for s in Splitter.__balanced_sep(split, shuffled_counts):
+            idx = [k in shuffled_gid[c:s] for k in inverse_idx]
+            split_keys.append(keys[idx])
+            c = s
+        return split_keys
