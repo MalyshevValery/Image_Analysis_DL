@@ -77,7 +77,7 @@ def train(objects: TrainingObjects,
 
     with open(f'{job_dir}/config.json', 'w') as file:
         json.dump(trainer.to_json(), file, indent=2)
-    #trainer.train(callbacks, f'{job_dir}/best-model.h5')
+    trainer.train(callbacks, f'{job_dir}/best-model.h5')
 
     # Predict test set
     predicted = trainer.predict(split.test)
