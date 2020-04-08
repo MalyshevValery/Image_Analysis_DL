@@ -63,14 +63,8 @@ class TrainWrapper:
         if weights_path:
             self._model.load_weights(weights_path)
 
-    def evaluate(self, eval_metric: str = None) -> float:
-        """
-        Evaluate test set and returns value of eval_metric. Saves all metrics to
-        job_dir
-
-        Add '-' symbol before metric name to change its sign.
-        Can be useful for hyper parameter optimization/
-        """
+    def evaluate(self) -> Dict[str, float]:
+        """Returns dictionary of evaluated metrics"""
         ret = self._model.evaluate(self._split.test,
                                    **self._generator_params.eval_dict)
         if ret is None:
@@ -80,18 +74,14 @@ class TrainWrapper:
         else:
             gen_ret = ret
 
-        ret_val = zip(self._model.metrics_names, ret)
+        metric_dict = {}
+        ret_val = zip(self._model.metrics_names, gen_ret)
         for entry in ret_val:
             filename = f'{entry[1]:.3f}_{entry[0]}'
+            metric_dict[entry[0]] = entry[1]
             open(os.path.join(self._job_dir, filename), 'w').close()
 
-        if eval_metric is None:
-            return gen_ret[0]
-
-        k = -1 if eval_metric[0] == '-' else 1
-        if eval_metric[0] == '-':
-            eval_metric = eval_metric[1:]
-        return gen_ret[self._model.metrics_names.index(eval_metric)] * k
+        return metric_dict
 
     def check(self) -> None:
         """Checks if model works by training and testing on one batch"""

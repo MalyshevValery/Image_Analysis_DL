@@ -77,7 +77,7 @@ class Splitter:
         return self.__keys_to_split(*split_keys)
 
     def k_fold(self, val: float, n_fold: int,
-               pattern: str) -> Generator[Split, None, None]:
+               pattern: str = '(.*)') -> Generator[Split, None, None]:
         """Returns n_fold splits according to K-Fold technique on shuffled keys
 
         :param val: Fracture of validation part in train fold
@@ -88,12 +88,12 @@ class Splitter:
         """
         if not 0 < val < 1:
             raise ValueError(f'Validation frac {val} must be in (0,1) interval')
-        if not 1 <= n_fold <= len(self.__loader.keys):
+        if not 2 <= n_fold <= len(self.__loader.keys):
             raise ValueError(f'Number of folds must be in [1, len(keys)]')
 
         keys = np.array(self.__loader.keys)
         np.random.shuffle(keys)
-        split = np.linspace(1 / n_fold, 1, n_fold)
+        split = np.full(n_fold, 1/n_fold)
         tv_split = np.array([1 - val, val])
         split_keys = self.__split_keys(keys, split, pattern)
 
@@ -135,7 +135,8 @@ class Splitter:
         """Returns the most balanced separation"""
         counts_cum = np.cumsum(counts)
         sep = np.cumsum(split) * counts_cum[-1]
-        return np.argmin(np.abs(counts_cum[:, np.newaxis] - sep), axis=0) + 1
+        res = np.argmin(np.abs(counts_cum[:, np.newaxis] - sep), axis=0) + 1
+        return res
 
     @staticmethod
     def __split_keys(keys: np.ndarray, split: np.ndarray,
