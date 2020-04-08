@@ -37,57 +37,6 @@ class Loader:
             keys = keys.intersection(tuple(storage.keys))
         self.__keys = list(keys)
 
-    def split(self, train_val_test: Tuple[float, float, float],
-              pattern: str = None) -> TrainValTest:
-        """Splits indices on three groups to create training, test and
-        validation sets.
-
-        :param train_val_test: tuple or list of three elements with sum of 1,
-        which contains fractures of whole set for train/validation/test split
-        :param pattern: Apply this pattern to keys to get entities for split.
-            This regex pattern must have one group catch.
-        :returns shuffled keys for train , validation, test split
-        """
-        if sum(train_val_test) > 1:
-            raise ValueError('Split', train_val_test, 'is greater than 1')
-        if len(train_val_test) != 3:
-            raise ValueError('Split', train_val_test, 'must have 3 elements')
-
-        keys = np.array(self.keys)
-        np.random.shuffle(keys)
-        inverse_idx = np.array([])
-        if pattern is None:
-            train_val_test_counts = (
-                    np.array(train_val_test) * len(keys)).astype(int)
-        else:
-            matches = [re.match(pattern, k) for k in keys]
-            if None in matches:
-                raise ValueError('Not all keys matched the expression')
-            groups = [m.group(1) for m in matches if m is not None]
-            keys_to_split, inverse_idx = np.unique(groups, return_inverse=True)
-            train_val_test_counts = (
-                    np.array(train_val_test) * len(keys_to_split)).astype(int)
-
-        train_sep = train_val_test_counts[0]
-        val_sep = train_val_test_counts[1] + train_sep
-        test_sep = train_val_test_counts[2] + val_sep
-
-        if pattern is None:
-            train_keys = keys[:train_sep]
-            val_keys = keys[train_sep:val_sep]
-            test_keys = keys[val_sep:test_sep]
-        else:
-            shuffled_gid = np.arange(0, np.max(inverse_idx) + 1)
-            np.random.shuffle(shuffled_gid)
-
-            train_range = shuffled_gid[:train_sep]
-            train_keys = keys[[k in train_range for k in inverse_idx]]
-            val_range = shuffled_gid[train_sep:val_sep]
-            val_keys = keys[[k in val_range for k in inverse_idx]]
-            test_range = shuffled_gid[val_sep:test_sep]
-            test_keys = keys[[k in test_range for k in inverse_idx]]
-        return train_keys, val_keys, test_keys
-
     @property
     def keys(self) -> List[str]:
         """Getter for keys"""

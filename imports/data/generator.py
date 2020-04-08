@@ -1,8 +1,8 @@
 """Keras generator for semantic segmentation tasks"""
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 
 import numpy as np
-from albumentations import BasicTransform
+from albumentations import BasicTransform, to_dict
 from tensorflow.keras.utils import Sequence
 
 from imports.utils.types import OMArray, to_seq
@@ -30,7 +30,7 @@ class DataGenerator(Sequence):
                  predict: bool = False):
         self._loader = loader
         self._batch_size = batch_size
-        self._keys = keys
+        self._keys = np.array(keys)
         self._shuffle = shuffle
         self._augment = aug_map
         self._transform = transform
@@ -64,3 +64,16 @@ class DataGenerator(Sequence):
     def keys(self) -> List[str]:
         """Getter for keys"""
         return self._keys.copy()
+
+    def to_json(self) -> Dict[str, object]:
+        """Returns JSON config for this object"""
+        transform_json = to_dict(self._transform) if self._transform else None
+        return {
+            'batch_size': self._batch_size,
+            'shuffle': self._shuffle,
+            'predict': self._predict,
+            'n_keys': len(self._keys),
+            'aug_map': self._augment.to_json() if self._augment else None,
+            'augmentation': transform_json,
+            'keys': self._keys.tolist(),
+        }

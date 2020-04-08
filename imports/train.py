@@ -1,17 +1,15 @@
 """Class that encapsulates training process"""
 import os
-from typing import Tuple, Iterable, Dict, Optional, Sequence, List
+from typing import Tuple, Iterable, Dict, Optional
 
 import numpy as np
-from albumentations import BasicTransform, Compose, to_dict
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import Model
 
 from imports.utils.types import to_seq
-from .data import Loader, DataGenerator, AugmentationMap, StorageType
+from .data import Loader, StorageType, Split, DataGenerator
 from .utils import RunParams, DEFAULT_PARAMS
 
-_TrainValTest = Tuple[float, float, float]
 _Callbacks = Iterable[Callback]
 
 
@@ -36,46 +34,16 @@ class TrainWrapper:
     :param loader: Loader for data
     :param model: Model
     :param job_dir: directory to save model, events, predictions
-    :param train_val_test: split on training, validation and test sets
-    :param split_pattern: Pattern to split data in Loader
-    :param batch_size: batch size
-    :param augmentation_train: Augmentations for train data
-        (will be merged with augmentations_all)
-    :param augmentation_all: Augmentations applied to data from all sets
-    :param augmentation_map: Augmentation mapping to input/output
+    :param split: Split with train, val, test DataGenerators
     :param generator_params: Parameters for training
     """
 
     def __init__(self, loader: Loader, model: Model, job_dir: str,
-                 train_val_test: _TrainValTest = (0.8, 0.1, 0.1),
-                 split_pattern: str = None,
-                 batch_size: int = 1, augmentation_train: BasicTransform = None,
-                 augmentation_all: BasicTransform = None,
-                 augmentation_map: AugmentationMap = None,
-                 generator_params: RunParams = DEFAULT_PARAMS):
+                 split: Split, generator_params: RunParams = DEFAULT_PARAMS):
         self._loader = loader
-        self._train_val_test = train_val_test
         self._generator_params = generator_params
         self._model = model
-        self._batch_size = batch_size
-
-        self._aug_train = augmentation_train
-        self._aug_all = augmentation_all
-        self._aug_map = augmentation_map
-        self._aug_composed = self._aug_train
-        if self._aug_all and self._aug_train:
-            self._aug_composed = Compose([self._aug_train, self._aug_all])
-        elif self._aug_all:
-            self._aug_composed = self._aug_all
-
-        train_keys, val_keys, test_keys = loader.split(train_val_test,
-                                                       split_pattern)
-        self._train_gen = DataGenerator(train_keys, loader, batch_size,
-                                        self._aug_map, self._aug_composed, True)
-        self._val_gen = DataGenerator(val_keys, loader, batch_size,
-                                      self._aug_map, self._aug_all, False)
-        self._test_gen = DataGenerator(test_keys, loader, batch_size,
-                                       self._aug_map, self._aug_all, False)
+        self._split = split
 
         self._job_dir = job_dir
         if not os.path.exists(job_dir):
@@ -89,7 +57,7 @@ class TrainWrapper:
         Train process. After training best weights are restored if checkpoint
         callback with save_best was used
         """
-        self._model.fit(self._train_gen, validation_data=self._val_gen,
+        self._model.fit(self._split.train, validation_data=self._split.val,
                         callbacks=callbacks, **self._generator_params.dict)
         self._model.save(os.path.join(self._job_dir, 'model.h5'))
         if weights_path:
@@ -103,7 +71,7 @@ class TrainWrapper:
         Add '-' symbol before metric name to change its sign.
         Can be useful for hyper parameter optimization/
         """
-        ret = self._model.evaluate(self._test_gen,
+        ret = self._model.evaluate(self._split.test,
                                    **self._generator_params.eval_dict)
         if ret is None:
             raise ValueError('No return from evaluate')
@@ -127,29 +95,32 @@ class TrainWrapper:
 
     def check(self) -> None:
         """Checks if model works by training and testing on one batch"""
-        batches = [self._train_gen[0], self._val_gen[0], self._test_gen[0]]
+        batches = [self._split.train[0],
+                   self._split.val[0],
+                   self._split.test[0]]
         x = [b[0] for b in batches]
         y = [b[1] for b in batches]
         self._model.train_on_batch(x[0], y[0])
         self._model.test_on_batch(x[1], y[1])
         self._model.predict_on_batch(x[2])
 
-    def predict_test(self,
-                     storages: StorageType = None) -> Optional[np.ndarray]:
+    def predict(self, data: DataGenerator,
+                storage: StorageType = None) -> Optional[np.ndarray]:
         """
-        Predicts test data and saves it to given storage
+        Predicts given data and saves it to the storage
 
-        :param storages: List of storages to save predicted values,
+        :param data: Generator of input data
+        :param storage: List of storage to save predicted values,
             None to return numpy array
         """
-        predicted = self._model.predict(self._test_gen,
+        predicted = self._model.predict(data,
                                         **self._generator_params.eval_dict)
-        if storages is None:
+        if storage is None:
             return predicted
         else:
             predicted = to_seq(predicted)
-            for i, storage in enumerate(to_seq(storages)):
-                storage.save_array(self._test_gen.keys, predicted[i])
+            for i, storage in enumerate(to_seq(storage)):
+                storage.save_array(data.keys, predicted[i])
             return None
 
     @property
@@ -158,38 +129,16 @@ class TrainWrapper:
         return os.path.abspath(self._job_dir)
 
     @property
-    def test_ground(self) -> Sequence[np.ndarray]:
-        """Returns ground truth for test set"""
-        return_data = []
-        data = [batch[1] for batch in self._test_gen]
-        for i in range(len(data[0])):
-            return_data.append(np.concatenate([d[i] for d in data]))
-        return return_data
-
-    @property
-    def test_keys(self) -> List[str]:
-        """Returns test keys"""
-        return list(self._test_gen.keys)
-
-    @property
     def model(self) -> Model:
         """Returns model of this train"""
         return self._model
 
     def to_json(self) -> Dict[str, object]:
         """Returns JSON configuration for this train wrapper"""
-        aug_all = to_dict(self._aug_all) if self._aug_all else None
-        aug_train = to_dict(self._aug_train) if self._aug_train else None
-        aug_map = self._aug_map.to_json() if self._aug_map else None
-
         return {
             'loader': self._loader.to_json(),
             'job_dir': self._job_dir,
             'generator_params': self._generator_params.dict,
-            'batch_size': self._batch_size,
-            'train_val_test': self._train_val_test,
-            'augmentation_map': aug_map,
-            'augmentation_all': aug_all,
-            'augmentation_train': aug_train,
+            'split': self._split.to_json(),
             'model': self._model.to_json()
         }
