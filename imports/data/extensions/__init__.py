@@ -5,3 +5,4 @@ from .ignoreregion import IgnoreRegionExtension
 from .onehot import OneHotExtension
 from .splitmask import SplitMaskExtension
 from .typescale import TypeScaleExtension
+from .func import LambdaExtension

@@ -7,6 +7,7 @@ from tensorflow.keras.models import load_model, Model
 from .conv2dblock import Conv2DBlock
 from .test_net import TestNet
 from .unet import UNet
+from .vgg16 import VGG16
 
 CUSTOMS = {'Conv2DBlock': Conv2DBlock}  # Custom Layers for load_model functions
 
