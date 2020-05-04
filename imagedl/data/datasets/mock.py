@@ -16,6 +16,8 @@ class MockDataset(AbstractDataset):
         super().__init__(transform=transform)
         self.__val = value
         self.__total = total
+        if self.__total <= 0:
+            raise ValueError('Total must be greater than zero')
 
     def __len__(self) -> int:
         return self.__total
