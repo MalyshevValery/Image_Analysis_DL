@@ -1,4 +1,4 @@
-"""Abstract Storage class"""
+"""Abstract Dataset"""
 from abc import abstractmethod
 from typing import Union, Callable, Tuple, Mapping
 

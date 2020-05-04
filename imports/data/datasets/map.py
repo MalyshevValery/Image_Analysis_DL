@@ -1,10 +1,10 @@
-"""Storage which extracts classes from keys"""
+"""Lambda Dataset"""
 from typing import Callable
 
 from .abstract import AbstractDataset, DataType, Transform
 
 
-class LambdaDataset(AbstractDataset):
+class MapDataset(AbstractDataset):
     """
     Dataset which takes another dataset and maps its values to other with given
     function *func*

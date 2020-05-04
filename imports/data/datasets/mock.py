@@ -2,7 +2,7 @@
 from .abstract import AbstractDataset, DataType, Transform
 
 
-class MockStorage(AbstractDataset):
+class MockDataset(AbstractDataset):
     """
     Dataset which return same value on every index
 
@@ -13,9 +13,9 @@ class MockStorage(AbstractDataset):
 
     def __init__(self, value: DataType, total: int,
                  transform: Transform = None):
+        super().__init__(transform=transform)
         self.__val = value
         self.__total = total
-        super().__init__(transform=transform)
 
     def __len__(self) -> int:
         return self.__total
