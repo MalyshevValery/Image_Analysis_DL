@@ -3,6 +3,7 @@ import glob
 import os
 
 from skimage import io
+from torch import from_numpy
 
 from .abstract import AbstractDataset, DataType, Transform
 
@@ -13,7 +14,7 @@ class ImageGlobDataset(AbstractDataset):
 
     :param query: Glob to retrieve image paths
     :param include_filename: If True __getitem__ returns dict with image and
-    filename
+        filename
     :param transform: Data Transform
     """
 
@@ -21,6 +22,8 @@ class ImageGlobDataset(AbstractDataset):
                  transform: Transform = None):
         super().__init__(transform=transform)
         self.__paths = sorted(glob.glob(query))
+        if len(self.__paths) == 0:
+            raise ValueError('No files found')
         self.__include_filename = include_filename
 
     def __len__(self) -> int:
@@ -28,7 +31,7 @@ class ImageGlobDataset(AbstractDataset):
 
     def __getitem__(self, idx: int) -> DataType:
         path = self.__paths[idx]
-        image = io.imread(path)
+        image = from_numpy(io.imread(path))
         image = self._apply_transform(image)
         if self.__include_filename:
             return {'image': image, 'filename': os.path.basename(path)}

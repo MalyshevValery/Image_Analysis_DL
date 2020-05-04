@@ -2,6 +2,7 @@
 from typing import Tuple
 
 import h5py
+from torch import from_numpy
 
 from .abstract import AbstractDataset, DataType, Transform
 
@@ -36,6 +37,9 @@ class HDF5Dataset(AbstractDataset):
 
     def __getitem__(self, idx: int) -> DataType:
         if self.__as_tuple:
-            return tuple(ds[idx] for ds in self.__datasets)
+            data: DataType = tuple(
+                from_numpy(ds[idx]) for ds in self.__datasets)
         else:
-            return {self.__names[i]: ds for i, ds in enumerate(self.__datasets)}
+            data = {self.__names[i]: from_numpy(ds[idx]) for i, ds in
+                    enumerate(self.__datasets)}
+        return self._apply_transform(data)
