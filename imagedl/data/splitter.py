@@ -99,11 +99,3 @@ class Splitter:
             split_keys.append(indexes[idx])
             c = s
         return split_keys
-
-
-if __name__ == '__main__':
-    groups_ = np.random.randint(0, 10, 100)
-    splitter_ = Splitter(100, groups_)
-    for split_ in splitter_.k_fold(0.1, 4):
-        print(split_)
-        print(len(split_.train), len(split_.val), len(split_.test))
