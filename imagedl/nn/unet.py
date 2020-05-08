@@ -3,7 +3,7 @@ from typing import Type
 
 from torch import nn, Tensor, cat
 
-from .conv2dblock import Conv2dBlock
+from imagedl.nn.blocks.conv2dblock import Conv2dBlock
 
 
 class UNet(nn.Module):
@@ -33,7 +33,7 @@ class UNet(nn.Module):
         self.inc = Conv2dBlock(n_channels, 64)
         self.down1 = UNet.__down_layer(64, 128, dropout, n_layers, activation,
                                        kernel_size, batchnorm)
-        self.down2 = UNet.__down_layer(182, 256, dropout, n_layers, activation,
+        self.down2 = UNet.__down_layer(128, 256, dropout, n_layers, activation,
                                        kernel_size, batchnorm)
         self.down3 = UNet.__down_layer(256, 512, dropout, n_layers, activation,
                                        kernel_size, batchnorm)
@@ -63,10 +63,10 @@ class UNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        x = self.up1_block(cat([self.up1(x5), x4]), dim=1)
-        x = self.up1_block(cat([self.up1(x), x3]), dim=1)
-        x = self.up1_block(cat([self.up1(x), x2]), dim=1)
-        x = self.up1_block(cat([self.up1(x), x1]), dim=1)
+        x = self.up1_block(cat([self.up1(x5), x4], dim=1))
+        x = self.up2_block(cat([self.up2(x), x3], dim=1))
+        x = self.up3_block(cat([self.up3(x), x2], dim=1))
+        x = self.up4_block(cat([self.up4(x), x1], dim=1))
 
         return self.out(x)
 

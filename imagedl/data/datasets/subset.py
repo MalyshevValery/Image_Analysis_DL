@@ -1,8 +1,7 @@
 """SubDataset"""
 from typing import Sequence
 
-from imagedl.data import AbstractDataset
-from imagedl.data.datasets.abstract import DataType, Transform
+from .abstract import AbstractDataset, DataType, Transform
 
 
 class SubDataset(AbstractDataset):
@@ -21,7 +20,7 @@ class SubDataset(AbstractDataset):
         self.__indexes = indexes
 
     def __getitem__(self, idx: int) -> DataType:
-        return self.__source[self.__indexes[idx]]
+        return self._apply_transform(self.__source[self.__indexes[idx]])
 
     def __len__(self) -> int:
         return len(self.__indexes)

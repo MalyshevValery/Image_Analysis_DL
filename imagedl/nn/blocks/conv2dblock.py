@@ -1,4 +1,4 @@
-"""Parts for NN models"""
+"""Parts for NN nn"""
 from typing import Type
 
 from torch import nn, Tensor
@@ -26,7 +26,7 @@ class Conv2dBlock(nn.Module):
         for i in range(layers):
             block_layers = [
                 nn.Conv2d((in_channels if i == 0 else out_channels),
-                          out_channels, kernel_size),
+                          out_channels, kernel_size, padding=kernel_size // 2),
                 activation()
             ]
             if batchnorm:

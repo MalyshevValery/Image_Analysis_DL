@@ -1,6 +1,4 @@
 """Concat dataset"""
-from typing import Tuple
-
 import numpy as np
 
 from .abstract import AbstractDataset, DataType, Transform
@@ -9,7 +7,7 @@ from .abstract import AbstractDataset, DataType, Transform
 class ConcatDataset(AbstractDataset):
     """Dataset to concatenate other datasets in one"""
 
-    def __init__(self, datasets: Tuple[AbstractDataset, ...],
+    def __init__(self, *datasets: AbstractDataset,
                  transform: Transform = None):
         super().__init__(transform=transform)
         self.__datasets = datasets
@@ -20,6 +18,8 @@ class ConcatDataset(AbstractDataset):
         return int(self.__separators[-1])
 
     def __getitem__(self, idx: int) -> DataType:
-        next_id = np.where(self.__separators - idx > 0)
-        ds = self.__datasets[next_id - 1]
-        return ds[idx - self.__separators[next_id - 1]]
+        ds_id = np.where(self.__separators - idx > 0)[0][0]
+        ds = self.__datasets[ds_id]
+        if ds_id > 0:
+            idx -= self.__separators[ds_id - 1]
+        return self._apply_transform(ds[idx])

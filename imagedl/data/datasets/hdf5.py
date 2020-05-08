@@ -40,6 +40,8 @@ class HDF5Dataset(AbstractDataset):
             data: DataType = tuple(
                 from_numpy(ds[idx]) for ds in self.__datasets)
         else:
-            data = {self.__names[i]: from_numpy(ds[idx]) for i, ds in
-                    enumerate(self.__datasets)}
+            retrieved = [ds[idx] for ds in self.__datasets]
+            processed = [r if isinstance(r, str) else from_numpy(r) for r in
+                         retrieved]
+            data = {self.__names[i]: p for i, p in enumerate(processed)}
         return self._apply_transform(data)
