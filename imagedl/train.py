@@ -2,21 +2,21 @@
 from pathlib import Path
 from typing import Dict
 
-import click
 import pandas as pd
 import torch
 from ignite.contrib.handlers import ProgressBar
-from ignite.contrib.handlers.tensorboard_logger import *
+from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger, \
+    OutputHandler, global_step_from_engine, OptimizerParamsHandler
 from ignite.engine import create_supervised_trainer, \
-    create_supervised_evaluator, Events
+    create_supervised_evaluator, Events, Engine
 from ignite.handlers import EarlyStopping, ModelCheckpoint
-from ignite.metrics import Loss, RunningAverage
-from torch import optim
+from ignite.metrics import Loss, RunningAverage, Metric
 from torch.utils.data import DataLoader
 
+from imagedl.config import Config
 from imagedl.data import Splitter, Split
 from imagedl.data.datasets import SubDataset
-from scripts.cam_seg_config import CAMSegConfig
+from .utility_config import DEVICE, WORKERS
 
 
 def metrics_to_str(metrics: Dict[str, float]) -> str:
@@ -28,92 +28,93 @@ def metrics_to_str(metrics: Dict[str, float]) -> str:
     return ' '.join(res)
 
 
-def train(config: CAMSegConfig, split: Split, job_dir: Path) -> pd.DataFrame:
+def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     """Training procedure depending on split"""
     job_dir.mkdir(parents=True, exist_ok=False)
-    model = config.model.to(device=config.device)
-    optimizer = optim.Adam(model.parameters())
-    criterion = config.criterion
+    model, optimizer_fn, criterion = config.model_config
+    model.to(DEVICE)
+    optimizer = optimizer_fn(model.parameters())
 
-    train_ds = SubDataset(config.dataset, split.train,
-                          transform=config.train_transform)
-    val_ds = SubDataset(config.dataset, split.val,
-                        transform=config.test_transform)
-    test_ds = SubDataset(config.dataset, split.test,
-                         transform=config.test_transform)
+    epochs, batch_size, patience = config.train
+    dataset, _, train_transform, test_transform, _ = config.data
+    train_ds = SubDataset(dataset, split.train, transform=train_transform)
+    val_ds = SubDataset(dataset, split.val, transform=test_transform)
+    test_ds = SubDataset(dataset, split.test, transform=test_transform)
+    print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
-    train_dl = DataLoader(train_ds, config.batch_size, True,
-                          num_workers=config.num_workers)
-    val_dl = DataLoader(val_ds, config.batch_size,
-                        num_workers=config.num_workers)
-    test_dl = DataLoader(test_ds, config.batch_size,
-                         num_workers=config.num_workers)
+    train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS)
+    val_dl = DataLoader(val_ds, batch_size, num_workers=WORKERS)
+    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS)
 
     config.show_samples(train_ds, job_dir)
 
     trainer = create_supervised_trainer(model, optimizer, criterion,
-                                        device=config.device,
+                                        device=DEVICE,
                                         output_transform=lambda x, y, y_pred,
                                                                 loss: (
                                             y_pred, y, loss.item()))
 
-    metrics = config.metrics
-    metrics['loss'] = Loss(criterion)
-    val_evaluator = create_supervised_evaluator(model, metrics, config.device)
+    metrics: Dict[str, Metric]
+    metrics, eval_metric = config.test
+
+    metrics['loss'] = Loss(criterion,
+                           output_transform=lambda data: (data[0], data[1]))
+    val_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
 
     RunningAverage(output_transform=lambda x: x[2]).attach(trainer, "loss")
-    for k, metric in config.metrics.items():
+    for k, metric in metrics.items():
         RunningAverage(metric).attach(trainer, k)
 
-    pbar = ProgressBar(persist=True)
-    pbar.attach(trainer, metric_names="all")
+    progress_bar = ProgressBar(persist=True)
+    progress_bar.attach(trainer, metric_names="all")
 
     @trainer.on(Events.EPOCH_COMPLETED)
-    def log_validation_results(engine):
+    def log_validation_results(engine: Engine) -> None:
+        """Log validation"""
         val_evaluator.run(val_dl)
         val_metrics = val_evaluator.state.metrics
         epoch = engine.state.epoch
-        pbar.log_message(
+        progress_bar.log_message(
             f'Validation #{epoch} - ' + metrics_to_str(val_metrics))
-        pbar.n = pbar.last_print_n = 0
+        progress_bar.n = progress_bar.last_print_n = 0
 
-    score_function = lambda engine: val_evaluator.state.metrics[
-        config.eval_metric]
-    trainer.add_event_handler(Events.EPOCH_COMPLETED,
-                              EarlyStopping(config.patience, score_function,
-                                            trainer))
-    trainer.add_event_handler(Events.EPOCH_COMPLETED,
-                              ModelCheckpoint(str(job_dir), 'best',
-                                              score_function=score_function,
-                                              score_name=config.eval_metric),
-                              {'model': model})
-    trainer.add_event_handler(Events.EPOCH_COMPLETED,
-                              ModelCheckpoint(str(job_dir), 'latest'),
-                              {'model': model, 'optimizer': optimizer,
-                               'trainer': trainer})
+    def score_function(engine: Engine) -> object:
+        """Score function for model"""
+        return val_evaluator.state.metrics[eval_metric]
+
+    handlers = [
+        EarlyStopping(patience, score_function, trainer),
+        ModelCheckpoint(str(job_dir), 'best', score_function=score_function,
+                        score_name=eval_metric),
+        ModelCheckpoint(str(job_dir), 'latest')
+    ]
+    save_dicts = [
+        None,
+        {'model': model},
+        {'model': model, 'optimizer': optimizer, 'trainer': trainer}
+    ]
+    for handler, dict_ in zip(handlers, save_dicts):
+        if dict_ is not None:
+            trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, dict_)
+        else:
+            trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
 
     tb_logger = TensorboardLogger(log_dir=job_dir)
-    tb_logger.attach(
-        trainer,
-        log_handler=OutputHandler(tag="training", metric_names="all"),
-        event_name=Events.ITERATION_COMPLETED)
+    tb_trainer_handlers = [
+        OutputHandler(tag="training", metric_names="all"),
+        OptimizerParamsHandler(optimizer),
+    ]
+    for handler in tb_trainer_handlers:
+        tb_logger.attach(trainer, handler, Events.ITERATION_COMPLETED(every=1))
     tb_logger.attach(
         val_evaluator,
-        log_handler=OutputHandler(
-            tag="validation",
-            metric_names="all",
-            global_step_transform=global_step_from_engine(trainer)),
+        log_handler=OutputHandler(tag="validation", metric_names="all",
+                                  global_step_transform=global_step_from_engine(
+                                      trainer)),
         event_name=Events.EPOCH_COMPLETED, )
-
-    tb_logger.attach(
-        trainer, log_handler=OptimizerParamsHandler(optimizer),
-        event_name=Events.ITERATION_COMPLETED(every=100)
-    )
-
-    print(model)
     tb_logger.writer.add_graph(model, next(iter(train_dl))[0])
 
-    trainer.run(val_dl, max_epochs=config.epochs)
+    trainer.run(val_dl, max_epochs=epochs)
     tb_logger.close()
 
     to_save = job_dir / 'test'
@@ -122,52 +123,44 @@ def train(config: CAMSegConfig, split: Split, job_dir: Path) -> pd.DataFrame:
     cur = 0
     for i, data in enumerate(test_dl):
         inp, out = data
-        pred = model(inp.to(config.device)).cpu()
-        config.save_result(split.test[cur:cur + config.batch_size], inp, out,
+        pred = model(inp.to(DEVICE)).cpu()
+        config.save_result(split.test[cur:cur + batch_size], inp, out,
                            pred, to_save)
         cur += test_dl.batch_size
 
-    test_evaluator = create_supervised_evaluator(model, metrics, config.device)
+    test_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
     test_evaluator.run(test_dl)
     df = pd.DataFrame(test_evaluator.state.metrics, index=[0])
     df.to_csv(f'{job_dir}/metrics.csv', index=False)
-    pbar.log_message(f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
+    progress_bar.log_message(
+        f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
 
-    if config.device.type == '  cuda':
+    if DEVICE.type == '  cuda':
         torch.cuda.empty_cache()
     return df
 
 
-@click.command()
-@click.option('--train', '-t', 'train_', default=0.8, help='Training size',
-              type=float)
-@click.option('--val', '-v', default=0.1, help='Validation size', type=float)
-@click.option('--test', '-s', default=0.1, help='Test size', type=float)
-@click.option('--kfold', '-k', help='Number of folds', type=int)
-def main(train_: float, val: float, test: float, kfold: int = None,
-         level: int = 5) -> None:
-    """Main program"""
-    config = CAMSegConfig()
-    print(f'Total number of samples: {config.dataset}')
-    splitter = Splitter(total=len(config.dataset), group_labels=config.groups)
+def train(config: Config, train_: float, val: float, test: float,
+          kfold: int = None) -> None:
+    """Main train procedure"""
+    dataset, groups, _, _, job_dir = config.data
+
+    print(f'Total number of samples: {len(dataset)}')
+    splitter = Splitter(total=len(dataset), group_labels=groups)
 
     if kfold is None:
         split = splitter.random_split((train_, val, test))
-        train(config, split, config.job_dir)
+        train_run(config, split, job_dir)
     else:
         frames = []
         for i, split in enumerate(
                 splitter.k_fold(val, kfold)):
             print(f'Fold {i + 1}')
-            fold_job_dir = config.job_dir / f'Fold_{i + 1}'
-            frames.append(train(config, split, fold_job_dir))
+            fold_job_dir = job_dir / f'Fold_{i + 1}'
+            frames.append(train_run(config, split, fold_job_dir))
             print(frames[-1])
         print(frames)
         overall = pd.concat(frames, ignore_index=True)
         print('All folds')
         print(overall)
-        overall.to_csv(f'{config.job_dir}/metrics.csv')
-
-
-if __name__ == '__main__':
-    main()
+        overall.to_csv(f'{job_dir}/metrics.csv')
