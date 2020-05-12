@@ -114,7 +114,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         event_name=Events.EPOCH_COMPLETED, )
     tb_logger.writer.add_graph(model, next(iter(train_dl))[0])
 
-    trainer.run(val_dl, max_epochs=epochs)
+    trainer.run(train_dl, max_epochs=epochs)
     tb_logger.close()
 
     to_save = job_dir / 'test'
