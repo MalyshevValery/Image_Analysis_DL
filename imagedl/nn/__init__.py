@@ -1,3 +1,4 @@
 """Model imports"""
 
-from .unet import UNet
+from .losses import *
+from .models import *

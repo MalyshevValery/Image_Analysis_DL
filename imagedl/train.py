@@ -30,7 +30,7 @@ def metrics_to_str(metrics: Dict[str, float]) -> str:
 
 def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     """Training procedure depending on split"""
-    job_dir.mkdir(parents=True, exist_ok=False)
+    job_dir.mkdir(parents=True, exist_ok=True)
     model, optimizer_fn, criterion = config.model_config
     model.to(DEVICE)
     optimizer = optimizer_fn(model.parameters())
@@ -57,13 +57,13 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     metrics: Dict[str, Metric]
     metrics, eval_metric = config.test
 
-    metrics['loss'] = Loss(criterion,
-                           output_transform=lambda data: (data[0], data[1]))
-    val_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
-
     RunningAverage(output_transform=lambda x: x[2]).attach(trainer, "loss")
     for k, metric in metrics.items():
         RunningAverage(metric).attach(trainer, k)
+
+    metrics['loss'] = Loss(criterion,
+                           output_transform=lambda data: (data[0], data[1]))
+    val_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
 
     progress_bar = ProgressBar(persist=True)
     progress_bar.attach(trainer, metric_names="all")

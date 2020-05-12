@@ -3,7 +3,7 @@ from typing import Type
 
 from torch import nn, Tensor, cat
 
-from imagedl.nn.blocks.conv2dblock import Conv2dBlock
+from imagedl.nn.models.blocks import Conv2dBlock
 
 
 class UNet(nn.Module):
