@@ -8,7 +8,7 @@ import numpy as np
 from torch import Tensor
 from torch import nn
 
-from imagedl.data.datasets.abstract import AbstractDataset, Transform
+from imagedl.data.datasets.abstract import AbstractDataset, Transform, DataType
 
 
 class ModelConfig(NamedTuple):
@@ -68,23 +68,13 @@ class Config(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def show_samples(self, ds: AbstractDataset, job_dir: Path) -> None:
-        """
-        Plots data from ds and saves it to job_dir
-        :param ds: Dataset to get data from
-        :param job_dir: Directory to save data to
-        """
+    def visualize(self, inp: DataType, out: DataType,
+                  pred: DataType = None) -> Tensor:
+        """Visualize input and ground truth. Visualize predictions if passed"""
         raise NotImplementedError()
 
     @abstractmethod
-    def save_result(self, idx: np.ndarray, inp: Tensor, target: Tensor,
-                    pred: Tensor, job_dir: Path) -> None:
-        """
-        Saves inputs, ground truth and predictions to job_dir
-        :param idx: Indexes of predicted samples
-        :param inp: Input data
-        :param target: Ground Truth
-        :param pred: Predictions
-        :param job_dir: Job Directory
-        """
+    def save_sample(self, visualized: Tensor, save_path: Path,
+                    idx: np.ndarray = None) -> None:
+        """Saves visualized sample"""
         raise NotImplementedError()

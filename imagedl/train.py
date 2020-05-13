@@ -12,6 +12,7 @@ from ignite.engine import create_supervised_trainer, \
 from ignite.handlers import EarlyStopping, ModelCheckpoint
 from ignite.metrics import Loss, RunningAverage, Metric
 from torch.utils.data import DataLoader
+from torchvision.utils import make_grid
 
 from imagedl.config import Config
 from imagedl.data import Splitter, Split
@@ -43,10 +44,11 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
     train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS)
-    val_dl = DataLoader(val_ds, batch_size, num_workers=WORKERS)
+    val_dl = DataLoader(val_ds, batch_size, True, num_workers=WORKERS)
     test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS)
 
-    config.show_samples(train_ds, job_dir)
+    config.save_sample(config.visualize(*next(iter(train_dl))),
+                       job_dir / 'train.png')
 
     trainer = create_supervised_trainer(model, optimizer, criterion,
                                         device=DEVICE,
@@ -114,6 +116,16 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         event_name=Events.EPOCH_COMPLETED, )
     tb_logger.writer.add_graph(model, next(iter(train_dl))[0])
 
+    @trainer.on(Events.ITERATION_COMPLETED)
+    def show_images_tb(engine: Engine) -> None:
+        """Plots image to TensorBoard"""
+        inp, targets = next(iter(val_dl))
+        model.eval()
+        pred = model(inp)
+        visualized = config.visualize(inp, targets, pred).permute(0, 3, 1, 2)
+        tb_logger.writer.add_image('validation', make_grid(visualized),
+                                   engine.state.epoch)
+
     trainer.run(train_dl, max_epochs=epochs)
     tb_logger.close()
 
@@ -124,8 +136,8 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     for i, data in enumerate(test_dl):
         inp, out = data
         pred = model(inp.to(DEVICE)).cpu()
-        config.save_result(split.test[cur:cur + batch_size], inp, out,
-                           pred, to_save)
+        config.save_sample(config.visualize(inp, out, pred), to_save,
+                           split.test[cur:cur + batch_size])
         cur += test_dl.batch_size
 
     test_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
@@ -134,7 +146,6 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     df.to_csv(f'{job_dir}/metrics.csv', index=False)
     progress_bar.log_message(
         f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
-
     if DEVICE.type == '  cuda':
         torch.cuda.empty_cache()
     return df
