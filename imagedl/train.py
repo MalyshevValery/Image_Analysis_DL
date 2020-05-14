@@ -17,7 +17,7 @@ from torchvision.utils import make_grid
 from imagedl.config import Config
 from imagedl.data import Splitter, Split
 from imagedl.data.datasets import SubDataset
-from .utility_config import DEVICE, WORKERS
+from .utility_config import DEVICE, WORKERS, ALPHA, EPOCH_BOUND
 
 
 def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]]) -> str:
@@ -65,9 +65,11 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     metrics: Dict[str, Metric]
     metrics, eval_metric = config.test
 
-    RunningAverage(output_transform=lambda x: x[2]).attach(trainer, "loss")
+    RunningAverage(output_transform=lambda x: x[2], alpha=ALPHA,
+                   epoch_bound=EPOCH_BOUND).attach(trainer, "loss")
     for k, metric in metrics.items():
-        RunningAverage(metric).attach(trainer, k)
+        RunningAverage(metric, alpha=ALPHA,
+                       epoch_bound=EPOCH_BOUND).attach(trainer, k)
 
     metrics['loss'] = Loss(criterion,
                            output_transform=lambda data: (data[0], data[1]))
