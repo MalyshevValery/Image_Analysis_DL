@@ -1,6 +1,6 @@
 """Run test features net"""
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 import pandas as pd
 import torch
@@ -20,12 +20,18 @@ from imagedl.data.datasets import SubDataset
 from .utility_config import DEVICE, WORKERS
 
 
-def metrics_to_str(metrics: Dict[str, float]) -> str:
+def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]]) -> str:
     """Put metrics in string"""
     sorted_names = sorted(metrics.keys())
     res = []
     for s in sorted_names:
-        res.append(f'{s}: {metrics[s]:.3f}')
+        if isinstance(metrics[s], torch.Tensor):
+            if metrics[s].shape == ():
+                res.append(f'{s}: {metrics[s]:.3f}')
+            elif len(metrics[s].shape) == 1:
+                res.append(f'{s}: {metrics[s]}')
+        else:
+            res.append(f'{s}: {metrics[s]:.3f}')
     return ' '.join(res)
 
 
@@ -116,7 +122,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         event_name=Events.EPOCH_COMPLETED, )
     tb_logger.writer.add_graph(model, next(iter(train_dl))[0])
 
-    @trainer.on(Events.ITERATION_COMPLETED)
+    @trainer.on(Events.EPOCH_COMPLETED)
     def show_images_tb(engine: Engine) -> None:
         """Plots image to TensorBoard"""
         inp, targets = next(iter(val_dl))
@@ -126,7 +132,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         tb_logger.writer.add_image('validation', make_grid(visualized),
                                    engine.state.epoch)
 
-    trainer.run(train_dl, max_epochs=epochs)
+    trainer.run(val_dl, max_epochs=epochs)
     tb_logger.close()
 
     to_save = job_dir / 'test'
@@ -142,7 +148,14 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
 
     test_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
     test_evaluator.run(test_dl)
-    df = pd.DataFrame(test_evaluator.state.metrics, index=[0])
+
+    metrics = test_evaluator.state.metrics
+    cleaned_metrics = {}
+    for s in metrics.keys():
+        if isinstance(metrics[s], torch.Tensor) and metrics[s].shape != ():
+            continue
+        cleaned_metrics[s] = metrics[s]
+    df = pd.DataFrame(cleaned_metrics, index=[0])
     df.to_csv(f'{job_dir}/metrics.csv', index=False)
     progress_bar.log_message(
         f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
