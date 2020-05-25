@@ -134,7 +134,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         tb_logger.writer.add_image('validation', make_grid(visualized),
                                    engine.state.epoch)
 
-    trainer.run(val_dl, max_epochs=epochs)
+    trainer.run(train_dl, max_epochs=epochs)
     tb_logger.close()
 
     to_save = job_dir / 'test'
@@ -143,7 +143,11 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     cur = 0
     for i, data in enumerate(test_dl):
         inp, out = data
-        pred = model(inp.to(DEVICE)).cpu()
+        pred = model(inp.to(DEVICE))
+        if isinstance(pred, torch.Tensor):
+            pred = pred.cpu()
+        else:
+            pred = [p.cpu() for p in pred]
         config.save_sample(config.visualize(inp, out, pred), to_save,
                            split.test[cur:cur + batch_size])
         cur += test_dl.batch_size
@@ -161,7 +165,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     df.to_csv(f'{job_dir}/metrics.csv', index=False)
     progress_bar.log_message(
         f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
-    if DEVICE.type == '  cuda':
+    if DEVICE.type == 'cuda':
         torch.cuda.empty_cache()
     return df
 
