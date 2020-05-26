@@ -71,6 +71,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         RunningAverage(metric, alpha=ALPHA,
                        epoch_bound=EPOCH_BOUND).attach(trainer, k)
 
+    metrics, eval_metric = config.test
     metrics['loss'] = Loss(criterion,
                            output_transform=lambda data: (data[0], data[1]))
     val_evaluator = create_supervised_evaluator(model, metrics, DEVICE)

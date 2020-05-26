@@ -2,7 +2,7 @@
 from typing import Tuple
 
 from torch import Tensor, nn
-
+from imagedl.utility_config import DEVICE
 from .residual import ResidualBlock
 
 
@@ -36,7 +36,7 @@ class Encoder(nn.Module):
 
     def forward(self, inputs: Tensor) -> Tuple[Tensor, ...]:
         """Forward"""
-        d1 = self.conv1(inputs)
+        d1 = self.conv1(inputs.to(DEVICE))
         d1 = self.residual_block1(d1)
         d2 = self.residual_block2(d1)
         d3 = self.residual_block3(d2)

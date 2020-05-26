@@ -69,4 +69,4 @@ class ConfusionMatrix(ignite.metrics.Metric):
         targets = targets.long()
         assert logits.shape[1] == self._n_classes - self._is_binary
         self._updates += 1
-        return logits, targets
+        return logits.cpu(), targets.cpu()
