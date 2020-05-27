@@ -75,8 +75,6 @@ class AggregatedJaccardIndex(ignite.metrics.Metric):
 
     def _prepare(self, data: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
         logits, targets = data
-        logits = logits.cpu()
-        targets = targets.cpu()
         if len(logits.shape) - len(targets.shape) == 1:
             targets = targets.unsqueeze(1)
         targets = targets.long()

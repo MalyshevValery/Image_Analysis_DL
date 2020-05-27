@@ -4,6 +4,7 @@ from typing import Tuple
 import torch
 
 from .confusion_matrix import ConfusionMatrix
+from imagedl.utility_config import DEVICE
 
 
 class ProbConfusionMatrix(ConfusionMatrix):
@@ -27,5 +28,5 @@ class ProbConfusionMatrix(ConfusionMatrix):
         targets = targets.permute(1, 0, *range(2, len(targets.shape)))
         probs = torch.stack([probs] * self._n_classes)
         targets = torch.stack([targets] * self._n_classes, 1)
-        matrix = (probs * targets).mean(dim=tuple(range(2, len(probs.shape))))
+        matrix = (probs * targets).mean(dim=tuple(range(2, len(probs.shape)))).to(DEVICE)
         self._matrix += matrix

@@ -5,6 +5,7 @@ import ignite
 import torch
 
 from imagedl.data.datasets.abstract import Transform
+from imagedl.utility_config import DEVICE
 
 
 class ConfusionMatrix(ignite.metrics.Metric):
@@ -22,7 +23,7 @@ class ConfusionMatrix(ignite.metrics.Metric):
         self._n_classes = n_classes + self._is_binary
         self._updates = 0
         self._apply_reset = False
-        self._matrix = torch.zeros(self._n_classes, self._n_classes)
+        self._matrix = torch.zeros(self._n_classes, self._n_classes).to(DEVICE)
         super().__init__(output_transform=output_transform)
 
     def reset(self) -> None:
@@ -42,8 +43,8 @@ class ConfusionMatrix(ignite.metrics.Metric):
             probs = torch.argmax(logits, dim=1).long()
             targets = targets[:, 0]
         stacked = torch.stack([probs, targets]).view(2, -1)
-        pairs, counts = torch.unique(stacked, dim=1, return_counts=True)
-        matrix = torch.zeros(self._n_classes, self._n_classes)
+        pairs, counts = stacked.unique(dim=1, return_counts=True)
+        matrix = torch.zeros(self._n_classes, self._n_classes).to(DEVICE)
         matrix[pairs[0], pairs[1]] = counts.float()
         matrix /= counts.sum()
 
@@ -69,4 +70,4 @@ class ConfusionMatrix(ignite.metrics.Metric):
         targets = targets.long()
         assert logits.shape[1] == self._n_classes - self._is_binary
         self._updates += 1
-        return logits.cpu(), targets.cpu()
+        return logits, targets
