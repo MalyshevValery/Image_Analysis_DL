@@ -13,17 +13,17 @@ class ResidualBlock(nn.Module):
         bottleneck_channels = out_channels // expansion
 
         self.bn_relu1 = BNRelu(in_channels)
-        self.conv1 = nn.Conv2d(in_channels, bottleneck_channels, 1)
+        self.conv1 = nn.Conv2d(in_channels, bottleneck_channels, 1, bias=False)
         self.bn_relu2 = BNRelu(bottleneck_channels)
         self.conv2 = nn.Conv2d(bottleneck_channels, bottleneck_channels, 3,
-                               stride=stride, padding=1)
+                               stride=stride, padding=1, bias=False)
 
         self.bn_relu3 = BNRelu(bottleneck_channels)
-        self.conv3 = nn.Conv2d(bottleneck_channels, out_channels, 1)
+        self.conv3 = nn.Conv2d(bottleneck_channels, out_channels, 1, bias=False)
 
         if in_channels != out_channels or stride != 1:
             self.shortcut = nn.Conv2d(in_channels, out_channels, 1,
-                                      stride=stride)
+                                      stride=stride, bias=False)
         else:
             self.shortcut = nn.Identity()
 
