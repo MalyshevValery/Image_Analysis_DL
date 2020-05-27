@@ -1,12 +1,13 @@
 """Run test features net"""
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Union, Iterable
 
 import pandas as pd
 import torch
 from ignite.contrib.handlers import ProgressBar
 from ignite.contrib.handlers.tensorboard_logger import TensorboardLogger, \
-    OutputHandler, global_step_from_engine, OptimizerParamsHandler
+    OutputHandler, global_step_from_engine, OptimizerParamsHandler, WeightsHistHandler, WeightsScalarHandler, \
+    GradsHistHandler, GradsScalarHandler
 from ignite.engine import create_supervised_trainer, \
     create_supervised_evaluator, Events, Engine
 from ignite.handlers import EarlyStopping, ModelCheckpoint
@@ -18,6 +19,25 @@ from imagedl.config import Config
 from imagedl.data import Splitter, Split
 from imagedl.data.datasets import SubDataset
 from .utility_config import DEVICE, WORKERS, ALPHA, EPOCH_BOUND
+from ignite.utils import convert_tensor
+
+
+def _prepare_batch(batch, device=None, non_blocking=False):
+    new_batch = []
+    for b in batch:
+        if isinstance(b, torch.Tensor):
+            new_batch.append(convert_tensor(b, device, non_blocking))
+        elif isinstance(b, dict):
+            new_b = {}
+            for k in b.keys():
+                new_b[k] = convert_tensor(b[k], device, non_blocking)
+            new_batch.append(new_b)
+        elif isinstance(b, Iterable):
+            new_batch.append([convert_tensor(b_i, device, non_blocking) for b_i in b])
+        else:
+            raise ValueError('Wrong data format')
+
+    return tuple(new_batch)
 
 
 def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]]) -> str:
@@ -39,7 +59,6 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     """Training procedure depending on split"""
     job_dir.mkdir(parents=True, exist_ok=True)
     model, optimizer_fn, criterion = config.model_config
-    model.to(DEVICE)
     optimizer = optimizer_fn(model.parameters())
 
     epochs, batch_size, patience = config.train
@@ -49,15 +68,15 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     test_ds = SubDataset(dataset, split.test, transform=test_transform)
     print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
-    train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS)
-    val_dl = DataLoader(val_ds, batch_size, True, num_workers=WORKERS)
-    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS)
+    train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS, pin_memory=True)
+    val_dl = DataLoader(val_ds, batch_size, True, num_workers=WORKERS, pin_memory=True)
+    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS, pin_memory=True)
 
     config.save_sample(config.visualize(*next(iter(train_dl))),
                        job_dir / 'train.png')
 
     trainer = create_supervised_trainer(model, optimizer, criterion,
-                                        device=DEVICE,
+                                        device=DEVICE, prepare_batch=_prepare_batch, non_blocking=True,
                                         output_transform=lambda x, y, y_pred,
                                                                 loss: (
                                             y_pred, y, loss.item()))
@@ -74,7 +93,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     metrics, eval_metric = config.test
     metrics['loss'] = Loss(criterion,
                            output_transform=lambda data: (data[0], data[1]))
-    val_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
+    val_evaluator = create_supervised_evaluator(model, metrics, DEVICE, prepare_batch=_prepare_batch, non_blocking=True)
 
     progress_bar = ProgressBar(persist=True)
     progress_bar.attach(trainer, metric_names="all")
@@ -123,12 +142,14 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
                                   global_step_transform=global_step_from_engine(
                                       trainer)),
         event_name=Events.EPOCH_COMPLETED, )
-    tb_logger.writer.add_graph(model, next(iter(train_dl))[0])
+
+    batch = next(iter(train_dl))
+    tb_logger.writer.add_graph(model, _prepare_batch(batch, device=DEVICE)[0])
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def show_images_tb(engine: Engine) -> None:
         """Plots image to TensorBoard"""
-        inp, targets = next(iter(val_dl))
+        inp, targets = _prepare_batch(next(iter(val_dl)), device=DEVICE)
         model.eval()
         pred = model(inp)
         visualized = config.visualize(inp, targets, pred).permute(0, 3, 1, 2)
