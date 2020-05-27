@@ -6,6 +6,7 @@ Data
 .idea
 *.ipynb_checkpoints*
 Jobs/
+*Jobs*
 *__pycache__*
 Experiments/*
 .mypy_cache
