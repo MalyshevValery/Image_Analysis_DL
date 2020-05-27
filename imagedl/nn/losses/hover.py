@@ -35,6 +35,4 @@ class HoverLoss(nn.Module):
         loss += self.hv_loss(logits[1], targets[1])
         if self.classification:
             loss += self.nc_loss(logits[2], targets[2])
-        if torch.isnan(loss):
-            print('NAAAAAN')
         return loss
