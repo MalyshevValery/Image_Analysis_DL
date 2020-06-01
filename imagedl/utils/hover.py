@@ -92,8 +92,8 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
     return process
 
 
-def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequence[float] = None) -> None:
-    """Draw instances contours on image (MUTABLE)"""
+def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequence[float] = None) -> torch.Tensor:
+    """Draw instances contours on image"""
     max_inst = int(instance_map.max())
     for j in range(1, max_inst):
         inst_map = instance_map == j
@@ -113,5 +113,6 @@ def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequ
         inst_canvas_crop = inst_canvas_crop.cpu().numpy().copy()
         contours, _ = cv2.findContours(inst_map_crop, cv2.RETR_TREE,
                                        cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(inst_canvas_crop, contours, -1, color, 2)
+        cv2.drawContours(inst_canvas_crop, contours, -1, color, 1)
         canvas[y1:y2, x1:x2] = torch.tensor(inst_canvas_crop)
+    return canvas

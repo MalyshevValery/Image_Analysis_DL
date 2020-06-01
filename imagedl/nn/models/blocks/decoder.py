@@ -10,8 +10,8 @@ from .dense import DenseBlock
 class Decoder(nn.Module):
     """HoverNet Decoder"""
 
-    def __init__(self, in_channels: int, n_dense_1: int = 2,
-                 n_dense_2: int = 3):
+    def __init__(self, in_channels: int, n_dense_1: int = 1,
+                 n_dense_2: int = 2):
         super(Decoder, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=5, padding=2, bias=False)
         self.dense_block1 = nn.Sequential(

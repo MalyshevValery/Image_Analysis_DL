@@ -73,7 +73,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS, pin_memory=True)
 
     config.save_sample(config.visualize(*next(iter(train_dl))),
-                       job_dir / 'train.png')
+                       job_dir / 'train')
 
     trainer = create_supervised_trainer(model, optimizer, criterion,
                                         device=DEVICE, prepare_batch=_prepare_batch, non_blocking=True,
@@ -152,9 +152,10 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         inp, targets = _prepare_batch(next(iter(val_dl)), device=DEVICE)
         model.eval()
         pred = model(inp)
-        visualized = config.visualize(inp, targets, pred).permute(0, 3, 1, 2)
-        tb_logger.writer.add_image('validation', make_grid(visualized),
-                                   engine.state.epoch)
+        visualized = config.visualize(inp, targets, pred)
+        for name in visualized:
+            visualized[name] = visualized[name].permute(0, 3, 1, 2)
+            tb_logger.writer.add_image(f'validation_{k}', make_grid(visualized[name]), engine.state.epoch)
 
     trainer.run(train_dl, max_epochs=epochs)
     tb_logger.close()
