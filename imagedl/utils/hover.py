@@ -9,7 +9,6 @@ from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage.morphology import watershed
 
-from matplotlib import cm
 import numpy
 import cv2.cv2 as cv2
 
@@ -25,15 +24,20 @@ def sobel(kernel_size: int = 3) -> Tensor:
     return kernel / (div ** 2 + div.T ** 2)
 
 
-def batch_min_max(tensor: Tensor) -> Tensor:
+def batch_min_max(tensor: Tensor, alpha: float = 0.09) -> Tensor:
     """Returns Batch normalized by min max"""
-    v = tensor.view((tensor.shape[0], -1))
-    min_vals = v.min(dim=1).values
-    max_vals = v.max(dim=1).values
-    mm_shape = (tensor.shape[0], *([1, ] * (tensor.ndim - 1)))
-    min_vals = min_vals.view(mm_shape)
-    max_vals = max_vals.view(mm_shape)
-    return (tensor - min_vals) / (max_vals - min_vals)
+    device = tensor.device
+    tensor = tensor.detach().cpu()
+    mn = (tensor == 0).sum(dim=(1, 2, 3)).float()
+    mn /= numpy.prod(tensor.shape[1:])
+    q = alpha * (1 - mn) * 50
+    n_samples = tensor.shape[0]
+    add_view = [1] * (tensor.ndim - 1)
+    low = torch.tensor([numpy.percentile(tensor[i], q[i]) for i in range(n_samples)]).float()
+    high = torch.tensor([numpy.percentile(tensor[i], 100 - q[i]) for i in range(n_samples)]).float()
+    low = low.view(-1, *add_view)
+    high = high.view(-1, *add_view)
+    return (tensor - low / (high - low)).to(device)
 
 
 def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Callable[[Tensor, Tensor], Tensor]:
@@ -46,6 +50,7 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
     assert grad_gauss_filter % 2 == 1
 
     def process(np: Tensor, hv: Tensor) -> Tensor:
+        """Process function"""
         np_p = np.detach()
         h_raw = hv[:, :1].detach()
         v_raw = hv[:, 1:].detach()
@@ -57,6 +62,7 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
         v = batch_min_max(v_raw)
 
         s = sobel(grad_gauss_filter).to(np.device)
+
         sobel_h = torch.conv2d(h, s[None, None, ...])
         sobel_h = nn.functional.pad(sobel_h, [grad_gauss_filter // 2] * 4)
         sobel_v = torch.conv2d(v, s.T[None, None, ...])
@@ -70,21 +76,21 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
         overall[overall < 0] = 0
 
         energy = -(1.0 - overall) * np_p
-
         energy = kornia.filters.gaussian_blur2d(energy, (3, 3), sigma=(1, 1))
         energy = energy.cpu().numpy()
+
         overall = 1.0 * (overall >= grad_thresh)
 
-        M = np_p - overall
-        M[M < 0] = 0
-        M = M.cpu().numpy()
+        m = np_p - overall
+        m[m < 0] = 0
+        m = m.cpu().numpy()
         np_p = np_p.cpu().numpy()
 
         inst_map = []
         for i in range(np_p.shape[0]):
-            M_i = binary_fill_holes(M[i][0]).astype('uint8')
-            M_i = measurements.label(M_i)[0]
-            w = watershed(energy[i][0], M_i, mask=np_p[i][0])
+            m_i = binary_fill_holes(m[i][0]).astype('uint8')
+            m_i = measurements.label(m_i)[0]
+            w = watershed(energy[i][0], m_i, mask=np_p[i][0])
             inst_map.append(w)
         inst_map = numpy.stack(inst_map)[:, None]
         return torch.tensor(inst_map, device=np.device)
@@ -95,7 +101,7 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
 def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequence[float] = None) -> torch.Tensor:
     """Draw instances contours on image"""
     max_inst = int(instance_map.max())
-    for j in range(1, max_inst):
+    for j in range(1, max_inst + 1):
         inst_map = instance_map == j
         ys, xs = torch.where(inst_map)
         if len(ys) == 0:
@@ -113,6 +119,6 @@ def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequ
         inst_canvas_crop = inst_canvas_crop.cpu().numpy().copy()
         contours, _ = cv2.findContours(inst_map_crop, cv2.RETR_TREE,
                                        cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(inst_canvas_crop, contours, -1, color, 1)
+        cv2.drawContours(inst_canvas_crop, contours, -1, color, 2)
         canvas[y1:y2, x1:x2] = torch.tensor(inst_canvas_crop)
     return canvas

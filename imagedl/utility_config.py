@@ -1,8 +1,8 @@
 """Global variables"""
 import torch
 
-DEVICE = torch.device('cpu')
-WORKERS = 4
+DEVICE = torch.device('cuda:1')
+WORKERS = 0
 
 # Running Average
 EPOCH_BOUND = False

@@ -155,7 +155,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         visualized = config.visualize(inp, targets, pred)
         for name in visualized:
             visualized[name] = visualized[name].permute(0, 3, 1, 2)
-            tb_logger.writer.add_image(f'validation_{k}', make_grid(visualized[name]), engine.state.epoch)
+            tb_logger.writer.add_image(f'validation_{name}', make_grid(visualized[name]), engine.state.epoch)
 
     trainer.run(train_dl, max_epochs=epochs)
     tb_logger.close()

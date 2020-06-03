@@ -25,12 +25,13 @@ class AggregatedJaccardIndex(ignite.metrics.Metric):
 
     def _reset(self) -> None:
         self._iou = 0.0
-        self._updates = 1
+        self._updates = 0
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         logits_all, targets_all = self._prepare(output)
         for i in range(logits_all.shape[0]):
+            self._updates += 1
             logits, targets = logits_all[i], targets_all[i]
             inst_un, inst_cnt = targets.unique(return_counts=True)
             if inst_un[0] == 0:
@@ -78,5 +79,7 @@ class AggregatedJaccardIndex(ignite.metrics.Metric):
         if len(logits.shape) - len(targets.shape) == 1:
             targets = targets.unsqueeze(1)
         targets = targets.long()
-        self._updates += 1
+        if self._apply_reset:
+            self._reset()
+            self._apply_reset = False
         return logits, targets
