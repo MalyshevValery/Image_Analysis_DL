@@ -68,9 +68,9 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     test_ds = SubDataset(dataset, split.test, transform=test_transform)
     print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
-    train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS, pin_memory=True)
-    val_dl = DataLoader(val_ds, batch_size, True, num_workers=WORKERS, pin_memory=True)
-    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS, pin_memory=True)
+    train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS)
+    val_dl = DataLoader(val_ds, batch_size, True, num_workers=WORKERS)
+    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS)
 
     config.save_sample(config.visualize(*next(iter(train_dl))),
                        job_dir / 'train')
@@ -160,24 +160,8 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     trainer.run(train_dl, max_epochs=epochs)
     tb_logger.close()
 
-    to_save = job_dir / 'test'
-    to_save.mkdir(parents=True, exist_ok=True)
-    model.eval()
-    cur = 0
-    for i, data in enumerate(test_dl):
-        inp, out = data
-        pred = model(inp.to(DEVICE))
-        if isinstance(pred, torch.Tensor):
-            pred = pred.cpu()
-        else:
-            pred = [p.cpu() for p in pred]
-        config.save_sample(config.visualize(inp, out, pred), to_save,
-                           split.test[cur:cur + batch_size])
-        cur += test_dl.batch_size
-
     test_evaluator = create_supervised_evaluator(model, metrics, DEVICE)
     test_evaluator.run(test_dl)
-
     metrics = test_evaluator.state.metrics
     cleaned_metrics = {}
     for s in metrics.keys():
@@ -188,6 +172,23 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     df.to_csv(f'{job_dir}/metrics.csv', index=False)
     progress_bar.log_message(
         f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
+
+    to_save = job_dir / 'test'
+    to_save.mkdir(parents=True, exist_ok=True)
+    with torch.no_grad():
+        model.eval()
+        cur = 0
+        for i, data in enumerate(test_dl):
+            inp, out = data
+            pred = model(inp.to(DEVICE))
+            if isinstance(pred, torch.Tensor):
+                pred = pred.cpu()
+            else:
+                pred = [p.cpu() for p in pred]
+            config.save_sample(config.visualize(inp, out, pred), to_save,
+                               split.test[cur:cur + batch_size])
+            cur += test_dl.batch_size
+
     if DEVICE.type == 'cuda':
         torch.cuda.empty_cache()
     return df

@@ -1,8 +1,15 @@
 """Confusion matrix metric"""
-from typing import Tuple, Dict
+from typing import Tuple, NamedTuple, List
 import ignite
 import torch
 from imagedl.data.datasets.abstract import Transform
+
+
+class ImageEvalResults(NamedTuple):
+    """Complex results of one image"""
+    n_predictions: int
+    ious: torch.Tensor
+    prediction_indexes: torch.Tensor
 
 
 class AggregatedJaccardIndex(ignite.metrics.Metric):
@@ -17,6 +24,7 @@ class AggregatedJaccardIndex(ignite.metrics.Metric):
         self._updates = 0
         self._apply_reset = False
         self._iou = 0.0
+        self.image_results: List[ImageEvalResults] = []
         super().__init__(output_transform=output_transform)
 
     def reset(self) -> None:
@@ -26,6 +34,7 @@ class AggregatedJaccardIndex(ignite.metrics.Metric):
     def _reset(self) -> None:
         self._iou = 0.0
         self._updates = 0
+        self.image_results.clear()
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
@@ -67,6 +76,11 @@ class AggregatedJaccardIndex(ignite.metrics.Metric):
                 best_inter[i] = inter_val[idx]
                 best_union[i] = inst_cnt[i] + pred_cnt[pairs[i].item()] - best_inter[i]
             union_unpaired = pred_cnt.sum() - pred_cnt[pairs.unique().long()].sum()
+            self.image_results.append(ImageEvalResults(
+                n_predictions=len(pred_un),
+                ious=best_inter / (best_union + 1e-7),
+                prediction_indexes=pairs
+            ))
             self._iou += best_inter.sum() / (best_union.sum() + union_unpaired)
 
     def compute(self) -> float:
