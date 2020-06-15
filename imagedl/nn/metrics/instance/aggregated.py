@@ -1,3 +1,9 @@
+import torch
+import abc
+import ignite
+from .match_info import InstanceMatchInfo, ImageEvalResults
+
+
 class MeanMetric(ignite.metrics.Metric):
     def __init__(self, source):
         self._source = source
@@ -23,11 +29,11 @@ class InstanceMetricAggregated(ignite.metrics.Metric, metaclass=abc.ABCMeta):
 
     @property
     def n_classes(self):
-        return self._imi.n_classes
+        return self._imi.n_classes if self._imi.n_classes is not None else 1
 
     def compute(self):
         res = []
-        for r in self._imi.compute():
+        for r in self._imi.compute(True):
             res.append(self.compute_one(r))
         res = torch.stack(res, dim=0)
         return res.mean(dim=0)
@@ -37,7 +43,7 @@ class InstanceMetricAggregated(ignite.metrics.Metric, metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
     def sum_class_agg(self, labels, values):
-        res = torch.zeros(self.n_classes, device=values.device)
+        res = torch.zeros(self.n_classes if self.n_classes is not None else 1, device=values.device)
         res.scatter_add_(0, labels, values)
         return res
 

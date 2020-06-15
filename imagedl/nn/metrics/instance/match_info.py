@@ -50,6 +50,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
 
     def _reset(self) -> None:
         self._results.clear()
+        self._apply_reset = False
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
@@ -126,7 +127,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
                     idx = class_area.argmax()
                     target_class[i] = class_un[idx] - 1
 
-                inter_ind, inter_val = target_inst[inst_idx].unique(
+                inter_ind, inter_val = pred_inst[inst_idx].unique(
                     return_counts=True, sorted=True)
                 if inter_ind[0] == 0:
                     inter_ind = inter_ind[1:]
@@ -141,7 +142,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
                     continue
 
                 union_inst = target_area[i] + pred_inter_area - inter_val
-                iou_inst = inter_val / union_inst
+                iou_inst = inter_val.float() / union_inst
 
                 indices = torch.argsort(iou_inst, descending=True)
                 sorted_idx = torch.stack(
@@ -153,12 +154,13 @@ class InstanceMatchInfo(ignite.metrics.Metric):
                     union[i] = target_area[i]
                     continue
 
-                idx = sorted_idx[available[0]]
+                sel = available[0]
+                idx = sorted_idx[sel]
                 target_to_pred[i] = idx
                 pred_to_target[idx] = i
-                ious[i] = iou_inst[indices[available]]
-                inter[i] = inter_val[indices[available]]
-                union[i] = union_inst[indices[available]]
+                ious[i] = iou_inst[indices[sel]]
+                inter[i] = inter_val[indices[sel]]
+                union[i] = union_inst[indices[sel]]
             self._results.append(ImageEvalResults(
                 pred_area.float(), pred_class,
                 target_area.float(), target_class,
@@ -167,12 +169,15 @@ class InstanceMatchInfo(ignite.metrics.Metric):
                 conf
             ))
 
-    def compute(self) -> float:
+    def compute(self, full=False) -> float:
         """Metric aggregation"""
-        return self._results
+        if full:
+            return self._results
+        else:
+            matched = [(r.target_to_pred != -1).float().mean() for r in self._results]
+            return torch.mean(torch.tensor(matched)).item()
 
     def _prepare(self, data):
-        data = self._output_transform(data)
         logits, targets = data
         logits_inst, logits_class, logits_conf = self.__unpack(logits)
         targets_inst, targets_class = self.__unpack(targets, True)
@@ -188,7 +193,6 @@ class InstanceMatchInfo(ignite.metrics.Metric):
 
         if self._apply_reset:
             self._reset()
-            self._apply_reset = False
         return logits_inst, logits_class, logits_conf, targets_inst, targets_class
 
     @property

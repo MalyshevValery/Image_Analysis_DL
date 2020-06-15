@@ -13,11 +13,8 @@ class AverageRecall(InstanceMetricAggregated):
 
         ret_val = torch.zeros(self.n_classes, device=device)
         for c in range(self.n_classes):
-            indices = torch.where(res.pred_class == c)[0]
-            indices = indices[torch.argsort(res.conf[indices], descending=True)]
-
             class_selected = res.target_class == c
-            if len(indices) == 0:
+            if (res.pred_class == c).sum() == 0:
                 if class_selected.sum() == 0:
                     ret_val[c] = 1.0
                 else:
@@ -32,10 +29,6 @@ class AverageRecall(InstanceMetricAggregated):
             tp_range = torch.arange(class_selected.sum(), 0, -1,
                                     device=device).float()
             rec = tp_range / (res.target_class == c).sum()
-
-            #             plt.plot(ious.numpy(), rec.numpy())
-            #             plt.show()
-
             ious = torch.cat([torch.tensor([0.0], device=device), ious])
             ret_val[c] = (rec * (ious[1:] - ious[:-1])).sum()
         return ret_val
