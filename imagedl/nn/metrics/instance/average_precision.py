@@ -18,8 +18,7 @@ class AveragePrecision(InstanceMetricAggregated):
                     ret_val[c] = 1.0
                 continue
 
-            if res.conf is not None:
-                indices = indices[torch.argsort(res.conf[indices], descending=True)]
+            indices = indices[torch.argsort(res.conf[indices], descending=True)]
 
             correct = torch.ones(len(indices), device=device)
             correct *= selected[indices]
