@@ -16,6 +16,7 @@ class ModelConfig(NamedTuple):
     model: nn.Module
     optimizer: Type[object]
     criterion: nn.Module
+    path_to_checkpoint: Path # None if you're not resuming
 
 
 class DataConfig(NamedTuple):

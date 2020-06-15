@@ -58,8 +58,21 @@ def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]]) -> str:
 def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     """Training procedure depending on split"""
     job_dir.mkdir(parents=True, exist_ok=True)
-    model, optimizer_fn, criterion = config.model_config
+    model, optimizer_fn, criterion, checkpoint = config.model_config
     optimizer = optimizer_fn(model.parameters())
+    trainer = create_supervised_trainer(model, optimizer, criterion,
+                                        device=DEVICE, prepare_batch=_prepare_batch, non_blocking=True,
+                                        output_transform=lambda x, y, y_pred,
+                                                                loss: (
+                                            y_pred, y, loss.item()))
+
+    if checkpoint is not None:
+        print(f'Resume from {checkpoint}')
+        obj = torch.load(str(checkpoint))
+        model.load_state_dict(obj['model'])
+        optimizer.load_state_dict(obj['optimizer'])
+        trainer.load_state_dict(obj['trainer'])
+        split = Split.load_state_dict(obj['split'])
 
     epochs, batch_size, patience = config.train
     dataset, _, train_transform, test_transform, _ = config.data
@@ -74,12 +87,6 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
 
     config.save_sample(config.visualize(*next(iter(train_dl))),
                        job_dir / 'train')
-
-    trainer = create_supervised_trainer(model, optimizer, criterion,
-                                        device=DEVICE, prepare_batch=_prepare_batch, non_blocking=True,
-                                        output_transform=lambda x, y, y_pred,
-                                                                loss: (
-                                            y_pred, y, loss.item()))
 
     metrics: Dict[str, Metric]
     metrics, eval_metric = config.test
@@ -118,11 +125,13 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
                         score_name=eval_metric),
         ModelCheckpoint(str(job_dir), 'latest')
     ]
-    save_dicts = [
-        None,
-        {'model': model},
-        {'model': model, 'optimizer': optimizer, 'trainer': trainer}
-    ]
+    dict_to_save = {
+        'model': model,
+        'optimizer': optimizer,
+        'trainer': trainer,
+        'split': split
+    }
+    save_dicts = [None, dict_to_save, dict_to_save]
     for handler, dict_ in zip(handlers, save_dicts):
         if dict_ is not None:
             trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, dict_)

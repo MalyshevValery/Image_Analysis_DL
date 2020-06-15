@@ -2,7 +2,7 @@
 from typing import NamedTuple, Tuple, List, Generator
 
 import numpy as np
-
+import torch
 _TrainValTest = Tuple[float, float, float]
 
 
@@ -11,6 +11,21 @@ class Split(NamedTuple):
     train: np.ndarray
     val: np.ndarray
     test: np.ndarray
+
+    def state_dict(self):
+        return {
+            'train': torch.tensor(self.train),
+            'val': torch.tensor(self.val),
+            'test': torch.tensor(self.test),
+        }
+
+    @staticmethod
+    def load_state_dict(state_dict):
+        return Split(
+            train=state_dict['train'].numpy(),
+            val=state_dict['val'].numpy(),
+            test=state_dict['test'].numpy()
+        )
 
 
 class Splitter:
