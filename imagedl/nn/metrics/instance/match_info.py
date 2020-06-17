@@ -39,6 +39,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
                  use_confidence=False):
         assert n_classes is None or n_classes > 1
         self._results = []
+        self._computed = None
         self._apply_reset = False
         self._n_classes = n_classes
         self._use_confidence = use_confidence
@@ -51,6 +52,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
     def _reset(self) -> None:
         self._results.clear()
         self._apply_reset = False
+        self._computed = None
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
@@ -171,11 +173,41 @@ class InstanceMatchInfo(ignite.metrics.Metric):
 
     def compute(self, full=False) -> float:
         """Metric aggregation"""
+        assert len(self._results) > 0 or self._computed is not None
+        if len(self._results) == 0:
+            return self._computed
+        to_cat = self._results
+        self._results = []
+        if self._computed is not None:
+            to_cat.insert(0, self._computed)
+
+        t_to_p = [c.target_to_pred for c in to_cat]
+        p_to_t = [c.pred_to_target for c in to_cat]
+        tlen = torch.tensor([0] + [len(t) for t in t_to_p[:-1]])
+        plen = torch.tensor([0] + [len(p) for p in p_to_t[:-1]])
+        tlen = tlen.cumsum(0)
+        plen = plen.cumsum(0)
+        for i in range(len(self._results)):
+            t_to_p[i][t_to_p[i] != -1] += plen[i]
+            p_to_t[i][p_to_t[i] != -1] += tlen[i]
+
+        self._computed = ImageEvalResults(
+            pred_area=torch.cat([c.pred_area for c in to_cat]),
+            pred_class=torch.cat([c.pred_class for c in to_cat]),
+            target_area=torch.cat([c.target_area for c in to_cat]),
+            target_class=torch.cat([c.target_class for c in to_cat]),
+            target_to_pred=torch.cat(t_to_p),
+            pred_to_target=torch.cat(p_to_t),
+            ious=torch.cat([c.ious for c in to_cat]),
+            inter=torch.cat([c.inter for c in to_cat]),
+            union=torch.cat([c.union for c in to_cat]),
+            conf=torch.cat([c.conf for c in to_cat]) if self._use_confidence else None
+        )
+
         if full:
-            return self._results
+            return self._computed
         else:
-            matched = [(r.target_to_pred != -1).float().mean() for r in self._results]
-            return torch.mean(torch.tensor(matched)).item()
+            return (self._computed.target_to_pred != -1).float().mean().item()
 
     def _prepare(self, data):
         logits, targets = data

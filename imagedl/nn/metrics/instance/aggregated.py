@@ -32,11 +32,7 @@ class InstanceMetricAggregated(ignite.metrics.Metric, metaclass=abc.ABCMeta):
         return self._imi.n_classes if self._imi.n_classes is not None else 1
 
     def compute(self):
-        res = []
-        for r in self._imi.compute(True):
-            res.append(self.compute_one(r))
-        res = torch.stack(res, dim=0)
-        return res.mean(dim=0)
+        return self.compute_one(self._imi.compute(True))
 
     @abc.abstractmethod
     def compute_one(self, res: ImageEvalResults):
