@@ -170,7 +170,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         event_name=Events.EPOCH_COMPLETED, )
 
     batch = next(iter(train_dl))
-    # tb_logger.writer.add_graph(model, _prepare_batch(batch, device=DEVICE)[0])
+    tb_logger.writer.add_graph(model.module if DISTRIBUTED else model, _prepare_batch(batch, device=DEVICE)[0])
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def show_images_tb(engine: Engine) -> None:
