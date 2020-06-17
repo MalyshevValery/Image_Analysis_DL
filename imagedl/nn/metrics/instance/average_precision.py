@@ -14,7 +14,6 @@ class AveragePrecision(InstanceMetricAggregated):
             if len(indices) == 0:
                 ret_val[c] = float('nan')
                 continue
-
             indices = indices[torch.argsort(res.conf[indices], descending=True)]
 
             correct = torch.ones(len(indices), device=device)

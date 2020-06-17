@@ -7,11 +7,6 @@ from .match_info import ImageEvalResults
 class AggregatedJaccardIndex(InstanceMetricAggregated):
     def compute_one(self, res: ImageEvalResults):
         selected = self.selection_target(res)
-        if len(selected) == 0:
-            if len(res.pred_area) == 0:
-                return torch.ones(self.n_classes)
-            else:
-                return torch.zeros(self.n_classes)
         tp = selected
         tp[tp] &= res.target_class[tp] == res.pred_class[res.target_to_pred[tp]]
         fn = ~tp
