@@ -26,5 +26,4 @@ class InstancePrecision(InstanceMetricAggregated):
                                 torch.ones(fp_pred.sum(), device=device))
 
         ret = tp / (tp + fp)
-        ret[torch.isnan(ret)] = 1.0
         return ret

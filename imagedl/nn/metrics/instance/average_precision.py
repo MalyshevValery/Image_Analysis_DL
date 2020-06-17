@@ -12,10 +12,7 @@ class AveragePrecision(InstanceMetricAggregated):
         for c in range(self.n_classes):
             indices = torch.where(res.pred_class == c)[0]
             if len(indices) == 0:
-                if (res.pred_class == c).sum() > 0:
-                    ret_val[c] = 0.0
-                else:
-                    ret_val[c] = 1.0
+                ret_val[c] = float('nan')
                 continue
 
             indices = indices[torch.argsort(res.conf[indices], descending=True)]
@@ -38,5 +35,4 @@ class AveragePrecision(InstanceMetricAggregated):
 
             rec = torch.cat([torch.tensor([0.0], device=device), rec])
             ret_val[c] = (prec * (rec[1:] - rec[:-1])).sum()
-        ret_val[torch.isnan(ret_val)] = 0.0
         return ret_val

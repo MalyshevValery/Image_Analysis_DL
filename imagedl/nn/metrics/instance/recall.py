@@ -18,5 +18,4 @@ class InstanceRecall(InstanceMetricAggregated):
                                 torch.ones((~selected).sum(), device=device))
 
         ret = tp / (tp + fn)
-        ret[torch.isnan(ret)] = 1.0
         return ret

@@ -26,5 +26,4 @@ class AggregatedJaccardIndex(InstanceMetricAggregated):
         union_agg = fp_union_agg + tp_union_agg + fn_union_agg
 
         ret = inter_agg / union_agg
-        ret[torch.isnan(ret)] = 1.0
         return ret

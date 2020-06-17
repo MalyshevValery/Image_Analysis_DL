@@ -16,7 +16,7 @@ class AverageRecall(InstanceMetricAggregated):
             class_selected = res.target_class == c
             if (res.pred_class == c).sum() == 0:
                 if class_selected.sum() == 0:
-                    ret_val[c] = 1.0
+                    ret_val[c] = float('nan')
                 else:
                     ret_val[c] = 0.0
                 continue

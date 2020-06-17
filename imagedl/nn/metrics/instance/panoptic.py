@@ -30,5 +30,4 @@ class PanopticQuality(InstanceMetricAggregated):
         ious = self.sum_class_agg(res.target_class[selected],
                                   res.ious[selected])
         ret = ious / (tp + 0.5 * fp + 0.5 * fn)
-        ret[torch.isnan(ret)] = 1.0
         return ret

@@ -187,7 +187,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
         plen = torch.tensor([0] + [len(p) for p in p_to_t[:-1]])
         tlen = tlen.cumsum(0)
         plen = plen.cumsum(0)
-        for i in range(len(self._results)):
+        for i in range(len(t_to_p)):
             t_to_p[i][t_to_p[i] != -1] += plen[i]
             p_to_t[i][p_to_t[i] != -1] += tlen[i]
 
