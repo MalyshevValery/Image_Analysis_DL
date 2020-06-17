@@ -1,7 +1,7 @@
 """Instance Match Info"""
 from typing import Tuple, NamedTuple
 
-import ignite
+from ignite.metrics.metric import Metric, reinit__is_reduced
 import torch
 
 from imagedl.data.datasets.abstract import Transform
@@ -24,7 +24,7 @@ class ImageEvalResults(NamedTuple):
     conf: torch.Tensor
 
 
-class InstanceMatchInfo(ignite.metrics.Metric):
+class InstanceMatchInfo(Metric):
     """
     Confusion matrix with quantifying
 
@@ -34,15 +34,17 @@ class InstanceMatchInfo(ignite.metrics.Metric):
 
     def __init__(self, n_classes=None,
                  output_transform: Transform = lambda x: x,
-                 use_confidence=False):
+                 use_confidence=False, device='cpu'):
         assert n_classes is None or n_classes > 1
         self._results = []
+        self._device = device
         self._computed = None
         self._apply_reset = False
         self._n_classes = n_classes
         self._use_confidence = use_confidence
         super().__init__(output_transform=output_transform)
 
+    @reinit__is_reduced
     def reset(self) -> None:
         """Resets the metric"""
         self._apply_reset = True
@@ -52,6 +54,7 @@ class InstanceMatchInfo(ignite.metrics.Metric):
         self._apply_reset = False
         self._computed = None
 
+    @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         preds_inst, preds_class, preds_conf, targets_inst, targets_class = self._prepare(
@@ -239,12 +242,12 @@ class InstanceMatchInfo(ignite.metrics.Metric):
         if isinstance(pack, torch.Tensor):
             assert self._n_classes is None
             return (pack, None) if is_target else (pack, None, None)
-        inst = pack[0].detach()
+        inst = pack[0].detach().to(self._device)
         clazz = None
         conf = None
         c = 1
         if self._n_classes is not None:
-            clazz = pack[c].detach()
+            clazz = pack[c].detach().to(self._device)
             c += 1
         if not is_target and self._use_confidence:
             conf = pack[c]

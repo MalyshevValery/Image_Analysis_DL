@@ -1,14 +1,14 @@
 """Confusion matrix metric"""
 from typing import Tuple
 
-import ignite
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 import torch
 
 from imagedl.data.datasets.abstract import Transform
 from imagedl.utility_config import DEVICE
 
 
-class ConfusionMatrix(ignite.metrics.Metric):
+class ConfusionMatrix(Metric):
     """
     Confusion matrix with quantifying
     
@@ -26,6 +26,7 @@ class ConfusionMatrix(ignite.metrics.Metric):
         self._matrix = torch.zeros(self._n_classes, self._n_classes).to(DEVICE)
         super().__init__(output_transform=output_transform)
 
+    @reinit__is_reduced
     def reset(self) -> None:
         """Resets the metric"""
         self._apply_reset = True
@@ -34,6 +35,7 @@ class ConfusionMatrix(ignite.metrics.Metric):
         self._matrix *= 0.0
         self._updates = 1
 
+    @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         logits, targets = self._prepare(*output)
@@ -53,10 +55,11 @@ class ConfusionMatrix(ignite.metrics.Metric):
             self._apply_reset = False
         self._matrix += matrix
 
+    @sync_all_reduce('_updates', '_matrix')
     def compute(self) -> torch.Tensor:
         """Metric aggregation"""
         assert self._updates > 0
-        return self._matrix.clone() / self._updates
+        return self._matrix / self._updates
 
     @property
     def n_classes(self) -> int:

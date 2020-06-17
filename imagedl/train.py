@@ -18,8 +18,12 @@ from torchvision.utils import make_grid
 from imagedl.config import Config
 from imagedl.data import Splitter, Split
 from imagedl.data.datasets import SubDataset
-from .utility_config import DEVICE, WORKERS, ALPHA, EPOCH_BOUND
+from .utility_config import DEVICE, WORKERS, ALPHA, EPOCH_BOUND, DISTRIBUTED
 from ignite.utils import convert_tensor
+
+import torch.distributed as distributed
+import torch.utils.data.distributed as data_distributed
+from torch.nn.parallel import DistributedDataParallel
 
 
 def _prepare_batch(batch, device=None, non_blocking=False):
@@ -59,6 +63,9 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     """Training procedure depending on split"""
     job_dir.mkdir(parents=True, exist_ok=True)
     model, optimizer_fn, criterion, checkpoint = config.model_config
+    if DISTRIBUTED is not None:
+        model.to(DEVICE)
+        model = DistributedDataParallel(model, DISTRIBUTED, output_device=DEVICE)
     optimizer = optimizer_fn(model.parameters())
     trainer = create_supervised_trainer(model, optimizer, criterion,
                                         device=DEVICE, prepare_batch=_prepare_batch, non_blocking=True,
@@ -81,9 +88,14 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
     test_ds = SubDataset(dataset, split.test, transform=test_transform)
     print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
 
-    train_dl = DataLoader(train_ds, batch_size, True, num_workers=WORKERS)
-    val_dl = DataLoader(val_ds, batch_size, True, num_workers=WORKERS)
-    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS)
+    if DISTRIBUTED is not None:
+        train_sampler = torch.utils.data.distributed.DistributedSampler(train_ds)
+    else:
+        train_sampler = None
+    train_dl = DataLoader(train_ds, batch_size, num_workers=WORKERS, sampler=train_sampler,
+                          shuffle=(train_sampler is None))
+    val_dl = DataLoader(val_ds, batch_size, num_workers=WORKERS, shuffle=True)
+    test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS, shuffle=False)
 
     config.save_sample(config.visualize(*next(iter(train_dl))),
                        job_dir / 'train')
@@ -104,6 +116,11 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
 
     progress_bar = ProgressBar(persist=True)
     progress_bar.attach(trainer, metric_names="all")
+
+    if DISTRIBUTED is not None:
+        @trainer.on(Events.EPOCH_STARTED)
+        def set_epoch(engine):
+            train_sampler.set_epoch(engine.state.epoch)
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine: Engine) -> None:
@@ -153,7 +170,7 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
         event_name=Events.EPOCH_COMPLETED, )
 
     batch = next(iter(train_dl))
-    tb_logger.writer.add_graph(model, _prepare_batch(batch, device=DEVICE)[0])
+    # tb_logger.writer.add_graph(model, _prepare_batch(batch, device=DEVICE)[0])
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def show_images_tb(engine: Engine) -> None:
@@ -206,6 +223,12 @@ def train_run(config: Config, split: Split, job_dir: Path) -> pd.DataFrame:
 def train(config: Config, train_: float, val: float, test: float,
           kfold: int = None) -> None:
     """Main train procedure"""
+    if DISTRIBUTED:
+        torch.cuda.set_device(DEVICE)
+        torch.distributed.init_process_group("nccl", init_method="file:///tmp/nccl_dist.dat",
+                                             world_size=len(DISTRIBUTED),
+                                             rank=0)
+
     dataset, groups, _, _, job_dir = config.data
 
     print(f'Total number of samples: {len(dataset)}')

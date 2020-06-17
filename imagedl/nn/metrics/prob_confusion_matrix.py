@@ -5,6 +5,7 @@ import torch
 
 from .confusion_matrix import ConfusionMatrix
 from imagedl.utility_config import DEVICE
+from ignite.metrics.metric import reinit__is_reduced
 
 
 class ProbConfusionMatrix(ConfusionMatrix):
@@ -13,6 +14,7 @@ class ProbConfusionMatrix(ConfusionMatrix):
     classes
     """
 
+    @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates this metric"""
         logits, targets = self._prepare(*output)

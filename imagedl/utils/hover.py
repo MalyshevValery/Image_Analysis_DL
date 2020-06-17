@@ -87,7 +87,7 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
         inst_map = []
         for i in range(np_p.shape[0]):
             m_i = binary_fill_holes(m[i][0]).astype('uint8')
-            m_i = remove_small_objects(m_i, 10)
+            m_i = remove_small_objects(m_i > 0, 10)
             m_i = measurements.label(m_i)[0]
             w = watershed(energy[i][0], m_i, mask=np_p[i][0])
             inst_map.append(w)
