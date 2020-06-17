@@ -24,8 +24,6 @@ class ImageEvalResults(NamedTuple):
     conf: torch.Tensor
 
 
-# FINISHED
-
 class InstanceMatchInfo(ignite.metrics.Metric):
     """
     Confusion matrix with quantifying
