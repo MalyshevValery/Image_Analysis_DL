@@ -1,6 +1,8 @@
-import torch
 import abc
+
 import ignite
+import torch
+
 from .match_info import InstanceMatchInfo, ImageEvalResults
 
 
@@ -19,7 +21,6 @@ class MeanMetric(ignite.metrics.Metric):
         return self._source.compute().mean().item()
 
 
-# FINISHED
 class InstanceMetricAggregated(ignite.metrics.Metric, metaclass=abc.ABCMeta):
     def __init__(self, imi: InstanceMatchInfo, iou_thresh=0.0, conf_thresh=0.0):
         self._imi = imi

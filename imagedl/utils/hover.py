@@ -1,16 +1,14 @@
 """Utils for HoverNet"""
 from typing import Callable, Sequence
 
-import torch
-from torch import Tensor, nn
+import cv2.cv2 as cv2
 import kornia
-
+import numpy
+import torch
 from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_fill_holes
-from skimage.morphology import watershed
-
-import numpy
-import cv2.cv2 as cv2
+from skimage.morphology import watershed, remove_small_objects
+from torch import Tensor, nn
 
 
 def sobel(kernel_size: int = 3) -> Tensor:
@@ -89,6 +87,7 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
         inst_map = []
         for i in range(np_p.shape[0]):
             m_i = binary_fill_holes(m[i][0]).astype('uint8')
+            m_i = remove_small_objects(m_i, 10)
             m_i = measurements.label(m_i)[0]
             w = watershed(energy[i][0], m_i, mask=np_p[i][0])
             inst_map.append(w)
