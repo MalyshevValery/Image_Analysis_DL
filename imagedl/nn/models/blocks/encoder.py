@@ -2,7 +2,7 @@
 from typing import Tuple
 
 from torch import Tensor, nn
-from imagedl.utility_config import DEVICE
+
 from .residual import ResidualBlock
 
 

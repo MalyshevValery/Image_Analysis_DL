@@ -25,7 +25,6 @@ class DataConfig(NamedTuple):
     groups: Sequence[object]
     train_transform: Transform
     test_transform: Transform
-    job_dir: Path
 
 
 class TrainConfig(NamedTuple):
@@ -78,4 +77,10 @@ class Config(metaclass=ABCMeta):
     def save_sample(self, visualized: Tensor, save_path: Path,
                     idx: np.ndarray = None) -> None:
         """Saves visualized sample"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def job_dir(self) -> Path:
+        """Returns job dir"""
         raise NotImplementedError()

@@ -1,7 +1,7 @@
 import abc
 
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 import torch
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 from .match_info import InstanceMatchInfo, ImageEvalResults
 
@@ -35,7 +35,9 @@ class InstanceMetricAggregated(Metric, metaclass=abc.ABCMeta):
         return self._imi.n_classes if self._imi.n_classes is not None else 1
 
     def compute(self):
-        return self.compute_one(self._imi.compute(True))
+        val = self.compute_one(self._imi.compute(True))
+        val[torch.isnan(val)] = 0.0
+        return val
 
     @abc.abstractmethod
     def compute_one(self, res: ImageEvalResults):
