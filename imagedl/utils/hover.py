@@ -7,7 +7,8 @@ import numpy
 import torch
 from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_fill_holes
-from skimage.morphology import watershed, remove_small_objects
+from skimage.morphology import remove_small_objects
+from skimage.segmentation import watershed
 from torch import Tensor, nn
 
 
@@ -31,14 +32,17 @@ def batch_min_max(tensor: Tensor, alpha: float = 0.09) -> Tensor:
     q = alpha * (1 - mn) * 50
     n_samples = tensor.shape[0]
     add_view = [1] * (tensor.ndim - 1)
-    low = torch.tensor([numpy.percentile(tensor[i], q[i]) for i in range(n_samples)]).float()
-    high = torch.tensor([numpy.percentile(tensor[i], 100 - q[i]) for i in range(n_samples)]).float()
+    low = torch.tensor(
+        [numpy.percentile(tensor[i], q[i]) for i in range(n_samples)]).float()
+    high = torch.tensor([numpy.percentile(tensor[i], 100 - q[i]) for i in
+                         range(n_samples)]).float()
     low = low.view(-1, *add_view)
     high = high.view(-1, *add_view)
     return (tensor - low / (high - low)).to(device)
 
 
-def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Callable[[Tensor, Tensor], Tensor]:
+def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> \
+        Callable[[Tensor, Tensor], Tensor]:
     """
     Returns function to transform HoverNet predictions into instance map
     :param grad_gauss_filter: Kernel size for sobel and blur
@@ -97,7 +101,8 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> Calla
     return process
 
 
-def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequence[float] = None) -> torch.Tensor:
+def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor,
+                   color: Sequence[float] = None) -> torch.Tensor:
     """Draw instances contours on image"""
     max_inst = int(instance_map.max())
     for j in range(1, max_inst + 1):
@@ -121,3 +126,21 @@ def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor, color: Sequ
         cv2.drawContours(inst_canvas_crop, contours, -1, color, 1)
         canvas[y1:y2, x1:x2] = torch.tensor(inst_canvas_crop)
     return canvas
+
+
+def hv_from_inst(inst_map):
+    hv_grad = torch.zeros((*inst_map.shape, 2), dtype=torch.float)
+    vals = torch.unique(inst_map, sorted=True)
+    for i in vals.numpy():
+        if i == 0:
+            continue
+        rr, cc = torch.where(inst_map == i)
+        if cc.max() - cc.min() < 2 or rr.max() - rr.min() < 2:
+            continue
+        if len(rr) == 0:
+            continue
+        hv_grad[rr, cc, 0] = 2 * (cc.float() - cc.min()) / (
+                cc.max() - cc.min()) - 1
+        hv_grad[rr, cc, 1] = 2 * (rr.float() - rr.min()) / (
+                rr.max() - rr.min()) - 1
+    return hv_grad

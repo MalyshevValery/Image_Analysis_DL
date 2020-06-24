@@ -1,4 +1,3 @@
-from functools import wraps
 from pathlib import Path
 
 import pandas as pd
@@ -19,7 +18,6 @@ def train_run(config: Config, split: Split, job_dir: Path,
     job_dir.mkdir(parents=True, exist_ok=True)
     model, optimizer, criterion, split, trainer = create_trainer(config, device,
                                                                  split)
-    model, optimizer_fn, criterion, checkpoint = config.model_config
     epochs, batch_size, patience = config.train
     train_dl, val_dl, test_dl = get_data_loaders(config, split)
 
@@ -37,20 +35,21 @@ def train_run(config: Config, split: Split, job_dir: Path,
     return df
 
 
-def dist_training(distributed, config: Config, split: Split,
-                  job_dir: Path):
-    @wraps(train_run)
-    def process_run(rank):
-        print(f"Running Distributed on {rank}:{distributed[rank]}.")
-        world_size = len(distributed)
-        device = distributed[rank]
-        torch.cuda.set_device(device)
-        dist.init_process_group("nccl", init_method='file:///tmp/nccl.dat',
-                                world_size=world_size, rank=rank)
-        train_run(config, split, job_dir, device)
-        dist.destroy_process_group()
+def process_run(rank, distributed, config: Config, split: Split, job_dir: Path):
+    print(f"Running Distributed on {rank}:{distributed[rank]}.")
+    world_size = len(distributed)
+    device = distributed[rank]
+    torch.cuda.set_device(device)
+    dist.init_process_group("nccl", init_method='file:///tmp/nccl.dat',
+                            world_size=world_size, rank=rank)
+    train_run(config, split, job_dir, device)
+    dist.destroy_process_group()
 
-    mp.spawn(process_run, nprocs=len(distributed))
+
+def dist_training(distributed, config: Config, split: Split, job_dir: Path):
+    mp.spawn(process_run, args=(
+        distributed, config, split, job_dir
+    ), nprocs=len(distributed))
 
 
 def single_training(device, config: Config, split: Split,
