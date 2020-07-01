@@ -22,7 +22,8 @@ def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]]) -> str:
             if metrics[s].shape == ():
                 res.append(f'{s}: {metrics[s]:.3f}')
             elif len(metrics[s].shape) == 1:
-                res.append(f'{s}: {metrics[s]}')
+                for i in range(len(metrics[s])):
+                    res.append(f'{s}_{i}: {metrics[s][i].item():.3f}')
         else:
             res.append(f'{s}: {metrics[s]:.3f}')
     return ' '.join(res)

@@ -1,10 +1,10 @@
 """Global variables"""
 import torch
 
-DEVICE = torch.device('cuda:1')
-WORKERS = 2
+DEVICE = torch.device('cuda:0')
+WORKERS = 4
 DISTRIBUTED = None  # ['cuda:2', 'cuda:1']
 
 # Running Average
-EPOCH_BOUND = False
+EPOCH_BOUND = True
 ALPHA = 0.9

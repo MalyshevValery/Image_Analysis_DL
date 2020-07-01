@@ -16,11 +16,11 @@ class SubDataset(AbstractDataset):
     def __init__(self, source: AbstractDataset, indexes: Sequence[int],
                  transform: Transform = None):
         super().__init__(transform=transform)
-        self.__source = source
+        self.source = source
         self.__indexes = indexes
 
     def __getitem__(self, idx: int) -> DataType:
-        return self._apply_transform(self.__source[self.__indexes[idx]])
+        return self._apply_transform(self.source[self.__indexes[idx]])
 
     def __len__(self) -> int:
         return len(self.__indexes)
