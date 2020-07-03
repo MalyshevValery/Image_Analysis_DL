@@ -14,7 +14,7 @@ class DiceLoss(nn.Module):
                 targets = targets.unsqueeze(1)
         else:
             probs = torch.softmax(logits, dim=1)
-            new_targets = torch.zeros(logits.shape)
+            new_targets = torch.zeros(logits.shape, device=probs.device)
             new_targets.scatter_(1, targets.unsqueeze(1), 1.0)
             targets = new_targets
 

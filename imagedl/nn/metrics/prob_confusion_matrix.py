@@ -2,10 +2,10 @@
 from typing import Tuple
 
 import torch
-
-from .confusion_matrix import ConfusionMatrix
-from imagedl.utility_config import DEVICE
 from ignite.metrics.metric import reinit__is_reduced
+
+from imagedl.utility_config import DEVICE
+from .confusion_matrix import ConfusionMatrix
 
 
 class ProbConfusionMatrix(ConfusionMatrix):
@@ -24,7 +24,7 @@ class ProbConfusionMatrix(ConfusionMatrix):
             targets = torch.cat([1 - targets, targets], dim=1)
         else:
             probs = torch.softmax(logits, dim=1)
-            new_targets = torch.zeros(probs.shape)
+            new_targets = torch.zeros(probs.shape, device=probs.device)
             targets = new_targets.scatter_(1, targets, 1.0)
         probs = probs.permute(1, 0, *range(2, len(probs.shape)))
         targets = targets.permute(1, 0, *range(2, len(targets.shape)))

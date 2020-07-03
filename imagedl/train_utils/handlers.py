@@ -9,7 +9,7 @@ from ignite.handlers import global_step_from_engine, EarlyStopping, \
 from ignite.metrics import Metric, RunningAverage
 from torchvision.utils import make_grid
 
-from imagedl.utility_config import ALPHA, EPOCH_BOUND
+from imagedl.utility_config import ALPHA, EPOCH_BOUND, TB_ITER
 from .data import prepare_batch
 
 
@@ -33,7 +33,7 @@ def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
                        device):
     tb_logger = TensorboardLogger(log_dir=config.job_dir)
     handler = OutputHandler(tag="training", metric_names="all")
-    tb_logger.attach(trainer, handler, Events.ITERATION_COMPLETED(every=1))
+    tb_logger.attach(trainer, handler, Events.ITERATION_COMPLETED(every=TB_ITER))
 
     handler = OutputHandler(tag="validation", metric_names="all",
                             global_step_transform=global_step_from_engine(

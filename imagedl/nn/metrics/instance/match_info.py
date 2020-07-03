@@ -1,8 +1,8 @@
 """Instance Match Info"""
 from typing import Tuple, NamedTuple
 
-from ignite.metrics.metric import Metric, reinit__is_reduced
 import torch
+from ignite.metrics.metric import Metric, reinit__is_reduced
 
 from imagedl.data.datasets.abstract import Transform
 
@@ -102,7 +102,10 @@ class InstanceMatchInfo(Metric):
                         return_counts=True, sorted=True)
                     if class_un[0] == 0:
                         class_un = class_un[1:]
-                        class_area[1:]
+                        class_area = class_area[1:]
+                    if len(class_area) == 0:
+                        pred_class[i] = 0
+                        continue
                     idx = class_area.argmax()
                     pred_class[i] = class_un[idx] - 1
 
@@ -220,8 +223,6 @@ class InstanceMatchInfo(Metric):
             assert targets_class.max().item() <= self._n_classes
             assert logits_class.shape[1] == self._n_classes or \
                    logits_class.shape[1] == 1
-            if logits_class.shape[1] == 1:
-                logits_class = logits_class[:, 0]
             targets_class = self.__prepare_tensor(logits_class, targets_class)
 
         if self._apply_reset:
