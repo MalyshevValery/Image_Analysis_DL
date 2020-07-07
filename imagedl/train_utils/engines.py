@@ -4,7 +4,7 @@ from ignite.engine import create_supervised_evaluator, create_supervised_trainer
 from ignite.metrics import Loss
 
 from .data import prepare_batch
-from .handlers import metrics_to_str
+from .handlers import metrics_to_str, clean_metrics
 from ..data import Split
 
 
@@ -18,20 +18,17 @@ def evaluator(test_config, criterion, model, device):
     return evaluator
 
 
-def evaluate(config, test_dl, test_split, progress_bar, model, device):
+def evaluate(config, test_dl, test_split, progress_bar, model, device, tb_logger, engine):
     metrics, eval_metric = config.test
     test_evaluator = create_supervised_evaluator(model, metrics, device)
     test_evaluator.run(test_dl)
     metrics = test_evaluator.state.metrics
-    cleaned_metrics = {}
-    for s in metrics.keys():
-        if isinstance(metrics[s], torch.Tensor) and metrics[s].shape != ():
-            continue
-        cleaned_metrics[s] = metrics[s]
+    cleaned_metrics = clean_metrics(metrics)
+
     df = pd.DataFrame(cleaned_metrics, index=[0])
     df.to_csv(f'{config.job_dir}/metrics.csv', index=False)
     progress_bar.log_message(
-        f'Test - ' + metrics_to_str(test_evaluator.state.metrics))
+        f'Test - ' + metrics_to_str(test_evaluator.state.metrics, tb_logger, engine.state.epoch + 1))
 
     to_save = config.job_dir / 'test'
     to_save.mkdir(parents=True, exist_ok=True)

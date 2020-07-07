@@ -22,15 +22,14 @@ def train_run(config: Config, split: Split, job_dir: Path,
     train_dl, val_dl, test_dl = get_data_loaders(config, split)
 
     val_evaluator = evaluator(config.test, criterion, model, device)
-    progress_bar = train_handlers(config, trainer, val_evaluator, model,
-                                  optimizer, split, val_dl)
     tb_logger = tensorboard_logger(trainer, val_evaluator, model, config,
                                    train_dl, val_dl, device)
+    progress_bar = train_handlers(config, trainer, val_evaluator, model,
+                                  optimizer, split, val_dl, tb_logger)
 
     trainer.run(train_dl, max_epochs=epochs)
-    tb_logger.close()
 
-    df = evaluate(config, test_dl, split.test, progress_bar, model, device)
+    df = evaluate(config, test_dl, split.test, progress_bar, model, device, tb_logger, trainer)
 
     return df
 
