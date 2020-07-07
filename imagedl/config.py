@@ -1,7 +1,7 @@
 """Config for training"""
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import NamedTuple, Sequence, Type, Dict
+from typing import NamedTuple, Sequence, Type, Dict, List
 
 import ignite
 import numpy as np
@@ -83,4 +83,10 @@ class Config(metaclass=ABCMeta):
     @abstractmethod
     def job_dir(self) -> Path:
         """Returns job dir"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
+    def legend(self) -> List[str]:
+        """Returns list of classes or other legend"""
         raise NotImplementedError()
