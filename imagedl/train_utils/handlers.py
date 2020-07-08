@@ -24,7 +24,7 @@ def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]], legend: List[s
                 res[s] = metrics[s].item()
             elif len(metrics[s].shape) == 1:
                 for i in range(len(metrics[s])):
-                    res[f'{s}_{legend[i]}'] = metrics[s][i].item()
+                    res[f'{s}_{i}'] = metrics[s][i].item()
         else:
             res[s] = metrics[s]
     return res

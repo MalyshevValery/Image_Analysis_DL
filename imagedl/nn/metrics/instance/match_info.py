@@ -129,7 +129,8 @@ class InstanceMatchInfo(Metric):
                         return_counts=True, sorted=True)
                     if class_un[0] == 0:
                         class_un = class_un[1:]
-                        class_area[1:]
+                        class_area = class_area[1:]
+
                     idx = class_area.argmax()
                     target_class[i] = class_un[idx] - 1
 
