@@ -7,4 +7,5 @@ from .hover import HoverDataset
 from .imageglob import ImageGlobDataset
 from .map import MapDataset
 from .mock import MockDataset
+from .panda import PandaDataset
 from .subset import SubDataset

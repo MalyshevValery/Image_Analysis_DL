@@ -27,7 +27,7 @@ class InstanceConfusionMatrix(InstanceMetricAggregated):
         matrix[-1, :-1] = self.sum_class_agg(res.target_class[fn],
                                              torch.ones(fn.sum(),
                                                         device=device))
-        if matrix.sum() > 0:
-            return matrix / matrix.sum()
-        else:
-            return matrix
+        tg_un, tg_cnt = res.target_class.unique(return_counts=True)
+        matrix[:, tg_un] /= tg_cnt
+        matrix[:, -1] /= matrix[:, -1].sum() + 1e-4
+        return matrix

@@ -57,8 +57,10 @@ class InstanceMatchInfo(Metric):
     @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
-        preds_inst, preds_class, preds_conf, targets_inst, targets_class = self._prepare(
-            output)
+        data = self._prepare(output)
+        if data is None:
+            pass
+        preds_inst, preds_class, preds_conf, targets_inst, targets_class = data
         for i in range(preds_inst.shape[0]):
             pred_inst, target_inst = preds_inst[i], targets_inst[i]
 
@@ -106,8 +108,9 @@ class InstanceMatchInfo(Metric):
                     if len(class_area) == 0:
                         pred_class[i] = 0
                         continue
-                    idx = class_area.argmax()
-                    pred_class[i] = class_un[idx] - 1
+                    else:
+                        idx = class_area.argmax()
+                        pred_class[i] = class_un[idx] - 1
 
             # values to compute
             target_to_pred = torch.zeros(n_inst, dtype=torch.long,
@@ -221,9 +224,10 @@ class InstanceMatchInfo(Metric):
 
         targets_inst = self.__prepare_tensor(logits_inst, targets_inst)
         if logits_class != None:
-            assert targets_class.max().item() <= self._n_classes
-            assert logits_class.shape[1] == self._n_classes or \
-                   logits_class.shape[1] == 1
+            if targets_class.max().item() > self._n_classes:
+                return None
+            if logits_class.shape[1] != self._n_classes and logits_class.shape[1] != 1:
+                return None
             targets_class = self.__prepare_tensor(logits_class, targets_class)
 
         if self._apply_reset:

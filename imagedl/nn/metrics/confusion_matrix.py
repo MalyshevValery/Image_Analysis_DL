@@ -1,8 +1,8 @@
 """Confusion matrix metric"""
 from typing import Tuple
 
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 import torch
+from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 from imagedl.data.datasets.abstract import Transform
 from imagedl.utility_config import DEVICE
@@ -48,7 +48,9 @@ class ConfusionMatrix(Metric):
         pairs, counts = stacked.unique(dim=1, return_counts=True)
         matrix = torch.zeros(self._n_classes, self._n_classes).to(DEVICE)
         matrix[pairs[0], pairs[1]] = counts.float()
-        matrix /= counts.sum()
+
+        t_un, t_cnt = targets.unique(return_counts=True)
+        matrix[:, t_un] /= t_cnt
 
         if self._apply_reset:
             self._reset()

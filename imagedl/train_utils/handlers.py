@@ -68,11 +68,12 @@ def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
         model.eval()
         pred = model(inp)
         visualized = config.visualize(inp, targets, pred)
-        for name in visualized:
-            visualized[name] = visualized[name].permute(0, 3, 1, 2)
-            tb_logger.writer.add_image(f'validation_{name}',
-                                       make_grid(visualized[name]),
-                                       engine.state.epoch)
+        if visualized is not None:
+            for name in visualized:
+                visualized[name] = visualized[name].permute(0, 3, 1, 2)
+                tb_logger.writer.add_image(f'validation_{name}',
+                                           make_grid(visualized[name]),
+                                           engine.state.epoch)
 
     return tb_logger
 
