@@ -23,8 +23,8 @@ class PandaDataset(AbstractDataset):
         self.gl2 = np.array([int(f.split('_')[2]) for f in self.filenames])
         self.isup = np.array([int(f.split('_')[3]) for f in self.filenames])
 
-        self.gl1[self.gl1 > 0] -= 1
-        self.gl2[self.gl2 > 0] -= 1
+        self.gl1[self.gl1 > 0] -= 2
+        self.gl2[self.gl2 > 0] -= 2
 
     def __len__(self) -> int:
         return len(self.filenames)

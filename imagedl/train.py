@@ -17,7 +17,7 @@ def train(config: Config, split, job_dir):
 def main_train(config: Config, train_: float, val: float, test: float,
                kfold: int = None) -> None:
     """Main train procedure"""
-    dataset, groups, _, _ = config.data
+    dataset, groups, *_ = config.data
     job_dir = config.job_dir
 
     print(f'Total number of samples: {len(dataset)}')
