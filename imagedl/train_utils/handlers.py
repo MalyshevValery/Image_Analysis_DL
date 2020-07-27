@@ -132,4 +132,13 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl, t
             trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, dict_)
         else:
             trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
+
+    @trainer.on(Events.COMPLETED)
+    def reload_best(engine):
+        """Reloads best checkpoint"""
+        best_checkpoint_handler = handlers[1]
+        filename = best_checkpoint_handler.last_checkpoint
+        print('Loading best model...')
+        model.load_state_dict(torch.load(filename)['model'])
+
     return progress_bar
