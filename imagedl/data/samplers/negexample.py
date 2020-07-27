@@ -77,7 +77,6 @@ class NegExampleSampler(Sampler):
         else:
             self.__selected = skipped[:self.__n]
         self.__selected = self.__selected[torch.randperm(self.__n)]
-        print(self.__selected, self.__losses)
         return iter(self.__selected)
 
     @property
