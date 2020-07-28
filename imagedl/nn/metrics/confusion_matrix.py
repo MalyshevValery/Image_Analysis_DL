@@ -51,7 +51,6 @@ class ConfusionMatrix(Metric):
 
         t_un, t_cnt = targets.unique(return_counts=True)
         matrix[:, t_un] /= t_cnt
-
         if self._apply_reset:
             self._reset()
             self._apply_reset = False
@@ -61,7 +60,8 @@ class ConfusionMatrix(Metric):
     def compute(self) -> torch.Tensor:
         """Metric aggregation"""
         assert self._updates > 0
-        return self._matrix / self._updates
+        column_sum = self._matrix.sum(0)[None] + 1e-7
+        return self._matrix / column_sum
 
     @property
     def n_classes(self) -> int:

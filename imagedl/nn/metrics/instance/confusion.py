@@ -19,15 +19,15 @@ class InstanceConfusionMatrix(InstanceMetricAggregated):
             classes = zip(res.pred_class[res.target_to_pred[selected]],
                           res.target_class[selected])
             for p, t in classes:
-                matrix[p, t] += 1
+                matrix[p + 1, t + 1] += 1
 
-        matrix[:-1, -1] = self.sum_class_agg(res.pred_class[fp],
-                                             torch.ones(fp.sum(),
-                                                        device=device))
-        matrix[-1, :-1] = self.sum_class_agg(res.target_class[fn],
-                                             torch.ones(fn.sum(),
-                                                        device=device))
+        matrix[1:, 0] = self.sum_class_agg(res.pred_class[fp],
+                                           torch.ones(fp.sum(),
+                                                      device=device))
+        matrix[0, 1:] = self.sum_class_agg(res.target_class[fn],
+                                           torch.ones(fn.sum(),
+                                                      device=device))
         tg_un, tg_cnt = res.target_class.unique(return_counts=True)
-        matrix[:, tg_un] /= tg_cnt
-        matrix[:, -1] /= matrix[:, -1].sum() + 1e-4
+        matrix[:, tg_un + 1] /= tg_cnt
+        matrix[:, 0] /= matrix[:, 0].sum() + 1e-4
         return matrix
