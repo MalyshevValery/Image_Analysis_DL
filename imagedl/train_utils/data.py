@@ -29,7 +29,7 @@ def prepare_batch(batch, device=None, non_blocking=False):
 
 def get_data_loaders(config, split):
     epochs, batch_size, patience = config.train
-    dataset, _, train_transform, test_transform = config.data
+    dataset, _, train_transform, test_transform, train_sampler = config.data
     train_ds = SubDataset(dataset, split.train, transform=train_transform)
     val_ds = SubDataset(dataset, split.val, transform=test_transform)
     test_ds = SubDataset(dataset, split.test, transform=test_transform)
@@ -41,8 +41,8 @@ def get_data_loaders(config, split):
     # else:
     #     train_sampler = None
     train_dl = DataLoader(train_ds, batch_size, num_workers=WORKERS,
-                          # sampler=train_sampler,
-                          shuffle=True)
+                          sampler=train_sampler(train_ds) if train_sampler is not None else None,
+                          shuffle=train_sampler is None)
     val_dl = DataLoader(val_ds, batch_size, num_workers=WORKERS, shuffle=True)
     test_dl = DataLoader(test_ds, batch_size, num_workers=WORKERS)
 
