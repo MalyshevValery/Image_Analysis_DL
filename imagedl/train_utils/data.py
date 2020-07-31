@@ -41,8 +41,7 @@ def get_data_loaders(config, split):
     # else:
     #     train_sampler = None
     train_dl = DataLoader(train_ds, batch_size, num_workers=WORKERS,
-                          sampler=train_sampler(
-                              train_ds) if train_sampler is not None else None,
+                          sampler=train_sampler(train_ds) if train_sampler is not None else None,
                           shuffle=train_sampler is None)
     val_dl = DataLoader(val_ds, test_batch_size, num_workers=WORKERS,
                         shuffle=True)

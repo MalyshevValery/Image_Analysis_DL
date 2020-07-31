@@ -71,8 +71,7 @@ class NegExampleSampler(Sampler):
         skipped = torch.where(self.__losses == -1.0)[0]
         skipped = skipped[torch.randperm(len(skipped))]
         if len(skipped) < self.__n:
-            selected_pos = torch.argsort(self.__losses, descending=True)[
-                           :(self.__n - len(skipped))]
+            selected_pos = torch.argsort(self.__losses, descending=True)[:(self.__n - len(skipped))]
             self.__selected = torch.cat([skipped, selected_pos])
         else:
             self.__selected = skipped[:self.__n]
