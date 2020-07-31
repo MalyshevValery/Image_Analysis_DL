@@ -17,16 +17,18 @@ def train(config: Config, split, job_dir):
 def main_train(config: Config, train_: float, val: float, test: float,
                kfold: int = None) -> None:
     """Main train procedure"""
-    dataset, groups, *_ = config.data
+    dataset, groups, *_, split = config.data
     job_dir = config.job_dir
 
     print(f'Total number of samples: {len(dataset)}')
     splitter = Splitter(total=len(dataset), group_labels=groups)
 
     if kfold is None:
-        split = splitter.random_split((train_, val, test))
+        if split is None:
+            split = splitter.random_split((train_, val, test))
         train(config, split, job_dir)
     else:
+        raise NotImplementedError()
         frames = []
         for i, split in enumerate(
                 splitter.k_fold(val, kfold)):

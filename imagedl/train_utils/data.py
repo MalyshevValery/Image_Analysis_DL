@@ -29,7 +29,7 @@ def prepare_batch(batch, device=None, non_blocking=False):
 
 def get_data_loaders(config, split):
     epochs, batch_size, test_batch_size, patience = config.train
-    dataset, _, train_transform, test_transform, train_sampler = config.data
+    dataset, _, train_transform, test_transform, train_sampler, _ = config.data
     train_ds = SubDataset(dataset, split.train, transform=train_transform)
     val_ds = SubDataset(dataset, split.val, transform=test_transform)
     test_ds = SubDataset(dataset, split.test, transform=test_transform)

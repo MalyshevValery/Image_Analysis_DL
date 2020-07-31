@@ -1,7 +1,7 @@
 """Config for training"""
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import NamedTuple, Sequence, Type, Dict, List, Callable
+from typing import NamedTuple, Sequence, Type, Dict, List, Callable, Optional
 
 import ignite
 import numpy as np
@@ -9,6 +9,7 @@ from torch import Tensor
 from torch import nn
 from torch.utils.data import Sampler
 
+from imagedl.data import Split
 from imagedl.data.datasets.abstract import AbstractDataset, Transform, DataType
 
 
@@ -27,6 +28,7 @@ class DataConfig(NamedTuple):
     train_transform: Transform
     test_transform: Transform
     train_sampler_constructor: Callable[[AbstractDataset], Sampler]
+    split: Optional[Split]
 
 
 class TrainConfig(NamedTuple):
