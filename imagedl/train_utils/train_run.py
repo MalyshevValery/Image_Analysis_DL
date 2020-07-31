@@ -18,7 +18,7 @@ def train_run(config: Config, split: Split, job_dir: Path,
     job_dir.mkdir(parents=True, exist_ok=True)
     model, optimizer, criterion, split, trainer = create_trainer(config, device,
                                                                  split)
-    epochs, batch_size, patience = config.train
+    epochs, *_ = config.train
     train_dl, val_dl, test_dl = get_data_loaders(config, split)
 
     val_evaluator = evaluator(config.test, criterion, model, device)

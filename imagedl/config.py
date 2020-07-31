@@ -33,6 +33,7 @@ class TrainConfig(NamedTuple):
     """Training procedure config"""
     epochs: int
     batch_size: int
+    test_batch_size: int
     patience: int
 
 
