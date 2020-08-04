@@ -9,32 +9,32 @@ from .residual import ResidualBlock
 class Encoder(nn.Module):
     """HoverNet encoder"""
 
-    def __init__(self) -> None:
+    def __init__(self, increased=False) -> None:
         super(Encoder, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, padding=3, bias=False)
         self.residual_block1 = nn.Sequential(
             ResidualBlock(64, 256),
             ResidualBlock(256, 256),
-            # ResidualBlock(256, 256),
+            ResidualBlock(256, 256) if increased else nn.Identity(),
         )
         self.residual_block2 = nn.Sequential(
             ResidualBlock(256, 512, stride=2),
             ResidualBlock(512, 512),
-            # ResidualBlock(512, 512),
-            # ResidualBlock(512, 512),
+            ResidualBlock(512, 512) if increased else nn.Identity(),
+            ResidualBlock(512, 512) if increased else nn.Identity(),
         )
         self.residual_block3 = nn.Sequential(
             ResidualBlock(512, 1024, stride=2),
             ResidualBlock(1024, 1024),
             ResidualBlock(1024, 1024),
-            # ResidualBlock(1024, 1024),
-            # ResidualBlock(1024, 1024),
-            # ResidualBlock(1024, 1024),
+            ResidualBlock(1024, 1024) if increased else nn.Identity(),
+            ResidualBlock(1024, 1024) if increased else nn.Identity(),
+            ResidualBlock(1024, 1024) if increased else nn.Identity(),
         )
         self.residual_block4 = nn.Sequential(
             ResidualBlock(1024, 2048, stride=2),
             ResidualBlock(2048, 2048),
-            # ResidualBlock(2048, 2048),
+            ResidualBlock(2048, 2048) if increased else nn.Identity(),
         )
         self.conv2 = nn.Conv2d(2048, 1024, kernel_size=1, bias=False)
 

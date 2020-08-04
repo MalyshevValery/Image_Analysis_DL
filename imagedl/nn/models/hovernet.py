@@ -9,13 +9,14 @@ from .blocks import Encoder, Decoder, SegmentationHead
 class HoverNet(nn.Module):
     """HoverNet"""
 
-    def __init__(self, n_classes: int = 1):
+    def __init__(self, n_classes: int = 1, increased=False,
+                 n_dense: Tuple[int, int] = (1, 2)):
         super(HoverNet, self).__init__()
         self.n_classes = n_classes
 
-        self.encoder = Encoder()
-        self.decoder_nc = Decoder(1024)
-        self.decoder_hv = Decoder(1024)
+        self.encoder = Encoder(increased)
+        self.decoder_nc = Decoder(1024, n_dense[0], n_dense[1])
+        self.decoder_hv = Decoder(1024, n_dense[0], n_dense[1])
         self.head_nc = SegmentationHead(n_channels=n_classes)
         self.head_hv = SegmentationHead(n_channels=2)
 
