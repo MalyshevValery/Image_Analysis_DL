@@ -21,4 +21,5 @@ class DiceLoss(nn.Module):
         sum_axis = (0, *range(2, len(probs.shape)))
         intersection = (probs * targets).sum(dim=sum_axis)
         union = probs.sum(dim=sum_axis) + targets.sum(dim=sum_axis)
-        return 1 - torch.mean(2 * intersection / (union + smooth))
+        dice_score = torch.mean(2 * intersection / (union + smooth))
+        return - (dice_score + 1e-7).log()
