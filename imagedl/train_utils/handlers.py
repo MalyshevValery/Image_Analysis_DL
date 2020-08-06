@@ -15,7 +15,8 @@ from imagedl.utils.plot_saver import PlotSave
 from .data import prepare_batch
 
 
-def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]], legend: List[str]) -> Dict[str, float]:
+def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]],
+                  legend: List[str]) -> Dict[str, float]:
     sorted_names = sorted(metrics.keys())
     res = {}
     for s in sorted_names:
@@ -30,14 +31,16 @@ def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]], legend: List[s
     return res
 
 
-def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]], legend: List[str], tb_logger: TensorboardLogger,
+def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]],
+                   legend: List[str], tb_logger: TensorboardLogger,
                    epoch: int) -> str:
     """Put metrics in string"""
     sorted_names = sorted(metrics.keys())
     for s in sorted_names:
         if isinstance(metrics[s], torch.Tensor) and len(metrics[s].shape) == 2:
             with PlotSave(s, tb_logger, epoch):
-                heatmap(metrics[s].cpu().numpy(), annot=True, fmt='.2f', xticklabels=legend, yticklabels=legend)
+                heatmap(metrics[s].cpu().numpy(), annot=True, fmt='.2f',
+                        xticklabels=legend, yticklabels=legend)
 
     metrics = clean_metrics(metrics, legend)
     sorted_names = sorted(metrics.keys())
@@ -51,7 +54,8 @@ def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
                        device):
     tb_logger = TensorboardLogger(log_dir=config.job_dir)
     handler = OutputHandler(tag="training", metric_names="all")
-    tb_logger.attach(trainer, handler, Events.ITERATION_COMPLETED(every=TB_ITER))
+    tb_logger.attach(trainer, handler,
+                     Events.ITERATION_COMPLETED(every=TB_ITER))
 
     handler = OutputHandler(tag="validation", metric_names="all",
                             global_step_transform=global_step_from_engine(
@@ -78,7 +82,8 @@ def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
     return tb_logger
 
 
-def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl, tb_logger):
+def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
+                   tb_logger):
     metrics: Dict[str, Metric]
     metrics, eval_metric = config.test
 
@@ -106,12 +111,17 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl, t
         val_metrics = val_eval.state.metrics
         epoch = engine.state.epoch
         progress_bar.log_message(
-            f'Validation #{epoch} - ' + metrics_to_str(val_metrics, config.legend, tb_logger, engine.state.epoch))
+            f'Validation #{epoch} - ' + metrics_to_str(val_metrics,
+                                                       config.legend, tb_logger,
+                                                       engine.state.epoch))
         progress_bar.n = progress_bar.last_print_n = 0
+
+    mul = 1 if eval_metric[0] != '-' else -1
+    eval_metric = eval_metric[1:] if eval_metric[0] == '-' else eval_metric
 
     def score_function(engine) -> object:
         """Score function for model"""
-        return val_eval.state.metrics[eval_metric]
+        return mul * val_eval.state.metrics[eval_metric]
 
     handlers = [
         EarlyStopping(patience, score_function, trainer),
