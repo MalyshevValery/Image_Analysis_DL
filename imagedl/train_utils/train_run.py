@@ -13,11 +13,11 @@ from .handlers import tensorboard_logger, train_handlers
 
 
 def train_run(config: Config, split: Split, job_dir: Path,
-              device) -> pd.DataFrame:
+              device, own_split: bool) -> pd.DataFrame:
     """Training procedure depending on split"""
     job_dir.mkdir(parents=True, exist_ok=True)
     model, optimizer, criterion, split, trainer = create_trainer(config, device,
-                                                                 split)
+                                                                 split, own_split)
     epochs, *_ = config.train
     train_dl, val_dl, test_dl = get_data_loaders(config, split)
 
@@ -29,9 +29,11 @@ def train_run(config: Config, split: Split, job_dir: Path,
 
     trainer.run(train_dl, max_epochs=epochs)
 
-    df = evaluate(config, test_dl, split.test, progress_bar, model, device, tb_logger, trainer)
+    if len(test_dl) > 0:
+        df = evaluate(config, test_dl, split.test, progress_bar, model, device,
+                      tb_logger, trainer)
 
-    return df
+        return df
 
 
 def process_run(rank, distributed, config: Config, split: Split, job_dir: Path):
@@ -52,5 +54,5 @@ def dist_training(distributed, config: Config, split: Split, job_dir: Path):
 
 
 def single_training(device, config: Config, split: Split,
-                    job_dir: Path):
-    return train_run(config, split, job_dir, device)
+                    job_dir: Path, own_split: bool):
+    return train_run(config, split, job_dir, device, own_split)

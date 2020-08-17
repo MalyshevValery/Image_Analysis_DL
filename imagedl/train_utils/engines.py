@@ -48,7 +48,7 @@ def evaluate(config, test_dl, test_split, progress_bar, model, device, tb_logger
     return df
 
 
-def create_trainer(config, device, split):
+def create_trainer(config, device, split, own_split):
     model, optimizer_fn, criterion, checkpoint = config.model_config
     # if DISTRIBUTED is not None:
     #     model.to(DEVICE)
@@ -67,6 +67,7 @@ def create_trainer(config, device, split):
         model.load_state_dict(obj['model'])
         optimizer.load_state_dict(obj['optimizer'])
         trainer.load_state_dict(obj['trainer'])
-        split = Split.load_state_dict(obj['split'])
+        if not own_split:
+            split = Split.load_state_dict(obj['split'])
 
     return model, optimizer, criterion, split, trainer
