@@ -7,9 +7,9 @@ from .train_utils import dist_training, single_training
 from .utility_config import DEVICE, DISTRIBUTED
 
 
-def train(config: Config, split, job_dir):
+def train(config: Config, split, job_dir, own_split: bool):
     if DISTRIBUTED is None:
-        single_training(DEVICE, config, split, job_dir)
+        single_training(DEVICE, config, split, job_dir, own_split)
     else:
         dist_training(DISTRIBUTED, config, split, job_dir)
 
@@ -24,9 +24,11 @@ def main_train(config: Config, train_: float, val: float, test: float,
     splitter = Splitter(total=len(dataset), group_labels=groups)
 
     if kfold is None:
+        own_split = True
         if split is None:
+            own_split = False
             split = splitter.random_split((train_, val, test))
-        train(config, split, job_dir)
+        train(config, split, job_dir, own_split)
     else:
         raise NotImplementedError()
         frames = []
