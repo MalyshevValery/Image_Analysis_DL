@@ -39,7 +39,7 @@ def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]],
     for s in sorted_names:
         if isinstance(metrics[s], torch.Tensor) and len(metrics[s].shape) == 2:
             with PlotSave(s, tb_logger, epoch):
-                heatmap(metrics[s].cpu().numpy(), annot=True, fmt='.2f',
+                heatmap(metrics[s].cpu().numpy(), annot=True, fmt='d',
                         xticklabels=legend, yticklabels=legend)
 
     metrics = clean_metrics(metrics, legend)
