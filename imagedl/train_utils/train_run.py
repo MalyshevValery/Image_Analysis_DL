@@ -30,7 +30,8 @@ def train_run(config: Config, split: Split, job_dir: Path,
     trainer.run(train_dl, max_epochs=epochs)
 
     if len(test_dl) > 0:
-        df = evaluate(config, test_dl, split.test, progress_bar, model, device,
+        df = evaluate(config, test_dl, split.test, criterion, progress_bar,
+                      model, device,
                       tb_logger, trainer)
 
         return df

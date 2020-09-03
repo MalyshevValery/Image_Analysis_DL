@@ -27,10 +27,10 @@ class HoverNet(nn.Module):
         """Forward"""
         x = self.encoder(inputs)
         if self.remove_hv:
+            return self.head_nc(self.decoder_nc(x))
+        else:
             out_list = [
                 self.head_nc(self.decoder_nc(x)),
                 self.head_hv(self.decoder_hv(x)),
             ]
             return tuple(out_list)
-        else:
-            return self.head_nc(self.decoder_nc(x))
