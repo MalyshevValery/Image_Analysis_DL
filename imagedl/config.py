@@ -43,6 +43,7 @@ class TestConfig(NamedTuple):
     """Config for metrics and testing"""
     metrics: Dict[str, ignite.metrics.Metric]
     eval_metric: str
+    test_best_model: bool
 
 
 class Config(metaclass=ABCMeta):

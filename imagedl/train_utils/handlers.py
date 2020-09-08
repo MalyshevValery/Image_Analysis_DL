@@ -85,7 +85,7 @@ def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
 def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
                    tb_logger):
     metrics: Dict[str, Metric]
-    metrics, eval_metric = config.test
+    metrics, eval_metric, test_load_best = config.test
 
     RunningAverage(output_transform=lambda x: x[2], alpha=ALPHA,
                    epoch_bound=EPOCH_BOUND).attach(trainer, "loss")
@@ -93,7 +93,6 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         RunningAverage(metric, alpha=ALPHA,
                        epoch_bound=EPOCH_BOUND).attach(trainer, k)
 
-    _, eval_metric = config.test
     *_, patience = config.train
 
     progress_bar = ProgressBar(persist=True)
@@ -124,19 +123,21 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         return mul * val_eval.state.metrics[eval_metric]
 
     handlers = [
-        EarlyStopping(patience, score_function, trainer),
         ModelCheckpoint(str(config.job_dir), 'best',
                         score_function=score_function,
                         score_name=eval_metric),
         ModelCheckpoint(str(config.job_dir), 'latest')
     ]
+    if patience is not None:
+        EarlyStopping(patience, score_function, trainer)
+
     dict_to_save = {
         'model': model,
         'optimizer': optimizer,
         'trainer': trainer,
         'split': split
     }
-    save_dicts = [None, dict_to_save, dict_to_save]
+    save_dicts = [dict_to_save, dict_to_save, None]
     for handler, dict_ in zip(handlers, save_dicts):
         if dict_ is not None:
             trainer.add_event_handler(Events.EPOCH_COMPLETED, handler, dict_)
@@ -148,7 +149,8 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         """Reloads best checkpoint"""
         best_checkpoint_handler = handlers[1]
         filename = best_checkpoint_handler.last_checkpoint
-        print('Loading best model...')
-        model.load_state_dict(torch.load(filename)['model'])
+        if test_load_best:
+            print('Loading best model...')
+            model.load_state_dict(torch.load(filename)['model'])
 
     return progress_bar

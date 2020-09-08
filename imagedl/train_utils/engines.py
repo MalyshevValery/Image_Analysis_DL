@@ -9,7 +9,7 @@ from ..data import Split
 
 
 def evaluator(test_config, criterion, model, device):
-    metrics, eval_metric = test_config
+    metrics, eval_metric, _ = test_config
     metrics['loss'] = Loss(criterion,
                            output_transform=lambda data: (data[0], data[1]))
     evaluator = create_supervised_evaluator(model, metrics, device,
@@ -20,7 +20,7 @@ def evaluator(test_config, criterion, model, device):
 
 def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
              device, tb_logger, engine):
-    metrics, eval_metric = config.test
+    metrics, eval_metric, _ = config.test
     metrics['loss'] = Loss(criterion,
                            output_transform=lambda data: (data[0], data[1]))
     test_evaluator = create_supervised_evaluator(model, metrics, device)
