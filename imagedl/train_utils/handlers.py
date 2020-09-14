@@ -129,7 +129,7 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         ModelCheckpoint(str(config.job_dir), 'latest')
     ]
     if patience is not None:
-        EarlyStopping(patience, score_function, trainer)
+        handlers.append(EarlyStopping(patience, score_function, trainer))
 
     dict_to_save = {
         'model': model,

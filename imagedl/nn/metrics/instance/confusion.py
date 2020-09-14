@@ -30,4 +30,4 @@ class InstanceConfusionMatrix(InstanceMetricAggregated):
         tg_un, tg_cnt = res.target_class.unique(return_counts=True)
         # matrix[:, tg_un + 1] /= tg_cnt
         # matrix[:, 0] /= matrix[:, 0].sum() + 1e-4
-        return matrix
+        return matrix / matrix[:, 1:].sum()

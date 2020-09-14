@@ -11,21 +11,23 @@ class Decoder(nn.Module):
     """HoverNet Decoder"""
 
     def __init__(self, in_channels: int, n_dense_1: int = 1,
-                 n_dense_2: int = 2):
+                 n_dense_2: int = 2, bias=False):
         super(Decoder, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=5, padding=2, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=5, padding=2,
+                               bias=bias)
         self.dense_block1 = nn.Sequential(
             DenseBlock(256),
             *[DenseBlock(256 + 32 * i) for i in range(1, n_dense_1)]
         )
-        self.conv2 = nn.Conv2d(256 + 32 * n_dense_1, 512, 1, bias=False)
-        self.conv3 = nn.Conv2d(512, 128, 5, padding=2, bias=False)
+        self.conv2 = nn.Conv2d(256 + 32 * n_dense_1, 512, 1, bias=bias)
+        self.conv3 = nn.Conv2d(512, 128, 5, padding=2, bias=bias)
         self.dense_block2 = nn.Sequential(
             DenseBlock(128),
             *[DenseBlock(128 + 32 * i) for i in range(1, n_dense_2)]
         )
-        self.conv4 = nn.Conv2d(128 + 32 * n_dense_2, 256, kernel_size=1, bias=False)
-        self.conv5 = nn.Conv2d(256, 64, kernel_size=5, padding=2, bias=False)
+        self.conv4 = nn.Conv2d(128 + 32 * n_dense_2, 256, kernel_size=1,
+                               bias=bias)
+        self.conv5 = nn.Conv2d(256, 64, kernel_size=5, padding=2, bias=bias)
 
     def forward(self, inputs: Tuple[Tensor, ...]) -> Tensor:
         """Forward"""

@@ -22,5 +22,5 @@ class LaplaceLoss(nn.Module):
         if self.clips is not None:
             delta[delta > self.clips[0]] = self.clips[0]
             std[std < self.clips[1]] = self.clips[1]
-        laplace = -np.sqrt(2) * delta / std - torch.log(np.sqrt(2) * std)
+        laplace = np.sqrt(2) * delta / std + torch.log(np.sqrt(2) * std)
         return laplace.mean()
