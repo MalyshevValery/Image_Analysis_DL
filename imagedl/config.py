@@ -91,6 +91,12 @@ class Config(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def job_dir(self) -> Path:
+        """Returns job dir"""
+        raise NotImplementedError()
+
+    @property
+    @abstractmethod
     def legend(self) -> List[str]:
         """Returns list of classes or other legend"""
         raise NotImplementedError()
