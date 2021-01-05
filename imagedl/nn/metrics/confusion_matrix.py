@@ -60,8 +60,7 @@ class ConfusionMatrix(Metric):
     def compute(self) -> torch.Tensor:
         """Metric aggregation"""
         assert self._updates > 0
-        column_sum = self._matrix.sum(0)[None] + 1e-7
-        return self._matrix / column_sum
+        return self._matrix / (self._matrix.sum() + 1e-7)
 
     @property
     def n_classes(self) -> int:
