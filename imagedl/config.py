@@ -1,7 +1,8 @@
 """Config for training"""
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import NamedTuple, Sequence, Type, Dict, List, Callable, Optional
+from typing import NamedTuple, Sequence, Type, Dict, List, Callable, Optional, \
+    Any
 
 import ignite
 import numpy as np
@@ -18,7 +19,7 @@ class ModelConfig(NamedTuple):
     model: nn.Module
     optimizer: Type[object]
     criterion: nn.Module
-    path_to_checkpoint: Path # None if you're not resuming
+    path_to_checkpoint: Path  # None if you're not resuming
 
 
 class DataConfig(NamedTuple):
@@ -27,7 +28,7 @@ class DataConfig(NamedTuple):
     groups: Sequence[object]
     train_transform: Transform
     test_transform: Transform
-    train_sampler_constructor: Callable[[AbstractDataset], Sampler]
+    train_sampler_constructor: Callable[[AbstractDataset], Sampler[Any]]
     split: Optional[Split]
 
 
@@ -50,7 +51,7 @@ class TestConfig(NamedTuple):
 class Config(metaclass=ABCMeta):
     """Configuration for training procedure"""
 
-    def __init__(self, job_dir):
+    def __init__(self, job_dir: Path) -> None:
         self.job_dir = job_dir
 
     @property
