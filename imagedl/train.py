@@ -9,7 +9,7 @@ from .utility_config import DEVICE, DISTRIBUTED
 
 def train(config: Config, split, job_dir, own_split: bool):
     if DISTRIBUTED is None:
-        single_training(DEVICE, config, split, job_dir, own_split)
+        return single_training(DEVICE, config, split, job_dir, own_split)
     else:
         dist_training(DISTRIBUTED, config, split, job_dir)
 
@@ -30,16 +30,16 @@ def main_train(config: Config, train_: float, val: float, test: float,
             split = splitter.random_split((train_, val, test))
         train(config, split, job_dir, own_split)
     else:
-        raise NotImplementedError()
         frames = []
         for i, split in enumerate(
                 splitter.k_fold(val, kfold)):
             print(f'Fold {i + 1}')
             fold_job_dir = job_dir / f'Fold_{i + 1}'
+            config.job_dir = fold_job_dir
             frames.append(train(config, split, fold_job_dir, DEVICE))
-            print(frames[-1])
-        print(frames)
         overall = pd.concat(frames, ignore_index=True)
         print('All folds')
         print(overall)
         overall.to_csv(f'{job_dir}/metrics.csv')
+        print('MEAN')
+        print(overall.mean())

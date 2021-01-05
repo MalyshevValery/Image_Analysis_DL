@@ -43,10 +43,15 @@ class TestConfig(NamedTuple):
     """Config for metrics and testing"""
     metrics: Dict[str, ignite.metrics.Metric]
     eval_metric: str
+    test_best_model: bool
+    train_metric_names: Optional[List[str]]
 
 
 class Config(metaclass=ABCMeta):
     """Configuration for training procedure"""
+
+    def __init__(self, job_dir):
+        self.job_dir = job_dir
 
     @property
     @abstractmethod
@@ -82,12 +87,6 @@ class Config(metaclass=ABCMeta):
     def save_sample(self, visualized: Tensor, save_path: Path,
                     idx: np.ndarray = None) -> None:
         """Saves visualized sample"""
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def job_dir(self) -> Path:
-        """Returns job dir"""
         raise NotImplementedError()
 
     @property
