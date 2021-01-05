@@ -8,22 +8,22 @@ class ResidualBlock(nn.Module):
     """Residual Unit"""
 
     def __init__(self, in_channels: int, out_channels: int, stride: int = 1,
-                 expansion: int = 4):
+                 expansion: int = 4, bias=False):
         super().__init__()
         bottleneck_channels = out_channels // expansion
 
         self.bn_relu1 = BNRelu(in_channels)
-        self.conv1 = nn.Conv2d(in_channels, bottleneck_channels, 1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels, bottleneck_channels, 1, bias=bias)
         self.bn_relu2 = BNRelu(bottleneck_channels)
         self.conv2 = nn.Conv2d(bottleneck_channels, bottleneck_channels, 3,
-                               stride=stride, padding=1, bias=False)
+                               stride=stride, padding=1, bias=bias)
 
         self.bn_relu3 = BNRelu(bottleneck_channels)
-        self.conv3 = nn.Conv2d(bottleneck_channels, out_channels, 1, bias=False)
+        self.conv3 = nn.Conv2d(bottleneck_channels, out_channels, 1, bias=bias)
 
         if in_channels != out_channels or stride != 1:
             self.shortcut = nn.Conv2d(in_channels, out_channels, 1,
-                                      stride=stride, bias=False)
+                                      stride=stride, bias=bias)
         else:
             self.shortcut = nn.Identity()
 

@@ -1,7 +1,7 @@
 import matplotlib.cm as cm
 import numpy as np
 
-CMAP = cm.get_cmap('nipy_spectral')
+CMAP = cm.get_cmap('jet')
 
 
 def generate_colours(n_classes):

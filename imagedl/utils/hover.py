@@ -102,7 +102,7 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> \
     return process
 
 
-colour_map = matplotlib.cm.get_cmap('nipy_spectral')
+colour_map = matplotlib.cm.get_cmap('jet')
 
 
 def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor,
