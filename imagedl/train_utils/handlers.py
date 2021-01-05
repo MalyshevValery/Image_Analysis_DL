@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Union, List
 
 import torch
@@ -110,10 +111,11 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         val_eval.run(val_dl)
         val_metrics = val_eval.state.metrics
         epoch = engine.state.epoch
-        progress_bar.log_message(
-            f'Validation #{epoch} - ' + metrics_to_str(val_metrics,
-                                                       config.legend, tb_logger,
-                                                       engine.state.epoch))
+        print_str = metrics_to_str(val_metrics, config.legend, tb_logger,
+                                   engine.state.epoch)
+        print_str = f'#{epoch} - ' + print_str
+        logging.info(print_str)
+        progress_bar.log_message('Validation ' + print_str)
         progress_bar.n = progress_bar.last_print_n = 0
 
     mul = 1 if eval_metric[0] != '-' else -1

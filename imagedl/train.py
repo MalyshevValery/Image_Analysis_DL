@@ -1,4 +1,7 @@
 """Run test features net"""
+
+import logging
+
 import pandas as pd
 
 from imagedl.config import Config
@@ -8,10 +11,15 @@ from .utility_config import DEVICE, DISTRIBUTED
 
 
 def train(config: Config, split, job_dir, own_split: bool):
-    if DISTRIBUTED is None:
-        return single_training(DEVICE, config, split, job_dir, own_split)
-    else:
-        dist_training(DISTRIBUTED, config, split, job_dir)
+    try:
+        if DISTRIBUTED is None:
+            return single_training(DEVICE, config, split, job_dir, own_split)
+        else:
+            dist_training(DISTRIBUTED, config, split, job_dir)
+    except Exception as e:
+        print(e)
+        logging.error(e)
+    return None
 
 
 def main_train(config: Config, train_: float, val: float, test: float,
@@ -19,8 +27,12 @@ def main_train(config: Config, train_: float, val: float, test: float,
     """Main train procedure"""
     dataset, groups, *_, split = config.data
     job_dir = config.job_dir
+    fmt = '[%(levelname)s] %(asctime)s %(message)s'
+    logging.basicConfig(filename=str(job_dir / 'train.log'),
+                        level=logging.INFO, format=fmt)
 
     print(f'Total number of samples: {len(dataset)}')
+    logging.info(f'Total number of samples: {len(dataset)}')
     splitter = Splitter(total=len(dataset), group_labels=groups)
 
     if kfold is None:
@@ -34,6 +46,7 @@ def main_train(config: Config, train_: float, val: float, test: float,
         for i, split in enumerate(
                 splitter.k_fold(val, kfold)):
             print(f'Fold {i + 1}')
+            logging.info(f'Fold {i + 1}')
             fold_job_dir = job_dir / f'Fold_{i + 1}'
             config.job_dir = fold_job_dir
             frames.append(train(config, split, fold_job_dir, DEVICE))
@@ -43,3 +56,4 @@ def main_train(config: Config, train_: float, val: float, test: float,
         overall.to_csv(f'{job_dir}/metrics.csv')
         print('MEAN')
         print(overall.mean())
+        logging.info(overall.mean())
