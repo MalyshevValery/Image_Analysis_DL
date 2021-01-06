@@ -1,8 +1,7 @@
 """Config for training"""
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import NamedTuple, Sequence, Type, Dict, List, Callable, Optional, \
-    Any
+from typing import NamedTuple, Sequence, Type, Dict, List, Callable, Optional
 
 import ignite
 import numpy as np
@@ -28,7 +27,7 @@ class DataConfig(NamedTuple):
     groups: Sequence[object]
     train_transform: Transform
     test_transform: Transform
-    train_sampler_constructor: Callable[[AbstractDataset], Sampler[Any]]
+    train_sampler_constructor: Callable[[AbstractDataset], Sampler]
     split: Optional[Split]
 
 
