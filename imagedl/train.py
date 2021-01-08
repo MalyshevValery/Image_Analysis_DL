@@ -1,6 +1,7 @@
 """Run test features net"""
 
 import logging
+import traceback
 from pathlib import Path
 from typing import Optional
 
@@ -30,7 +31,7 @@ def train(config: Config, split: Split,
         else:
             return dist_training(DISTRIBUTED, config, split, job_dir)
     except Exception as e:
-        print(e)
+        traceback.print_exc()
         logging.error(e)
     return None
 

@@ -18,7 +18,7 @@ class ModelConfig(NamedTuple):
     model: nn.Module
     optimizer: Type[object]
     criterion: nn.Module
-    path_to_checkpoint: Path  # None if you're not resuming
+    path_to_checkpoint: Optional[Path]  # None if you're not resuming
 
 
 class DataConfig(NamedTuple):
@@ -27,7 +27,7 @@ class DataConfig(NamedTuple):
     groups: Sequence[object]
     train_transform: Transform
     test_transform: Transform
-    train_sampler_constructor: Callable[[AbstractDataset], Sampler]
+    train_sampler_constructor: Optional[Callable[[AbstractDataset], Sampler]]
     split: Optional[Split]
 
 
