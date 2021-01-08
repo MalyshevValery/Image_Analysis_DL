@@ -7,6 +7,5 @@ from .hdf5 import HDF5Dataset
 from .imageglob import ImageGlobDataset
 from .map import MapDataset
 from .mock import MockDataset
-from .numpy import NumpyDataset
-from .panda import PandaDataset
+from .numpy_image import NumpyImageDataset
 from .subset import SubDataset
