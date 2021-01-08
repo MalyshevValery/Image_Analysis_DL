@@ -1,4 +1,5 @@
 from ignite.metrics import Metric
+from ignite.metrics.metric import reinit__is_reduced
 
 from imagedl.nn.metrics.instance import MeanMetric
 
@@ -14,6 +15,7 @@ class F1Score(Metric):
         rec = self._rec.compute()
         return 2 * (pr * rec) / (pr + rec + 1e-7)
 
+    @reinit__is_reduced
     def reset(self):
         pass
 
