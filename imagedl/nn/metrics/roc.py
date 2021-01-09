@@ -52,9 +52,10 @@ class ROCCurve(UpgradedMetric):
             dat = values[:, cls]
             _sorted = torch.zeros(dat.shape[0] + 1)
             _sorted[1:] = tar[torch.argsort(-dat)]
-            tprs.append(torch.cumsum(_sorted, 0) / tar.sum())
+            tprs.append(torch.cumsum(_sorted, 0) / (tar.sum() + 1e-7))
             _sorted[1:] = 1 - _sorted[1:]
-            fprs.append(torch.cumsum(_sorted, 0) / (len(tar) - tar.sum()))
+            fprs.append(torch.cumsum(_sorted, 0) / (len(tar) - tar.sum() +
+                                                    1e-7))
         return torch.stack(tprs), torch.stack(fprs)
 
     def visualize(self, value: Tuple[torch.Tensor, torch.Tensor],

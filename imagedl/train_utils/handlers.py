@@ -58,16 +58,23 @@ def metrics_to_str(metrics: Dict[str, Metric],
 
 def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
                        device):
-    tb_logger = TensorboardLogger(log_dir=config.job_dir)
-    handler = OutputHandler(tag="training", metric_names='all')
-    tb_logger.attach(trainer, handler,
-                     Events.ITERATION_COMPLETED(every=TB_ITER))
-    metrics, *_ = config.test
+    metrics, *_, train_metric_names = config.test
     valid_tb_metrics = []
     for k, v in metrics.items():
         if isinstance(v, UpgradedMetric) and v.vis:
             continue
         valid_tb_metrics.append(k)
+    if train_metric_names is not None:
+        train_show = list(
+            set(valid_tb_metrics).intersection(train_metric_names))
+    else:
+        train_show = valid_tb_metrics
+
+    tb_logger = TensorboardLogger(log_dir=config.job_dir)
+    handler = OutputHandler(tag="training", metric_names=train_show)
+    tb_logger.attach(trainer, handler,
+                     Events.ITERATION_COMPLETED(every=TB_ITER))
+
     handler = OutputHandler(tag="validation", metric_names=valid_tb_metrics,
                             global_step_transform=global_step_from_engine(
                                 trainer))
