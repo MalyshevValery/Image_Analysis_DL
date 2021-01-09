@@ -31,8 +31,9 @@ def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
     df = pd.DataFrame(cleaned_metrics, index=[0])
     df.to_csv(f'{config.job_dir}/metrics.csv', index=False)
     progress_bar.log_message(
-        f'Test - ' + metrics_to_str(test_evaluator.state.metrics, config.legend,
-                                    tb_logger, engine.state.epoch + 1, 'test_'))
+        f'Test - ' + metrics_to_str(metrics, test_evaluator.state.metrics,
+                                    config.legend, tb_logger,
+                                    engine.state.epoch + 1, 'test_'))
 
     to_save = config.job_dir / 'test'
     to_save.mkdir(parents=True, exist_ok=True)

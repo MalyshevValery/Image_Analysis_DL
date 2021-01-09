@@ -2,7 +2,6 @@
 from typing import Tuple
 
 import torch
-from ignite.metrics.metric import reinit__is_reduced
 
 from .confusion_matrix import ConfusionMatrix
 
@@ -13,10 +12,11 @@ class ProbConfusionMatrix(ConfusionMatrix):
     classes
     """
 
-    @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates this metric"""
         logits, targets = self._prepare(*output)
+        if self._matrix.device != logits.device:
+            self._matrix = self._matrix.to(logits.device)
         if self._is_binary == 1:
             probs = logits.sigmoid()
             probs = torch.cat([1 - probs, probs], dim=1)

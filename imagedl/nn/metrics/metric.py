@@ -1,6 +1,6 @@
 """Base metric with some additional methods"""
 from abc import abstractmethod
-from typing import Tuple
+from typing import Tuple, Any, List
 
 import torch
 from ignite.metrics import Metric
@@ -13,10 +13,11 @@ from imagedl.nn.metrics.instance import MeanMetric
 class UpgradedMetric(Metric):
     """Metric with protected method for aggregating results and mean method"""
 
-    def __init__(self, output_transform=lambda x: x):
+    def __init__(self, output_transform=lambda x: x, vis: bool = False):
         super().__init__(output_transform)
         self._apply_reset = True
         self._updates = 0
+        self._vis = vis
 
     @reinit__is_reduced
     def reset(self) -> None:
@@ -25,10 +26,14 @@ class UpgradedMetric(Metric):
 
     @abstractmethod
     def _reset(self) -> None:
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
+        pass
+
+    @abstractmethod
+    def compute(self) -> Any:
         raise NotImplementedError()
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
@@ -50,3 +55,11 @@ class UpgradedMetric(Metric):
     def mean(self) -> MeanMetric:
         """Returns metric which takes mean if this one returns array"""
         return MeanMetric(self)
+
+    def visualize(self, value: torch.Tensor, legend: List[str] = None) -> None:
+        """Visualize metrics info"""
+        raise NotImplementedError()
+
+    @property
+    def vis(self):
+        return self._vis

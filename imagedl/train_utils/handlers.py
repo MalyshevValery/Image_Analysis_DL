@@ -8,12 +8,12 @@ from ignite.engine import Events
 from ignite.handlers import global_step_from_engine, EarlyStopping, \
     ModelCheckpoint
 from ignite.metrics import Metric, RunningAverage
-from seaborn import heatmap
 from torchvision.utils import make_grid
 
 from imagedl.utility_config import ALPHA, EPOCH_BOUND, TB_ITER
 from imagedl.utils.plot_saver import PlotSave
 from .data import prepare_batch
+from ..nn.metrics.metric import UpgradedMetric
 
 
 def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]],
@@ -32,22 +32,23 @@ def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]],
     return res
 
 
-def metrics_to_str(metrics: Dict[str, Union[float, torch.Tensor]],
+def metrics_to_str(metrics: Dict[str, Metric],
+                   metric_values: Dict[str, Union[float, torch.Tensor]],
                    legend: List[str], tb_logger: TensorboardLogger,
                    epoch: int, prefix: str = '') -> str:
     """Put metrics in string"""
-    sorted_names = sorted(metrics.keys())
+    sorted_names = sorted(metric_values.keys())
     for s in sorted_names:
-        if isinstance(metrics[s], torch.Tensor) and len(metrics[s].shape) == 2:
+        if s == 'loss':
+            continue
+        if isinstance(metrics[s], UpgradedMetric) and metrics[s].vis:
             with PlotSave(prefix + s, tb_logger, epoch):
-                heatmap(metrics[s].cpu().numpy(), annot=True,
-                        xticklabels=legend, yticklabels=legend)
+                metrics[s].visualize(metric_values[s], legend)
 
-    metrics = clean_metrics(metrics, legend)
-    sorted_names = sorted(metrics.keys())
+    metric_values = clean_metrics(metric_values, legend)
     res = []
-    for s in sorted_names:
-        res.append(f'{s}: {metrics[s]:.3f}')
+    for s in sorted(metric_values.keys()):
+        res.append(f'{s}: {metric_values[s]:.3f}')
     return ' '.join(res)
 
 
@@ -100,19 +101,14 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
     progress_bar = ProgressBar(persist=True)
     progress_bar.attach(trainer, metric_names="all")
 
-    # if DISTRIBUTED is not None:
-    #     @trainer.on(Events.EPOCH_STARTED)
-    #     def set_epoch(engine):
-    #         train_sampler.set_epoch(engine.state.epoch)
-
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine) -> None:
         """Log validation"""
         val_eval.run(val_dl)
         val_metrics = val_eval.state.metrics
         epoch = engine.state.epoch
-        print_str = metrics_to_str(val_metrics, config.legend, tb_logger,
-                                   engine.state.epoch, 'validation_')
+        print_str = metrics_to_str(metrics, val_metrics, config.legend,
+                                   tb_logger, engine.state.epoch, 'validation_')
         print_str = f'#{epoch} - ' + print_str
         logging.info(print_str)
         progress_bar.log_message('Validation ' + print_str)
