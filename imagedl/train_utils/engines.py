@@ -4,7 +4,7 @@ from ignite.engine import create_supervised_evaluator, create_supervised_trainer
 from ignite.metrics import Loss
 
 from .data import prepare_batch
-from .handlers import metrics_to_str, clean_metrics
+from .metric_handling import metrics_to_str, clean_metrics
 from ..data import Split
 
 
