@@ -2,7 +2,6 @@
 from typing import Tuple, List
 
 import torch
-from ignite.metrics.metric import sync_all_reduce
 from seaborn import heatmap
 
 from imagedl.data.datasets.abstract import Transform
@@ -48,7 +47,6 @@ class ConfusionMatrix(UpgradedMetric):
         matrix[:, t_un] /= t_cnt
         self._matrix += matrix
 
-    @sync_all_reduce('_updates', '_matrix')
     def compute(self) -> torch.Tensor:
         """Metric aggregation"""
         assert self._updates > 0

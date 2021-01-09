@@ -1,13 +1,14 @@
+"""Precision metric"""
 from typing import Tuple
 
 import torch
-from ignite.metrics.metric import sync_all_reduce
 
 from imagedl.data.datasets.abstract import Transform
-from imagedl.nn.metrics.metric import UpgradedMetric
+from imagedl.nn.metrics.metric import UpgradedMetric, sum_class_agg
 
 
 class Precision(UpgradedMetric):
+    """Precision metric. Input: logits, targets"""
     def __init__(self, n_classes: int = 1,
                  output_transform: Transform = lambda x: x):
         super().__init__(output_transform=output_transform)
@@ -25,14 +26,12 @@ class Precision(UpgradedMetric):
         device = logits.device
 
         pred = logits.argmax(1)
-        tp = pred == targets
-        tp = self._sum_class_agg(targets[tp], torch.ones(tp.sum(),
-                                                         device=device),
-                                 self._n_classes)
+        tp: torch.Tensor = pred == targets
+        values = torch.ones(int(tp.sum()), device=device)
+        tp = sum_class_agg(targets[tp], values, self._n_classes)
         uq, cnt = pred.unique(return_counts=True)
         self._scores[uq] += tp[uq] / cnt
 
-    @sync_all_reduce('_updates', '_scores')
     def compute(self) -> torch.Tensor:
         """Metric aggregation"""
         return self._scores / (self._updates + 1e-7)

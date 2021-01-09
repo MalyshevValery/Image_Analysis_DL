@@ -4,14 +4,14 @@ from ignite.metrics import Metric
 from .confusion_matrix import ConfusionMatrix
 
 
-def IoU(cm: ConfusionMatrix) -> Metric:
+def iou(cm: ConfusionMatrix) -> Metric:
     """Intersection over Union score"""
-    iou = cm.diag() / (cm.sum(dim=0) + cm.sum(dim=1) - cm.diag() + 1e-7)
+    iou_val = cm.diag() / (cm.sum(dim=0) + cm.sum(dim=1) - cm.diag() + 1e-7)
     if cm.n_classes == 1:
-        return iou[1]
-    return iou
+        return iou_val[1]
+    return iou_val
 
 
-def mIoU(cm: ConfusionMatrix) -> Metric:
+def mean_iou(cm: ConfusionMatrix) -> Metric:
     """Mean intersection over Union"""
-    return IoU(cm).mean()
+    return iou(cm).mean()

@@ -3,10 +3,9 @@ from typing import Tuple, List
 
 import matplotlib.pyplot as plt
 import torch
-from ignite.metrics.metric import sync_all_reduce
 
 from imagedl.data.datasets.abstract import Transform
-from imagedl.nn.metrics.metric import UpgradedMetric
+from .metric import UpgradedMetric
 
 
 class ROCCurve(UpgradedMetric):
@@ -22,8 +21,8 @@ class ROCCurve(UpgradedMetric):
                  output_transform: Transform = lambda x: x):
         super().__init__(output_transform, True)
         self._n_classes = n_classes
-        self._values = []
-        self._targets = []
+        self._values: List[torch.Tensor] = []
+        self._targets: List[torch.Tensor] = []
 
     def _reset(self) -> None:
         self._values = []
@@ -39,8 +38,7 @@ class ROCCurve(UpgradedMetric):
         self._values.append(probs)
         self._targets.append(targets)
 
-    @sync_all_reduce('_updates')
-    def compute(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def compute(self) -> torch.Tensor:
         """Metric aggregation"""
         assert self._updates > 0
         values = torch.cat(self._values, 0)
@@ -56,19 +54,22 @@ class ROCCurve(UpgradedMetric):
             _sorted[1:] = 1 - _sorted[1:]
             fprs.append(torch.cumsum(_sorted, 0) / (len(tar) - tar.sum() +
                                                     1e-7))
-        return torch.stack(tprs), torch.stack(fprs)
+        return torch.stack([torch.stack(tprs), torch.stack(fprs)])
 
-    def visualize(self, value: Tuple[torch.Tensor, torch.Tensor],
-                  legend: List[str] = None) -> None:
+    def visualize(self, value: torch.Tensor, legend: List[str] = None) -> None:
         """Visualizing of ROC curve
 
         :param value: Tensor value of metric to plot
         :param legend: Optional legend from config
         """
-        tprs, fprs = value
+        tprs, fprs = value[0], value[1]
         auc = (tprs[:, 1:] * (fprs[:, 1:] - fprs[:, :-1])).sum(1)
         plt.plot([0, 1], [0, 1], linestyle='--')
         for i in range(self._n_classes):
-            plt.plot(fprs[i], tprs[i], label=f'{auc[i]:.3f} - {legend[i]}')
+            label = f'{auc[i]:.3f}'
+            if legend is not None:
+                label += f' - {legend[i]}'
+            plt.plot(fprs[i], tprs[i], label=label)
+
         plt.title(f'{(auc.sum() / self._n_classes):.4f}')
         plt.legend()

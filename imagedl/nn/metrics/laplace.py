@@ -3,27 +3,27 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from ignite.metrics.metric import Metric, reinit__is_reduced, sync_all_reduce
 
 from imagedl.data.datasets.abstract import Transform
+from .metric import UpgradedMetric
 
 
-class Laplace(Metric):
-    def __init__(self, clips=None,
+class Laplace(UpgradedMetric):
+    """Laplacian metric for classification"""
+
+    def __init__(self, clips: Tuple[float, float] = None,
                  output_transform: Transform = lambda x: x):
         super().__init__(output_transform=output_transform)
         self.res = 0.0
         self.n = 0.0
         self.clips = clips
 
-    @reinit__is_reduced
-    def reset(self) -> None:
+    def _reset(self) -> None:
         """Resets the metric"""
         self.res = 0.0
         self.n = 0.0
 
-    @reinit__is_reduced
-    def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         logits, targets = output
         mean, std = logits
@@ -35,7 +35,6 @@ class Laplace(Metric):
         self.res += laplace.sum()
         self.n += len(laplace)
 
-    @sync_all_reduce('_updates', '_matrix')
-    def compute(self) -> torch.Tensor:
+    def compute(self) -> float:
         """Metric aggregation"""
         return self.res / self.n
