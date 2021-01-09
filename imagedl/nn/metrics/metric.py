@@ -11,7 +11,13 @@ from imagedl.nn.metrics.instance import MeanMetric
 
 
 class UpgradedMetric(Metric):
-    """Metric with protected method for aggregating results and mean method"""
+    """Metric with protected method for aggregating results and mean method
+    To instantiate class you need to override following methods:
+    - _reset - reset your variables (default - pass)
+    - _update - update your variables (default - pass)
+    - compute - compute metric
+    - visualize - visualize your metric in graph if possible (default - pass)
+    """
 
     def __init__(self, output_transform=lambda x: x, vis: bool = False):
         super().__init__(output_transform)
@@ -24,11 +30,9 @@ class UpgradedMetric(Metric):
         """Resets the metric"""
         self._apply_reset = True
 
-    @abstractmethod
     def _reset(self) -> None:
         pass
 
-    @abstractmethod
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]):
         pass
 

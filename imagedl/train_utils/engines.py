@@ -25,9 +25,8 @@ def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
                            output_transform=lambda data: (data[0], data[1]))
     test_evaluator = create_supervised_evaluator(model, metrics, device)
     test_evaluator.run(test_dl)
-    metrics = test_evaluator.state.metrics
-    cleaned_metrics = clean_metrics(metrics, config.legend)
-
+    metric_values = test_evaluator.state.metrics
+    cleaned_metrics = clean_metrics(metrics, metric_values, config.legend)
     df = pd.DataFrame(cleaned_metrics, index=[0])
     df.to_csv(f'{config.job_dir}/metrics.csv', index=False)
     progress_bar.log_message(

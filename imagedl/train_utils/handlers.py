@@ -16,19 +16,23 @@ from .data import prepare_batch
 from ..nn.metrics.metric import UpgradedMetric
 
 
-def clean_metrics(metrics: Dict[str, Union[float, torch.Tensor]],
+def clean_metrics(metrics: [str, Metric],
+                  metric_values: Dict[str, Union[float, torch.Tensor]],
                   legend: List[str]) -> Dict[str, float]:
-    sorted_names = sorted(metrics.keys())
+    sorted_names = sorted(metric_values.keys())
     res = {}
     for s in sorted_names:
-        if isinstance(metrics[s], torch.Tensor):
-            if metrics[s].shape == ():
-                res[s] = metrics[s].item()
-            elif len(metrics[s].shape) == 1:
-                for i in range(len(metrics[s])):
-                    res[f'{s}_{i}'] = metrics[s][i].item()
+        if s != 'loss' and isinstance(metrics[s], UpgradedMetric):
+            if metrics[s].vis:
+                continue
+        if isinstance(metric_values[s], torch.Tensor):
+            if metric_values[s].shape == ():
+                res[s] = metric_values[s].item()
+            elif len(metric_values[s].shape) == 1:
+                for i in range(len(metric_values[s])):
+                    res[f'{s}_{i}'] = metric_values[s][i].item()
         else:
-            res[s] = metrics[s]
+            res[s] = metric_values[s]
     return res
 
 
@@ -45,7 +49,7 @@ def metrics_to_str(metrics: Dict[str, Metric],
             with PlotSave(prefix + s, tb_logger, epoch):
                 metrics[s].visualize(metric_values[s], legend)
 
-    metric_values = clean_metrics(metric_values, legend)
+    metric_values = clean_metrics(metrics, metric_values, legend)
     res = []
     for s in sorted(metric_values.keys()):
         res.append(f'{s}: {metric_values[s]:.3f}')
@@ -58,8 +62,13 @@ def tensorboard_logger(trainer, val_eval, model, config, train_dl, val_dl,
     handler = OutputHandler(tag="training", metric_names='all')
     tb_logger.attach(trainer, handler,
                      Events.ITERATION_COMPLETED(every=TB_ITER))
-
-    handler = OutputHandler(tag="validation", metric_names="all",
+    metrics, *_ = config.test
+    valid_tb_metrics = []
+    for k, v in metrics.items():
+        if isinstance(v, UpgradedMetric) and v.vis:
+            continue
+        valid_tb_metrics.append(k)
+    handler = OutputHandler(tag="validation", metric_names=valid_tb_metrics,
                             global_step_transform=global_step_from_engine(
                                 trainer))
     tb_logger.attach(val_eval, handler, Events.EPOCH_COMPLETED)
