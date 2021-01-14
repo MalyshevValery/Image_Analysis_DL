@@ -3,6 +3,7 @@ from typing import NamedTuple, Tuple, List, Generator
 
 import numpy as np
 import torch
+
 _TrainValTest = Tuple[float, float, float]
 
 
@@ -38,6 +39,7 @@ class Splitter:
 
     def __init__(self, total: int, group_labels: np.ndarray = None):
         self.__total = total
+        np.random.seed(42)
         if group_labels is not None:
             self.__group_labels = group_labels
             if self.__total != len(group_labels):

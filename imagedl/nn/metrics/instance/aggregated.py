@@ -1,26 +1,9 @@
 import abc
 
 import torch
-from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.metrics.metric import Metric
 
 from .match_info import InstanceMatchInfo, ImageEvalResults
-
-
-class MeanMetric(Metric):
-    def __init__(self, source):
-        self._source = source
-        super().__init__()
-
-    @reinit__is_reduced
-    def reset(self):
-        pass
-
-    @reinit__is_reduced
-    def update(self, output):
-        pass
-
-    def compute(self):
-        return self._source.compute().mean().item()
 
 
 class InstanceMetricAggregated(Metric, metaclass=abc.ABCMeta):

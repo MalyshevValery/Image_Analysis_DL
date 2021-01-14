@@ -1,8 +1,10 @@
 import pandas as pd
 import torch
-from ignite.engine import create_supervised_evaluator, create_supervised_trainer
+from ignite.engine import create_supervised_evaluator, \
+    create_supervised_trainer, Engine
 from ignite.metrics import Loss
 
+from imagedl.nn.update_funs import update_functions
 from .data import prepare_batch
 from .metric_handling import metrics_to_str, clean_metrics
 from ..data import Split
@@ -54,17 +56,21 @@ def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
 
 def create_trainer(config, device, split, own_split):
     model, optimizer_fn, criterion, checkpoint = config.model_config
-    # if DISTRIBUTED is not None:
-    #     model.to(DEVICE)
-    #     model = DistributedDataParallel(model, DISTRIBUTED)
     optimizer = optimizer_fn(model.parameters())
-    trainer = create_supervised_trainer(model, optimizer, criterion,
-                                        prepare_batch=prepare_batch,
-                                        device=device,
-                                        output_transform=lambda x, y, y_pred,
-                                                                loss: (
-                                            y_pred, y, loss.item()))
 
+    def output_transform(x, y, y_pred, loss):
+        return y_pred, y, loss.item()
+
+    if optimizer.__class__ in update_functions:
+        update = update_functions[optimizer.__class__](model, optimizer,
+                                                       criterion, device,
+                                                       output_transform,
+                                                       prepare_batch)
+        trainer = Engine(update)
+    else:
+        trainer = create_supervised_trainer(model, optimizer, criterion, device,
+                                            prepare_batch=prepare_batch,
+                                            output_transform=output_transform)
     if checkpoint is not None:
         print(f'Resume from {checkpoint}')
         obj = torch.load(str(checkpoint))
