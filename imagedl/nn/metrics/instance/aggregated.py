@@ -1,17 +1,18 @@
 import abc
 
 import torch
-from ignite.metrics.metric import Metric
 
 from .match_info import InstanceMatchInfo, ImageEvalResults
+from ..metric import UpgradedMetric
 
 
-class InstanceMetricAggregated(Metric, metaclass=abc.ABCMeta):
-    def __init__(self, imi: InstanceMatchInfo, iou_thresh=0.0, conf_thresh=0.0):
+class InstanceMetricAggregated(UpgradedMetric, metaclass=abc.ABCMeta):
+    def __init__(self, imi: InstanceMatchInfo, iou_thresh=0.0,
+                 conf_thresh=0.0, vis=False):
         self._imi = imi
         self._iou_thresh = iou_thresh
         self._conf_thresh = conf_thresh
-        super().__init__()
+        super().__init__(vis=vis)
 
     @property
     def n_classes(self):
@@ -25,11 +26,6 @@ class InstanceMetricAggregated(Metric, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def compute_one(self, res: ImageEvalResults):
         raise NotImplementedError()
-
-    def sum_class_agg(self, labels, values):
-        res = torch.zeros(self.n_classes if self.n_classes is not None else 1, device=values.device)
-        res.scatter_add_(0, labels, values)
-        return res
 
     def selection_target(self, res: ImageEvalResults):
         sel = res.target_to_pred != -1
@@ -48,14 +44,3 @@ class InstanceMetricAggregated(Metric, metaclass=abc.ABCMeta):
         if res.conf is not None:
             sel &= res.conf > self._conf_thresh
         return sel
-
-    @reinit__is_reduced
-    def reset(self):
-        pass
-
-    @reinit__is_reduced
-    def update(self, output):
-        pass
-
-    def mean(self):
-        return MeanMetric(self)

@@ -1,4 +1,3 @@
-from .aggregated import MeanMetric
 from .aji import AggregatedJaccardIndex
 from .average_precision import AveragePrecision
 from .average_recall import AverageRecall

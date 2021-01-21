@@ -2,7 +2,7 @@
 from typing import Tuple, NamedTuple
 
 import torch
-from ignite.metrics.metric import Metric, reinit__is_reduced
+from ignite.metrics.metric import Metric
 
 from imagedl.data.datasets.abstract import Transform
 
@@ -44,7 +44,6 @@ class InstanceMatchInfo(Metric):
         self._use_confidence = use_confidence
         super().__init__(output_transform=output_transform)
 
-    @reinit__is_reduced
     def reset(self) -> None:
         """Resets the metric"""
         self._apply_reset = True
@@ -54,7 +53,6 @@ class InstanceMatchInfo(Metric):
         self._apply_reset = False
         self._computed = None
 
-    @reinit__is_reduced
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         data = self._prepare(output)
