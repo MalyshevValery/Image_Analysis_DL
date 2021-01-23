@@ -1,3 +1,4 @@
+import logging
 from typing import Iterable
 
 import torch
@@ -33,7 +34,10 @@ def get_data_loaders(config, split):
     train_ds = SubDataset(dataset, split.train, transform=train_transform)
     val_ds = SubDataset(dataset, split.val, transform=test_transform)
     test_ds = SubDataset(dataset, split.test, transform=test_transform)
-    print(f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}')
+
+    info_str = f'Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}'
+    print(info_str)
+    logging.info(info_str)
 
     # if DISTRIBUTED is not None:
     #     train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -41,7 +45,8 @@ def get_data_loaders(config, split):
     # else:
     #     train_sampler = None
     train_dl = DataLoader(train_ds, batch_size, num_workers=WORKERS,
-                          sampler=train_sampler(train_ds) if train_sampler is not None else None,
+                          sampler=train_sampler(
+                              train_ds) if train_sampler is not None else None,
                           shuffle=train_sampler is None)
     val_dl = DataLoader(val_ds, test_batch_size, num_workers=WORKERS,
                         shuffle=True)
