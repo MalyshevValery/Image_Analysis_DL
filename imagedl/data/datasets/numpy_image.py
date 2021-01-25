@@ -12,7 +12,8 @@ image_ext = ['.png', '.jpg', '.jpeg']
 
 class NumpyImageDataset(AbstractDataset):
     def __init__(self, glob_: str, add_info=False,
-                 filename_transforms=None, transform: Transform = None):
+                 filename_transforms=None, path_transform=None,
+                 transform: Transform = None, ):
         super().__init__(transform=transform)
         self.paths: List[str] = glob.glob(glob_)
         self.filenames = [os.path.basename(f) for f in self.paths]
@@ -22,6 +23,9 @@ class NumpyImageDataset(AbstractDataset):
         if filename_transforms is not None:
             for k, v in filename_transforms.items():
                 self.info[k] = np.array([v(f) for f in self.filenames])
+        if path_transform is not None:
+            for k, v in path_transform.items():
+                self.info[k] = np.array([v(f) for f in self.paths])
 
     def __len__(self) -> int:
         return len(self.filenames)
