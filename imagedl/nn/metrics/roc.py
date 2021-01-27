@@ -18,9 +18,13 @@ class ROCCurve(UpgradedMetric):
     """
 
     def __init__(self, n_classes: int = 1,
-                 output_transform: Transform = lambda x: x):
+                 output_transform: Transform = lambda x: x,
+                 multilabel: bool = False):
         super().__init__(output_transform, True)
         self._n_classes = n_classes
+        self._multilabel = multilabel
+        if n_classes == 1 and self._multilabel:
+            raise ValueError('For multilabel number of classes must exceed 1')
         self._values: List[torch.Tensor] = []
         self._targets: List[torch.Tensor] = []
 
@@ -31,7 +35,7 @@ class ROCCurve(UpgradedMetric):
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         logits, targets = output
-        if self._is_binary == 1:
+        if self._is_binary == 1 or self._multilabel:
             probs = torch.sigmoid(logits.detach())
         else:
             probs = torch.softmax(logits.detach(), 1)
@@ -46,7 +50,10 @@ class ROCCurve(UpgradedMetric):
         tprs = []
         fprs = []
         for cls in range(0, self._n_classes):
-            tar: torch.Tensor = 1.0 * (targets == cls)
+            if self._multilabel:
+                tar: torch.Tensor = targets[:, cls]
+            else:
+                tar: torch.Tensor = 1.0 * (targets == cls)
             dat = values[:, cls]
             _sorted = torch.zeros(dat.shape[0] + 1)
             _sorted[1:] = tar[torch.argsort(-dat)]
