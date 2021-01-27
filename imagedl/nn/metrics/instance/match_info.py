@@ -2,9 +2,9 @@
 from typing import Tuple, NamedTuple
 
 import torch
-from ignite.metrics.metric import Metric
 
 from imagedl.data.datasets.abstract import Transform
+from imagedl.nn.metrics.metric import UpgradedMetric
 
 
 class ImageEvalResults(NamedTuple):
@@ -24,7 +24,7 @@ class ImageEvalResults(NamedTuple):
     conf: torch.Tensor
 
 
-class InstanceMatchInfo(Metric):
+class InstanceMatchInfo(UpgradedMetric):
     """
     Confusion matrix with quantifying
 
@@ -35,22 +35,16 @@ class InstanceMatchInfo(Metric):
     def __init__(self, n_classes=None,
                  output_transform: Transform = lambda x: x,
                  use_confidence=False, device='cpu'):
+        super().__init__(output_transform=output_transform)
         assert n_classes is None or n_classes > 1
         self._results = []
         self._device = device
         self._computed = None
-        self._apply_reset = False
         self._n_classes = n_classes
         self._use_confidence = use_confidence
-        super().__init__(output_transform=output_transform)
-
-    def reset(self) -> None:
-        """Resets the metric"""
-        self._apply_reset = True
 
     def _reset(self) -> None:
         self._results.clear()
-        self._apply_reset = False
         self._computed = None
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
@@ -213,6 +207,13 @@ class InstanceMatchInfo(Metric):
         if full:
             return self._computed
         else:
+            val = (self._computed.target_to_pred != -1).float().mean().item()
+            if torch.isnan((self._computed.target_to_pred != -1).float(
+
+            ).mean()):
+                print(val)
+                print(self._computed)
+                print(to_cat)
             return (self._computed.target_to_pred != -1).float().mean().item()
 
     def _prepare(self, data):
@@ -227,9 +228,6 @@ class InstanceMatchInfo(Metric):
             if logits_class.shape[1] != self._n_classes and logits_class.shape[1] != 1:
                 return None
             targets_class = self.__prepare_tensor(logits_class, targets_class)
-
-        if self._apply_reset:
-            self._reset()
         return logits_inst, logits_class, logits_conf, targets_inst, targets_class
 
     @property
