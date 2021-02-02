@@ -67,9 +67,11 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> \
         s = sobel(grad_gauss_filter).to(np.device)
 
         sobel_h = torch.conv2d(h, s[None, None, ...])
-        sobel_h = nn.functional.pad(sobel_h, [grad_gauss_filter // 2] * 4)
+        sobel_h = nn.functional.pad(sobel_h, [grad_gauss_filter // 2] * 4,
+                                    'replicate')
         sobel_v = torch.conv2d(v, s.T[None, None, ...])
-        sobel_v = nn.functional.pad(sobel_v, [grad_gauss_filter // 2] * 4)
+        sobel_v = nn.functional.pad(sobel_v, [grad_gauss_filter // 2] * 4,
+                                    'replicate')
 
         sobel_h = 1 - batch_min_max(sobel_h)
         sobel_v = 1 - batch_min_max(sobel_v)
@@ -112,11 +114,14 @@ def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor,
     for j in range(1, max_inst + 1):
         inst_map = instance_map == j
         ys, xs = torch.where(inst_map)
-        clazz, counts = classes[ys, xs].unique(sorted=True, return_counts=True)
         if len(ys) == 0:
             continue
+        clazz, counts = classes[ys, xs].unique(sorted=True, return_counts=True)
         clazz = clazz[counts.argmax()].item()
-        clazz /= (n_classes - 1)
+        if n_classes > 1:
+            clazz /= (n_classes - 1)
+        else:
+            clazz = 0
         colour = colour_map(clazz)[:-1]
         if len(ys) == 0:
             continue
