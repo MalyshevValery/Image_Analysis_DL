@@ -35,11 +35,12 @@ class HoverLoss(nn.Module):
                                         self.losses['NC_Dice'])
             self.__map[c] = self.nc_loss
             c += 1
+        self.cnt = c
 
     def forward(self, logits: Tuple[torch.Tensor, ...],
                 targets: Tuple[torch.Tensor, ...]) -> torch.Tensor:
         """Calculate loss"""
-        loss = self.__map[0](logits[0], targets[0])
-        for i in range(1, len(logits)):
+        loss = 0
+        for i in range(0, self.cnt):
             loss += self.__map[i](logits[i], targets[i])
         return loss
