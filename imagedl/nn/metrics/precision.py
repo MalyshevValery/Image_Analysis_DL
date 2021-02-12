@@ -31,7 +31,10 @@ class Precision(UpgradedMetric):
         device = logits.device
 
         if not self._multi_label:
-            pred = logits.argmax(1)
+            if self._n_classes > 1:
+                pred = logits.argmax(1)
+            else:
+                pred = 1 * (logits > 0)
             tp: torch.Tensor = pred == targets
             values = torch.ones(int(tp.sum()), device=device)
             self._tp += sum_class_agg(targets[tp], values, self._n_classes)

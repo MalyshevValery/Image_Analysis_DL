@@ -18,4 +18,8 @@ class F1Score(UpgradedMetric):
         """Computes F1 score with precision and recall"""
         pr = self._prec.compute()
         rec = self._rec.compute()
-        return 2 * (pr * rec) / (pr + rec + 1e-7)
+        res = 2 * (pr * rec) / (pr + rec + 1e-7)
+        if res.shape[0] == 1:
+            return res[0]
+        else:
+            return res

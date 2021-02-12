@@ -35,7 +35,7 @@ class ROCCurve(UpgradedMetric):
     def _update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Updates the metric"""
         logits, targets = output
-        if self._is_binary == 1 or self._multilabel:
+        if self._n_classes == 1 or self._multilabel:
             probs = torch.sigmoid(logits.detach())
         else:
             probs = torch.softmax(logits.detach(), 1)
@@ -49,19 +49,34 @@ class ROCCurve(UpgradedMetric):
         targets = torch.cat(self._targets, 0)
         tprs = []
         fprs = []
-        for cls in range(0, self._n_classes):
-            if self._multilabel:
-                tar: torch.Tensor = targets[:, cls]
-            else:
-                tar: torch.Tensor = 1.0 * (targets == cls)
-            dat = values[:, cls]
-            _sorted = torch.zeros(dat.shape[0] + 1)
-            _sorted[1:] = tar[torch.argsort(-dat)]
-            tprs.append(torch.cumsum(_sorted, 0) / (tar.sum() + 1e-7))
-            _sorted[1:] = 1 - _sorted[1:]
-            fprs.append(torch.cumsum(_sorted, 0) / (len(tar) - tar.sum() +
-                                                    1e-7))
-        return torch.stack([torch.stack(tprs), torch.stack(fprs)])
+        if self._n_classes == 1:
+            tpr, fpr = self.__calc_class(targets, values)
+            tprs = tpr[None]
+            fprs = fpr[None]
+        else:
+            for cls in range(0, self._n_classes):
+                if self._multilabel:
+                    tar: torch.Tensor = targets[:, cls]
+                else:
+                    tar: torch.Tensor = 1.0 * (targets == cls)
+                if len(values.shape) == 1:
+                    dat = values
+                else:
+                    dat = values[:, cls]
+                tpr, fpr = self.__calc_class(tar, dat)
+                tprs.append(tpr)
+                fprs.append(fpr)
+            tprs, fprs = torch.stack(tprs), torch.stack(fprs)
+        return torch.stack([tprs, fprs])
+
+    def __calc_class(self, tar: torch.Tensor,
+                     val: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        _sorted = torch.zeros(val.shape[0] + 1)
+        _sorted[1:] = tar[torch.argsort(-val)]
+        tpr = torch.cumsum(_sorted, 0) / (tar.sum() + 1e-7)
+        _sorted[1:] = 1 - _sorted[1:]
+        fpr = torch.cumsum(_sorted, 0) / (len(tar) - tar.sum() + 1e-7)
+        return tpr, fpr
 
     def visualize(self, value: torch.Tensor, legend: List[str] = None) -> None:
         """Visualizing of ROC curve
