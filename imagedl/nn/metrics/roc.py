@@ -71,7 +71,7 @@ class ROCCurve(UpgradedMetric):
 
     def __calc_class(self, tar: torch.Tensor,
                      val: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        _sorted = torch.zeros(val.shape[0] + 1)
+        _sorted = torch.zeros(val.shape[0] + 1, device=tar.device)
         _sorted[1:] = tar[torch.argsort(-val)]
         tpr = torch.cumsum(_sorted, 0) / (tar.sum() + 1e-7)
         _sorted[1:] = 1 - _sorted[1:]
@@ -91,7 +91,7 @@ class ROCCurve(UpgradedMetric):
             label = f'{auc[i]:.3f}'
             if legend is not None:
                 label += f' - {legend[i]}'
-            plt.plot(fprs[i], tprs[i], label=label)
+            plt.plot(fprs[i].cpu(), tprs[i].cpu(), label=label)
 
         plt.title(f'{(auc.sum() / self._n_classes):.4f}')
         plt.legend()

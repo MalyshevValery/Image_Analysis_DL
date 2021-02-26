@@ -56,6 +56,7 @@ def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
 
 def create_trainer(config, device, split, own_split):
     model, optimizer_fn, criterion, checkpoint = config.model_config
+    model = model.to(device)
     optimizer = optimizer_fn(model.parameters())
 
     def output_transform(x, y, y_pred, loss):
