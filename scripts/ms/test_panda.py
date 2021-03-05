@@ -1,5 +1,6 @@
 """PANDA Test script"""
 from pathlib import Path
+from time import time
 from typing import Tuple
 
 import geffnet
@@ -37,12 +38,20 @@ class NetConf(nn.Module):
 
 
 # Configuration
-LEVEL = 1
+LEVEL = 0
 TILE_SIZE = 256
-STEP = 128
-NET = NetConf(5)
-CHECKPOINT = '/home/malyshevvalery/MS/2021-02-15_PAN1_Conf/best_checkpoint_AUC_Class_mean=0.9764999151229858.pth'
+STEP = 256
+NET = geffnet.efficientnet_b7(num_classes=5)
+CHECKPOINT = '/home/malyshevvalery/MS/2021-01-23_PAN0_Class/best_checkpoint_AUC_mean=0.9471410512924194.pth'
 DEVICE = 'cuda:1'
+
+
+def agg_count(arr: np.ndarray, n: int = 6) -> np.ndarray:
+    """Count aggregation"""
+    res = np.zeros(n)
+    unq, cnt = np.unique(arr, return_counts=True)
+    res[unq] = cnt
+    return res
 
 
 def true(image: OpenSlide, mask: OpenSlide,
@@ -54,13 +63,13 @@ def true(image: OpenSlide, mask: OpenSlide,
     st_l = int(step * ds / mask.level_downsamples[2])
     mask_thumb = np.array(mask.read_region((0, 0), 2, mask.level_dimensions[2]))
     mask_thumb = mask_thumb[..., 0]
-    plt.imshow(mask_thumb, cmap=cmap)
-    plt.show()
+    # plt.imshow(mask_thumb, cmap=cmap)
+    # plt.show()
     excluded = roll(mask_thumb == 0, ts_l, st_l).mean(axis=(2, 3))
     result = np.zeros(excluded.shape, dtype=np.uint8)
     rows, cols = np.where(excluded < 0.3)
 
-    for rr, cc in tqdm(zip(rows, cols), total=len(rows)):
+    for rr, cc in zip(rows, cols):
         # Read data from a proper region
         x = cc * step * ds
         y = rr * step * ds
@@ -94,12 +103,12 @@ def predicted(image: OpenSlide, level: int, step: int) -> np.ndarray:
     image_thumb = np.array(image_thumb)[..., :3]
     white_dist = np.sqrt(np.sum((image_thumb / 255) ** 2, axis=2)) > 1.5
     excluded = roll(white_dist, ts_l, st_l).mean(axis=(2, 3))
-    result = np.zeros(excluded.shape + (5,), dtype=np.uint8)
+    result = np.zeros(excluded.shape + (5,), dtype=np.float32)
     rows, cols = np.where(excluded < 0.3)
 
     coords = []
     tiles = []
-    for rr, cc in tqdm(zip(rows, cols), total=len(rows)):
+    for rr, cc in zip(rows, cols):
         # Read data from a proper region
         x = cc * step * ds
         y = rr * step * ds
@@ -115,10 +124,11 @@ def predicted(image: OpenSlide, level: int, step: int) -> np.ndarray:
     tiles_arr = np.stack(tiles)
     input_data = torch.tensor(tiles_arr / 255 - 0.5).float().permute(0, 3, 1, 2)
     classes = []
-    for bi in tqdm(range(0, input_data.shape[0], 4)):
-        logits, conf_logits = NET(input_data[bi:bi + 4].to(DEVICE))
+    for bi in range(0, input_data.shape[0], 4):
+        logits = NET(input_data[bi:bi + 4].to(DEVICE))
+        # logits, conf_logits = NET(input_data[bi:bi + 4].to(DEVICE))
         clazz = torch.softmax(logits, 1).detach().cpu().numpy()
-        conf = torch.sigmoid(conf_logits).cpu()
+        # conf = torch.sigmoid(conf_logits).cpu()
         classes.append(clazz)
     class_arr = np.concatenate(classes)
     result[coords_arr[:, 0], coords_arr[:, 1]] = class_arr
@@ -129,7 +139,7 @@ if __name__ == '__main__':
     INPUT_DIR = Path('/hdd_barracuda2/PANDA/PANDA_raw')
     IMG_DIR = INPUT_DIR / 'train_images'
     MASK_DIR = INPUT_DIR / 'train_label_masks'
-    NET.load_state_dict(torch.load(CHECKPOINT)['model'])
+    NET.load_state_dict(torch.load(CHECKPOINT, map_location=DEVICE)['model'])
     NET.to(DEVICE)
     NET.eval()
     cmap = ListedColormap(['black', 'cyan', 'blue', 'green', 'yellow', 'red'])
@@ -143,70 +153,60 @@ if __name__ == '__main__':
     df['gleason2'] = df['gleason_score'].str[2].astype(int)
     df_rad = df[df['data_provider'] == 'radboud']
     df_rad = df_rad[df_rad['isup_grade'] > 0]
-    print(df_rad.head().T)
 
-    i, row = next(df_rad.iterrows())
-    image_id = row['image_id']
-    slide = OpenSlide(str(IMG_DIR / (image_id + '.tiff')))
-    slide_mask = OpenSlide(str(MASK_DIR / (image_id + '_mask.tiff')))
+    f1_names = ['f1_norm', 'f1_epi', 'f1_gl3', 'f1_gl4', 'f1_gl5']
+    res_df = pd.DataFrame(columns=['id', 'acc', 'time'] + f1_names,
+                          dtype=np.float32)
+    res_df['id'] = res_df['id'].astype(str)
+    for i, row in tqdm(df_rad.iterrows(), total=len(df_rad)):
+        image_id = row['image_id']
+        slide = OpenSlide(str(IMG_DIR / (image_id + '.tiff')))
+        slide_mask = OpenSlide(str(MASK_DIR / (image_id + '_mask.tiff')))
 
-    true_mask = true(slide, slide_mask, 0, TILE_SIZE)
-    predicted_mask = predicted(slide, 1, STEP)
-    print(true_mask.shape, predicted_mask.shape)
-    slide.close()
+        true_mask = true(slide, slide_mask, 0, TILE_SIZE)
+        # ---------------------
+        try:
+            st = time()
+            pred = predicted(slide, LEVEL, STEP)
+            slide.close()
+            #
+            # pred = pred.repeat(2, 0).repeat(2, 1)
+            # pred = np.concatenate([pred[:1], (pred[1:-1:2] + pred[2:-1:2]) / 2,
+            #                        pred[-1:]])
+            # pred = np.concatenate(
+            #     [pred[:, :1], (pred[:, 1:-1:2] + pred[:, 2:-1:2]) / 2,
+            #      pred[:, -1:]], axis=1)
+            # pred = pred.repeat(2, 0).repeat(2, 1)
+            pred_classes = np.argmax(pred, 2) + 1
+            pred_classes[pred.sum(2) == 0] = 0
+            diff = time() - st
+        except Exception as e:
+            print(e)
+        # -------------------------
 
-    plt.figure(figsize=(10, 20))
-    plt.subplot(121)
-    plt.imshow(true_mask / 5, cmap=cmap)
-    plt.subplot(122)
-    # plt.imshow(predicted_mask / 5, cmap=cmap)
-    plt.show()
+        plt.figure(figsize=(10, 20))
+        plt.autoscale(False)
+        plt.subplot(121)
+        plt.imshow(true_mask, cmap=cmap, vmin=0, vmax=5)
+        plt.subplot(122)
+        plt.imshow(pred_classes, cmap=cmap, vmin=0, vmax=5)
+        plt.show()
 
-    # prepare empty mask
-    # predict on it
-    # measure time
-    # measure score
-    # TODO: level 0 always but we can predict 1
-
-# (repeated[1:-1:2] + repeated[2:-1:2])/2).shape
-# Out[5]: (47, 20, 5
-# r1 = np.concatenate([repeated[:1],(repeated[1:-1:2] + repeated[2:-1:2])/2,repeated[-2:]])
-# r1.shape
-# Out[7]: (50, 20, 5)
-# r1 = np.concatenate([repeated[:1],(repeated[1:-1:2] + repeated[2:-1:2])/2,
-#                      repeated[-1:]])
-# r1.shape
-# Out[9]: (49, 20, 5)
-# r2 = np.concatenate([r1[:,0],(r1[:,1:-1:2] + r1[:,2:-1:2])/2,
-#                      r1[:,-1:]],axis=1)
-# Traceback (most recent call last):
-#   File "/home/malyshevvalery/.pyenv/versions/imagedl/lib/python3.9/site-packages/IPython/core/interactiveshell.py", line 3427, in run_code
-#     exec(code_obj, self.user_global_ns, self.user_ns)
-#   File "<ipython-input-10-2d079e572222>", line 1, in <module>
-#     r2 = np.concatenate([r1[:,0],(r1[:,1:-1:2] + r1[:,2:-1:2])/2,
-#   File "<__array_function__ internals>", line 5, in concatenate
-# ValueError: all the input arrays must have same number of dimensions, but the array at index 0 has 2 dimension(s) and the array at index 1 has 3 dimension(s)
-# r2 = np.concatenate([r1[:,:1],(r1[:,1:-1:2] + r1[:,2:-1:2])/2,
-#                      r1[:,-1:]],axis=1)
-# r2.shape
-# Out[12]: (49, 11, 5)
-# final = r2.repeat(2,0).repeat(2,1)
-# plt.imshow(final)
-# Traceback (most recent call last):
-#   File "/home/malyshevvalery/.pyenv/versions/imagedl/lib/python3.9/site-packages/IPython/core/interactiveshell.py", line 3427, in run_code
-#     exec(code_obj, self.user_global_ns, self.user_ns)
-#   File "<ipython-input-14-72cd99784291>", line 1, in <module>
-#     plt.imshow(final)
-#   File "/home/malyshevvalery/.pyenv/versions/imagedl/lib/python3.9/site-packages/matplotlib/pyplot.py", line 2724, in imshow
-#     __ret = gca().imshow(
-#   File "/home/malyshevvalery/.pyenv/versions/imagedl/lib/python3.9/site-packages/matplotlib/__init__.py", line 1447, in inner
-#     return func(ax, *map(sanitize_sequence, args), **kwargs)
-#   File "/home/malyshevvalery/.pyenv/versions/imagedl/lib/python3.9/site-packages/matplotlib/axes/_axes.py", line 5523, in imshow
-#     im.set_data(X)
-#   File "/home/malyshevvalery/.pyenv/versions/imagedl/lib/python3.9/site-packages/matplotlib/image.py", line 711, in set_data
-#     raise TypeError("Invalid shape {} for image data"
-# TypeError: Invalid shape (98, 22, 5) for image data
-# finall = final.argmax(2) + 1
-# plt.imshow(finall, cmap=cmap)
-# Out[16]: <matplotlib.image.AxesImage at 0x7fa772613ac0>
-# plt.show()
+        true_mask = true_mask[:pred_classes.shape[0], :pred_classes.shape[1]]
+        trues = true_mask.ravel()
+        predictions = pred_classes.ravel()
+        tp = agg_count(trues[trues == predictions])
+        p = agg_count(predictions)
+        t = agg_count(trues)
+        print(p, t)
+        prec = tp / p
+        rec = tp / t
+        acc = tp.sum() / p.sum()
+        f1 = 2 * (prec * rec) / (prec + rec)
+        to_add = {k: v for k, v in zip(f1_names, f1)}
+        to_add['id'] = image_id
+        to_add['acc'] = acc
+        to_add['time'] = diff
+        res_df = res_df.append(to_add, ignore_index=True)
+        break
+    # res_df.to_csv(f'Slide_Prediction_Results_Lvl{LEVEL}.csv', index=None)
