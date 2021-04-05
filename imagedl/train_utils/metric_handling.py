@@ -44,5 +44,8 @@ def metrics_to_str(metrics: Dict[str, Metric],
     metric_values = clean_metrics(metrics, metric_values, legend)
     res = []
     for s in sorted(metric_values.keys()):
-        res.append(f'{s}: {metric_values[s]:.3f}')
+        try:
+            res.append(f'{s}: {metric_values[s]:.3f}')
+        except TypeError:
+            pass
     return ' '.join(res)

@@ -90,21 +90,23 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         progress_bar.log_message('Validation ' + print_str)
         progress_bar.n = progress_bar.last_print_n = 0
 
-    mul = 1 if eval_metric[0] != '-' else -1
-    eval_metric = eval_metric[1:] if eval_metric[0] == '-' else eval_metric
-
-    def score_function(engine) -> object:
-        """Score function for model"""
-        return mul * val_eval.state.metrics[eval_metric]
-
     handlers = [
-        ModelCheckpoint(str(config.job_dir), 'best',
-                        score_function=score_function,
-                        score_name=eval_metric),
         ModelCheckpoint(str(config.job_dir), 'latest')
     ]
-    if patience is not None:
-        handlers.append(EarlyStopping(patience, score_function, trainer))
+    if eval_metric is not None:
+        mul = 1 if eval_metric[0] != '-' else -1
+        eval_metric = eval_metric[1:] if eval_metric[0] == '-' else eval_metric
+
+        def score_function(engine) -> object:
+            """Score function for model"""
+            return mul * val_eval.state.metrics[eval_metric]
+
+        best_checkpoint = ModelCheckpoint(str(config.job_dir), 'best',
+                                          score_function=score_function,
+                                          score_name=eval_metric)
+        handlers.append(best_checkpoint)
+        if patience is not None:
+            handlers.append(EarlyStopping(patience, score_function, trainer))
 
     dict_to_save = {
         'model': model,
@@ -119,13 +121,14 @@ def train_handlers(config, trainer, val_eval, model, optimizer, split, val_dl,
         else:
             trainer.add_event_handler(Events.EPOCH_COMPLETED, handler)
 
-    @trainer.on(Events.COMPLETED)
-    def reload_best(engine):
-        """Reloads best checkpoint"""
-        best_checkpoint_handler = handlers[1]
-        filename = best_checkpoint_handler.last_checkpoint
-        if test_load_best:
-            print('Loading best model...')
-            model.load_state_dict(torch.load(filename)['model'])
+    if eval_metric is not None:
+        @trainer.on(Events.COMPLETED)
+        def reload_best(engine):
+            """Reloads best checkpoint"""
+            best_checkpoint_handler = handlers[1]
+            filename = best_checkpoint_handler.last_checkpoint
+            if test_load_best:
+                print('Loading best model...')
+                model.load_state_dict(torch.load(filename)['model'])
 
     return progress_bar
