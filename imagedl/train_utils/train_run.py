@@ -1,9 +1,8 @@
+"""Training algorithm"""
 from pathlib import Path
 
 import pandas as pd
 import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
 
 from imagedl.config import Config
 from imagedl.data import Split
@@ -13,11 +12,12 @@ from .handlers import tensorboard_logger, train_handlers
 
 
 def train_run(config: Config, split: Split, job_dir: Path,
-              device, own_split: bool) -> pd.DataFrame:
+              device: torch.device, own_split: bool) -> pd.DataFrame:
     """Training procedure depending on split"""
-    job_dir.mkdir(parents=True, exist_ok=True)
+    job_dir.mkdir(parents=True, exist_ok=True)  # Needed in case of KFold
     model, optimizer, criterion, split, trainer = create_trainer(config, device,
-                                                                 split, own_split)
+                                                                 split,
+                                                                 own_split)
     epochs, *_ = config.train
     train_dl, val_dl, test_dl = get_data_loaders(config, split)
 
@@ -37,23 +37,7 @@ def train_run(config: Config, split: Split, job_dir: Path,
         return df
 
 
-def process_run(rank, distributed, config: Config, split: Split, job_dir: Path):
-    print(f"Running Distributed on {rank}:{distributed[rank]}.")
-    world_size = len(distributed)
-    device = distributed[rank]
-    torch.cuda.set_device(device)
-    dist.init_process_group("nccl", init_method='file:///tmp/nccl.dat',
-                            world_size=world_size, rank=rank)
-    train_run(config, split, job_dir, device)
-    dist.destroy_process_group()
-
-
-def dist_training(distributed, config: Config, split: Split, job_dir: Path):
-    mp.spawn(process_run, args=(
-        distributed, config, split, job_dir
-    ), nprocs=len(distributed))
-
-
-def single_training(device, config: Config, split: Split,
-                    job_dir: Path, own_split: bool):
+def single_training(device: torch.device, config: Config, split: Split,
+                    job_dir: Path, own_split: bool) -> pd.DataFrame:
+    """Training on a single GPU TODO: Add distributed training"""
     return train_run(config, split, job_dir, device, own_split)
