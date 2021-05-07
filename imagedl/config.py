@@ -2,11 +2,13 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from shutil import copyfile
-from typing import NamedTuple, Type, Dict, List, Callable, Optional, Any
+from typing import NamedTuple, Dict, List, Callable, Optional, Any, Iterator
 
 import numpy as np
 from torch import Tensor
 from torch import nn
+from torch.nn import Parameter
+from torch.optim import Optimizer
 from torch.utils.data import Sampler
 
 from imagedl.data import Split
@@ -16,7 +18,7 @@ from imagedl.data.datasets.abstract import AbstractDataset, Transform, DataType
 class ModelConfig(NamedTuple):
     """Config for model, criterion and optimizer"""
     model: nn.Module
-    optimizer: Type[object]
+    optimizer: Callable[[Iterator[Parameter]], Optimizer]
     criterion: nn.Module
     path_to_checkpoint: Optional[Path]  # None if you're not resuming
 

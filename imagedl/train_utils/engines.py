@@ -1,13 +1,19 @@
+"""Create training and evaluation engines"""
+from typing import Tuple, Any
+
 import pandas as pd
 import torch
-from ignite.engine import create_supervised_evaluator, \
-    create_supervised_trainer, Engine
+from ignite.engine import (create_supervised_evaluator,
+                           create_supervised_trainer, Engine)
 from ignite.metrics import Loss
+from torch import Tensor
 
+from imagedl import Config
+from imagedl.data import Split
 from imagedl.nn.update_funs import update_functions
 from .data import prepare_batch
+from .logger import info
 from .metric_handling import metrics_to_str, clean_metrics
-from ..data import Split
 
 
 def evaluator(test_config, criterion, model, device):
@@ -54,31 +60,34 @@ def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
     return df
 
 
-def create_trainer(config, device, split, own_split):
+def create_trainer(config: Config, device: torch.device, split: Split,
+                   own_split: bool) -> Tuple[Any, ...]:
+    """Create training engine & load checkpoint"""
+    ret_type = Tuple[Tensor, Tensor, float]
+
+    def output_transform(x: Tensor, y: Tensor,
+                         y_pred: Tensor, loss: Tensor) -> ret_type:
+        """What trainer returns to metrics at each step"""
+        return y_pred, y, loss.item()
+
     model, optimizer_fn, criterion, checkpoint = config.model_config
     model = model.to(device)
     optimizer = optimizer_fn(model.parameters())
-
-    def output_transform(x, y, y_pred, loss):
-        return y_pred, y, loss.item()
-
     if optimizer.__class__ in update_functions:
-        update = update_functions[optimizer.__class__](model, optimizer,
-                                                       criterion, device,
-                                                       output_transform,
-                                                       prepare_batch)
+        update_function = update_functions[optimizer.__class__]
+        update = update_function(model, optimizer, criterion, device,
+                                 output_transform, prepare_batch)
         trainer = Engine(update)
     else:
         trainer = create_supervised_trainer(model, optimizer, criterion, device,
                                             prepare_batch=prepare_batch,
                                             output_transform=output_transform)
     if checkpoint is not None:
-        print(f'Resume from {checkpoint}')
+        info(f'Resume from {checkpoint}')
         obj = torch.load(str(checkpoint))
         model.load_state_dict(obj['model'])
         optimizer.load_state_dict(obj['optimizer'])
         trainer.load_state_dict(obj['trainer'])
         if not own_split:
             split = Split.load_state_dict(obj['split'])
-
     return model, optimizer, criterion, split, trainer

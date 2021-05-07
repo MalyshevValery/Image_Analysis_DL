@@ -1,5 +1,5 @@
 """Classes for data splitting"""
-from typing import NamedTuple, Tuple, List, Generator
+from typing import NamedTuple, Tuple, List, Generator, Mapping
 
 import numpy as np
 import torch
@@ -21,7 +21,7 @@ class Split(NamedTuple):
         }
 
     @staticmethod
-    def load_state_dict(state_dict):
+    def load_state_dict(state_dict: Mapping):
         return Split(
             train=state_dict['train'].numpy(),
             val=state_dict['val'].numpy(),
