@@ -2,8 +2,7 @@
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
 from shutil import copyfile
-from typing import (NamedTuple, Sequence, Type, Dict, List,
-                    Callable, Optional, Any)
+from typing import NamedTuple, Type, Dict, List, Callable, Optional, Any
 
 import numpy as np
 from torch import Tensor
@@ -25,7 +24,7 @@ class ModelConfig(NamedTuple):
 class DataConfig(NamedTuple):
     """Dataset, transforms and groups for split"""
     dataset: AbstractDataset
-    groups: Sequence[object]
+    groups: Optional[np.ndarray]
     train_transform: Transform
     test_transform: Transform
     train_sampler_constructor: Optional[
