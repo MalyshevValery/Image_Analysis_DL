@@ -1,9 +1,10 @@
 """Config for training"""
 from abc import ABCMeta, abstractmethod
 from pathlib import Path
-from typing import NamedTuple, Sequence, Type, Dict, List, Callable, Optional
+from shutil import copyfile
+from typing import (NamedTuple, Sequence, Type, Dict, List,
+                    Callable, Optional, Any)
 
-import ignite
 import numpy as np
 from torch import Tensor
 from torch import nn
@@ -27,7 +28,8 @@ class DataConfig(NamedTuple):
     groups: Sequence[object]
     train_transform: Transform
     test_transform: Transform
-    train_sampler_constructor: Optional[Callable[[AbstractDataset], Sampler]]
+    train_sampler_constructor: Optional[
+        Callable[[AbstractDataset], Sampler[int]]]
     split: Optional[Split]
 
 
@@ -41,7 +43,7 @@ class TrainConfig(NamedTuple):
 
 class TestConfig(NamedTuple):
     """Config for metrics and testing"""
-    metrics: Dict[str, ignite.metrics.Metric]
+    metrics: Dict[str, Any]
     eval_metric: str
     test_best_model: bool
     train_metric_names: Optional[List[str]]
@@ -50,8 +52,11 @@ class TestConfig(NamedTuple):
 class Config(metaclass=ABCMeta):
     """Configuration for training procedure"""
 
-    def __init__(self, job_dir: Path) -> None:
+    def __init__(self, job_dir: Path, project_name: str) -> None:
         self.job_dir = job_dir
+        self.project_name = project_name
+        self.job_dir.mkdir(parents=True, exist_ok=True)
+        copyfile(__file__, self.job_dir / 'config.py')
 
     @property
     @abstractmethod

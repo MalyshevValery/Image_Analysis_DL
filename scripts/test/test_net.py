@@ -1,5 +1,4 @@
 from datetime import datetime
-from shutil import copyfile
 from typing import Tuple
 
 import torch
@@ -107,6 +106,4 @@ class TestNetConfig(Config):
 
 if __name__ == '__main__':
     config = TestNetConfig()
-    config.job_dir.mkdir(parents=True, exist_ok=True)
-    copyfile(__file__, config.job_dir / 'config.py')
     main_train(config, 0.8, 0.1, 0.1)
