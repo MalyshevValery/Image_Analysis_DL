@@ -7,9 +7,8 @@ import pandas as pd
 
 from imagedl.config import Config
 from imagedl.data import Splitter, Split
-from .train_utils import single_training
+from .train_utils import single_training, setup_logger, info, error
 from .utility_config import DEVICE
-from .utils.logger import setup_logger, info, error
 
 
 def train(config: Config, split: Split,

@@ -1,5 +1,6 @@
 """Training algorithm"""
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import torch
@@ -12,7 +13,7 @@ from .handlers import tensorboard_logger, train_handlers
 
 
 def train_run(config: Config, split: Split, job_dir: Path,
-              device: torch.device, own_split: bool) -> pd.DataFrame:
+              device: torch.device, own_split: bool) -> Optional[pd.DataFrame]:
     """Training procedure depending on split"""
     job_dir.mkdir(parents=True, exist_ok=True)  # Needed in case of KFold
     model, optimizer, criterion, split, trainer = create_trainer(config, device,
@@ -35,9 +36,11 @@ def train_run(config: Config, split: Split, job_dir: Path,
                       tb_logger, trainer)
 
         return df
+    else:
+        return None
 
 
 def single_training(device: torch.device, config: Config, split: Split,
-                    job_dir: Path, own_split: bool) -> pd.DataFrame:
+                    job_dir: Path, own_split: bool) -> Optional[pd.DataFrame]:
     """Training on a single GPU TODO: Add distributed training"""
     return train_run(config, split, job_dir, device, own_split)
