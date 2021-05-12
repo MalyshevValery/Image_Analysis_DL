@@ -6,9 +6,10 @@ import torch
 from ignite.engine import (create_supervised_evaluator,
                            create_supervised_trainer, Engine)
 from ignite.metrics import Loss
-from torch import Tensor
+from torch import Tensor, nn
 
 from imagedl import Config
+from imagedl.config import TestConfig
 from imagedl.data import Split
 from imagedl.nn.update_funs import update_functions
 from .data import prepare_batch
@@ -16,14 +17,15 @@ from .logger import info
 from .metric_handling import metrics_to_str, clean_metrics
 
 
-def evaluator(test_config, criterion, model, device):
+def evaluator(test_config: TestConfig, criterion: nn.Module, model: nn.Module,
+              device: torch.device) -> Engine:
+    """Create evaluator for validation"""
     metrics, eval_metric, *_ = test_config
     metrics['loss'] = Loss(criterion,
                            output_transform=lambda data: (data[0], data[1]))
-    evaluator = create_supervised_evaluator(model, metrics, device,
-                                            prepare_batch=prepare_batch,
-                                            non_blocking=True)
-    return evaluator
+    val_evaluator = create_supervised_evaluator(model, metrics, device,
+                                                prepare_batch=prepare_batch)
+    return val_evaluator
 
 
 def evaluate(config, test_dl, test_split, criterion, progress_bar, model,

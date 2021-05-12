@@ -9,7 +9,8 @@ from imagedl.config import Config
 from imagedl.data import Split
 from .data import get_data_loaders
 from .engines import evaluate, evaluator, create_trainer
-from .handlers import tensorboard_logger, train_handlers
+from .tensorboard import tensorboard_logger
+from .train_handlers import train_handlers
 
 
 def train_run(config: Config, split: Split, job_dir: Path,
