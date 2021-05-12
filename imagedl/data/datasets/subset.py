@@ -1,5 +1,7 @@
 """SubDataset"""
-from typing import Sequence
+from typing import Sequence, Union
+
+import numpy as np
 
 from .abstract import AbstractDataset, DataType, Transform
 
@@ -13,7 +15,8 @@ class SubDataset(AbstractDataset):
     :param transform: Data transform
     """
 
-    def __init__(self, source: AbstractDataset, indexes: Sequence[int],
+    def __init__(self, source: AbstractDataset,
+                 indexes: Union[np.ndarray, Sequence[int]],
                  transform: Transform = None):
         super().__init__(transform=transform)
         self.source = source
