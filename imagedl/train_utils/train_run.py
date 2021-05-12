@@ -26,16 +26,14 @@ def train_run(config: Config, split: Split, job_dir: Path,
     val_evaluator = evaluator(config.test, criterion, model, device)
     tb_logger = tensorboard_logger(trainer, val_evaluator, model, config,
                                    train_dl, val_dl, device)
-    progress_bar = train_handlers(config, trainer, val_evaluator, model,
-                                  optimizer, split, val_dl, tb_logger)
+    train_handlers(config, trainer, val_evaluator, model, optimizer, split,
+                   val_dl, tb_logger)
 
     trainer.run(train_dl, max_epochs=epochs)
 
     if len(test_dl) > 0:
-        df = evaluate(config, test_dl, split.test, criterion, progress_bar,
-                      model, device,
+        df = evaluate(config, test_dl, split.test, criterion, model, device,
                       tb_logger, trainer)
-
         return df
     else:
         return None

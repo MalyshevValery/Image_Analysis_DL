@@ -20,7 +20,7 @@ from .metric_handling import metrics_to_str
 def train_handlers(config: Config, trainer: Engine, val_eval: Engine,
                    model: nn.Module, optimizer: Optimizer,
                    split: Split, val_dl: DataLoader,
-                   tb_logger: TensorboardLogger) -> ProgressBar:
+                   tb_logger: TensorboardLogger):
     """Handlers for train process: metrics, latest and best model checkpoints
     and early stopping if requested"""
     metrics: Mapping[str, Metric]
@@ -34,9 +34,7 @@ def train_handlers(config: Config, trainer: Engine, val_eval: Engine,
                            epoch_bound=EPOCH_BOUND).attach(trainer, k)
 
     *_, patience = config.train
-
-    progress_bar = ProgressBar(persist=True)
-    progress_bar.attach(trainer, metric_names="all")
+    ProgressBar(persist=True).attach(trainer, metric_names="all")
 
     @trainer.on(Events.EPOCH_COMPLETED)
     def log_validation_results(engine: Engine) -> None:
@@ -83,4 +81,3 @@ def train_handlers(config: Config, trainer: Engine, val_eval: Engine,
                 filename = best_checkpoint.last_checkpoint
                 info('Loading best model...')
                 model.load_state_dict(torch.load(filename)['model'])
-    return progress_bar

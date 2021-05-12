@@ -1,12 +1,15 @@
 """Create training and evaluation engines"""
 from typing import Tuple, Any
 
+import numpy as np
 import pandas as pd
 import torch
+from ignite.contrib.handlers import TensorboardLogger
 from ignite.engine import (create_supervised_evaluator,
                            create_supervised_trainer, Engine)
 from ignite.metrics import Loss
 from torch import Tensor, nn
+from torch.utils.data.dataloader import DataLoader
 
 from imagedl import Config
 from imagedl.config import TestConfig
@@ -28,27 +31,29 @@ def evaluator(test_config: TestConfig, criterion: nn.Module, model: nn.Module,
     return val_evaluator
 
 
-def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
-             device, tb_logger, engine):
+def evaluate(config: Config, test_dl: DataLoader, test_split: np.ndarray,
+             criterion: nn.Module, model: nn.Module,
+             device: torch.device, tb_logger: TensorboardLogger,
+             engine: Engine) -> pd.DataFrame:
+    """Test evaluator"""
     metrics, eval_metric, *_ = config.test
     metrics['loss'] = Loss(criterion,
-                           output_transform=lambda data: (data[0], data[1]))
+                           output_transform=lambda x: (x[0], x[1]))
     test_evaluator = create_supervised_evaluator(model, metrics, device)
     test_evaluator.run(test_dl)
     metric_values = test_evaluator.state.metrics
     cleaned_metrics = clean_metrics(metrics, metric_values, config.legend)
     df = pd.DataFrame(cleaned_metrics, index=[0])
     df.to_csv(f'{config.job_dir}/metrics.csv', index=False)
-    progress_bar.log_message(
-        f'Test - ' + metrics_to_str(metrics, test_evaluator.state.metrics,
-                                    config.legend, tb_logger,
-                                    engine.state.epoch + 1, 'test_'))
+    info(f'Test - ' + metrics_to_str(metrics, test_evaluator.state.metrics,
+                                     config.legend, tb_logger,
+                                     engine.state.epoch + 1, 'test_'))
 
     to_save = config.job_dir / 'test'
     to_save.mkdir(parents=True, exist_ok=True)
     with torch.no_grad():
         model.eval()
-        cur = 0
+        batch_size = test_dl.batch_size
         for i, data in enumerate(test_dl):
             inp, out = prepare_batch(data, device)
             pred = model(inp)
@@ -56,9 +61,11 @@ def evaluate(config, test_dl, test_split, criterion, progress_bar, model,
                 pred = pred.cpu()
             else:
                 pred = [p.cpu() for p in pred]
-            config.save_sample(config.visualize(inp, out, pred), to_save,
-                               test_split[cur:cur + test_dl.batch_size])
-            cur += test_dl.batch_size
+            img = config.visualize(inp, out, pred)
+            if img is None:
+                break
+            indexes = test_split[i * batch_size:(i + 1) * batch_size]
+            config.save_sample(img, to_save, indexes)
     return df
 
 
