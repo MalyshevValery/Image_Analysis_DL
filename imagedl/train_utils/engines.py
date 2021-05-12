@@ -1,5 +1,5 @@
 """Create training and evaluation engines"""
-from typing import Tuple, Any
+from typing import Tuple, Any, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -19,6 +19,8 @@ from .data import prepare_batch
 from .logger import info
 from .metric_handling import metrics_to_str, clean_metrics
 
+T_co = TypeVar('T_co', covariant=True)
+
 
 def evaluator(test_config: TestConfig, criterion: nn.Module, model: nn.Module,
               device: torch.device) -> Engine:
@@ -31,7 +33,7 @@ def evaluator(test_config: TestConfig, criterion: nn.Module, model: nn.Module,
     return val_evaluator
 
 
-def evaluate(config: Config, test_dl: DataLoader, test_split: np.ndarray,
+def evaluate(config: Config, test_dl: DataLoader[T_co], test_split: np.ndarray,
              criterion: nn.Module, model: nn.Module,
              device: torch.device, tb_logger: TensorboardLogger,
              engine: Engine) -> pd.DataFrame:
@@ -53,7 +55,7 @@ def evaluate(config: Config, test_dl: DataLoader, test_split: np.ndarray,
     to_save.mkdir(parents=True, exist_ok=True)
     with torch.no_grad():
         model.eval()
-        batch_size = test_dl.batch_size
+        batch_size = test_dl.batch_size if test_dl.batch_size is not None else 1
         for i, data in enumerate(test_dl):
             inp, out = prepare_batch(data, device)
             pred = model(inp)
@@ -62,8 +64,6 @@ def evaluate(config: Config, test_dl: DataLoader, test_split: np.ndarray,
             else:
                 pred = [p.cpu() for p in pred]
             img = config.visualize(inp, out, pred)
-            if img is None:
-                break
             indexes = test_split[i * batch_size:(i + 1) * batch_size]
             config.save_sample(img, to_save, indexes)
     return df
