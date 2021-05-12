@@ -1,6 +1,6 @@
 """Data related training stuff"""
 from collections import Mapping, Sequence
-from typing import Union
+from typing import Union, TypeVar
 
 import torch
 from ignite.utils import convert_tensor
@@ -13,7 +13,8 @@ from imagedl.data.datasets import SubDataset
 from imagedl.utility_config import WORKERS
 from .logger import info
 
-DataType = Union[Tensor, Sequence[Tensor], Mapping[str, Tensor]]
+DataType = Union[Tensor, Sequence['DataType'], Mapping[str, 'DataType']]
+T_co = TypeVar('T_co', covariant=True)
 
 
 def prepare_batch(batch: DataType, device: torch.device = None,
@@ -26,7 +27,8 @@ def prepare_batch(batch: DataType, device: torch.device = None,
     :return:
     """
     if isinstance(batch, torch.Tensor):
-        return convert_tensor(batch, device, non_blocking)
+        ret: Tensor = convert_tensor(batch, device, non_blocking)
+        return ret
     elif isinstance(batch, dict):
         return {k: prepare_batch(v, device, non_blocking) for k, v in
                 batch.items()}
@@ -37,7 +39,8 @@ def prepare_batch(batch: DataType, device: torch.device = None,
         raise ValueError('Wrong data format')
 
 
-def get_data_loaders(config: Config, split: Split) -> Sequence[DataLoader]:
+def get_data_loaders(config: Config,
+                     split: Split) -> Sequence[DataLoader[T_co]]:
     """Create data loaders and visualize training samples"""
     epochs, batch_size, test_batch_size, patience = config.train
     dataset, _, train_transform, test_transform, train_sampler, _ = config.data
