@@ -1,6 +1,5 @@
 """Data related training stuff"""
-from collections import Mapping, Sequence
-from typing import Union, TypeVar
+from collections import Sequence
 
 import torch
 from ignite.utils import convert_tensor
@@ -11,10 +10,8 @@ from imagedl import Config
 from imagedl.data import Split
 from imagedl.data.datasets import SubDataset
 from imagedl.utility_config import WORKERS
+from imagedl.utils.types import DataType, T_co
 from .logger import info
-
-DataType = Union[Tensor, Sequence['DataType'], Mapping[str, 'DataType']]
-T_co = TypeVar('T_co', covariant=True)
 
 
 def prepare_batch(batch: DataType, device: torch.device = None,

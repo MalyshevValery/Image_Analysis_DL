@@ -1,4 +1,6 @@
 """Handlers and loggers"""
+from typing import TypeVar
+
 import torch
 from ignite.contrib.handlers import TensorboardLogger
 from ignite.contrib.handlers.tensorboard_logger import OutputHandler
@@ -13,9 +15,12 @@ from imagedl.nn.metrics.metric import UpgradedMetric
 from imagedl.utility_config import TB_ITER
 from .data import prepare_batch
 
+T_co = TypeVar('T_co', covariant=True)
+
 
 def tensorboard_logger(trainer: Engine, val_eval: Engine, model: nn.Module,
-                       config: Config, train_dl: DataLoader, val_dl: DataLoader,
+                       config: Config, train_dl: DataLoader[T_co],
+                       val_dl: DataLoader[T_co],
                        device: torch.device) -> TensorboardLogger:
     """Creates tensorboard logger and attaches it to trainer and val evaluator.
     Also plots graph into tensorboard"""
