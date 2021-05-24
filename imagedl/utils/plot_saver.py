@@ -1,5 +1,8 @@
+"""Saver for matplotlib plots"""
 import os
 import tempfile
+from types import TracebackType
+from typing import Optional, Type
 
 import matplotlib.pyplot as plt
 import torch
@@ -8,6 +11,8 @@ from skimage import io
 
 
 class PlotSave:
+    """Context manager for saving matplotlib plots"""
+
     def __init__(self, tag: str, tb_logger: TensorboardLogger, epoch: int):
         self.tb_logger = tb_logger
         self.tag = tag
@@ -15,10 +20,12 @@ class PlotSave:
         self.filename = tempfile.NamedTemporaryFile(suffix='.png').name
         self.fig = None
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.fig = plt.figure()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> None:
         plt.savefig(self.filename, format='png')
         image = io.imread(self.filename)
         image = torch.tensor(image).permute(2, 0, 1)

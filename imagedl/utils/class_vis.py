@@ -1,15 +1,13 @@
+"""Utils for visualizing"""
+from typing import Any
+
 import matplotlib.cm as cm
 import numpy as np
 
-CMAP = cm.get_cmap('jet')
+COLOR_MAP = cm.get_cmap('jet')
 
 
-def generate_colours(n_classes):
-    vals = np.linspace(0, 1, n_classes + 1)
-    return CMAP(vals[1:])[:, :3]
-
-
-def color_class_map(class_map, colors):
-    coloured = class_map[..., None] * colors.to(class_map.device)
-    coloured = coloured.sum(-2)
-    return coloured.float()
+def generate_colours(n_classes: int) -> Any:
+    """Generate colour map for specific number of classes"""
+    values = np.linspace(0, 1, n_classes + 1)
+    return COLOR_MAP(values[1:])[:, :3]
