@@ -3,14 +3,16 @@ from typing import Callable
 
 import cv2.cv2 as cv2
 import kornia
-import matplotlib
 import numpy
 import torch
 from scipy.ndimage import measurements
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage.morphology import remove_small_objects
 from skimage.segmentation import watershed
-from torch import Tensor, nn
+from torch import Tensor
+from torch.nn.functional import pad
+
+from imagedl.utils.class_vis import COLOR_MAP
 
 
 def sobel(kernel_size: int = 3) -> Tensor:
@@ -67,11 +69,9 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> \
         s = sobel(grad_gauss_filter).to(np.device)
 
         sobel_h = torch.conv2d(h, s[None, None, ...])
-        sobel_h = nn.functional.pad(sobel_h, [grad_gauss_filter // 2] * 4,
-                                    'replicate')
+        sobel_h = pad(sobel_h, [grad_gauss_filter // 2] * 4, 'replicate')
         sobel_v = torch.conv2d(v, s.T[None, None, ...])
-        sobel_v = nn.functional.pad(sobel_v, [grad_gauss_filter // 2] * 4,
-                                    'replicate')
+        sobel_v = pad(sobel_v, [grad_gauss_filter // 2] * 4, 'replicate')
 
         sobel_h = 1 - batch_min_max(sobel_h)
         sobel_v = 1 - batch_min_max(sobel_v)
@@ -104,15 +104,12 @@ def hover_to_inst(grad_gauss_filter: int = 7, grad_thresh: float = 0.4) -> \
     return process
 
 
-colour_map = matplotlib.cm.get_cmap('jet')
-
-
 def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor,
                    classes: torch.Tensor, n_classes: int) -> torch.Tensor:
     """Draw instances contours on image"""
     max_inst = int(instance_map.max())
     for j in range(1, max_inst + 1):
-        inst_map = instance_map == j
+        inst_map: Tensor = instance_map == j
         ys, xs = torch.where(inst_map)
         if len(ys) == 0:
             continue
@@ -122,7 +119,7 @@ def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor,
             clazz /= (n_classes - 1)
         else:
             clazz = 0
-        colour = colour_map(clazz)[:-1]
+        colour = COLOR_MAP(clazz)[:-1]
         if len(ys) == 0:
             continue
         y1, y2 = ys.min(), ys.max()
@@ -144,9 +141,10 @@ def draw_instances(canvas: torch.Tensor, instance_map: torch.Tensor,
 
 
 def hv_from_inst(inst_map):
+    """HoVer map from instance map"""
     hv_grad = torch.zeros((*inst_map.shape, 2), dtype=torch.float)
-    vals = torch.unique(inst_map, sorted=True)
-    for i in vals.numpy():
+    values = torch.unique(inst_map, sorted=True)
+    for i in values.numpy():
         if i == 0:
             continue
         rr, cc = torch.where(inst_map == i)
