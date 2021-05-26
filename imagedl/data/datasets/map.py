@@ -1,29 +1,29 @@
 """Lambda Dataset"""
-from typing import Callable
+from typing import Callable, Optional, Sized
 
-from .abstract import AbstractDataset, DataType, Transform
+from torch.utils.data.dataset import Dataset, T_co
 
 
-class MapDataset(AbstractDataset):
+class MapDataset(Dataset[T_co]):
     """
-    Dataset which takes another dataset and maps its values to other with given
-    function *func*
+    Dataset which takes another dataset and maps its values to another with
+    given function *func*
 
     :param ds: Parent Dataset
     :param func: Function to transform Parent Dataset values
-    :param transform: Data Transforms
     """
 
-    def __init__(self, ds: AbstractDataset,
-                 func: Callable[[DataType], DataType],
-                 transform: Transform = None):
-        super().__init__(transform=transform)
+    def __init__(self, ds: Dataset[T_co],
+                 func: Callable[[T_co], T_co]):
+        super().__init__()
         self.__ds = ds
         self.__func = func
 
-    def __len__(self) -> int:
-        return len(self.__ds)
+    def __len__(self) -> Optional[int]:
+        if isinstance(self.__ds, Sized):
+            return len(self.__ds)
+        else:
+            return None
 
-    def __getitem__(self, idx: int) -> DataType:
-        item = self.__func(self.__ds[idx])
-        return self._apply_transform(item)
+    def __getitem__(self, idx: int) -> T_co:
+        return self.__func(self.__ds[idx])
