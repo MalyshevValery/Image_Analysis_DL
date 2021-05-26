@@ -13,7 +13,8 @@ class Split(NamedTuple):
     val: np.ndarray
     test: np.ndarray
 
-    def state_dict(self):
+    def state_dict(self) -> Mapping[str, torch.Tensor]:
+        """Return state dict of splitter (just indices of data)"""
         return {
             'train': torch.tensor(self.train),
             'val': torch.tensor(self.val),
@@ -21,7 +22,8 @@ class Split(NamedTuple):
         }
 
     @staticmethod
-    def load_state_dict(state_dict: Mapping):
+    def load_state_dict(state_dict: Mapping[str, torch.Tensor]) -> 'Split':
+        """Load dict to restore splitter state"""
         return Split(
             train=state_dict['train'].numpy(),
             val=state_dict['val'].numpy(),
@@ -39,7 +41,7 @@ class Splitter:
 
     def __init__(self, total: int, group_labels: np.ndarray = None):
         self.__total = total
-        np.random.seed(42)
+        np.random.seed(42)  # Fixed seed
         if group_labels is not None:
             self.__group_labels = group_labels
             if self.__total != len(group_labels):
@@ -86,8 +88,8 @@ class Splitter:
 
         for i in range(n_fold):
             test_indexes = split_indexes[i]
-            tv_indexes = [k for j, k in enumerate(split_indexes) if j != i]
-            tv_indexes = np.concatenate(tv_indexes)
+            tv_indexes_list = [k for j, k in enumerate(split_indexes) if j != i]
+            tv_indexes = np.concatenate(tv_indexes_list)
             t_v_keys = self.__split(tv_indexes, self.__group_labels[tv_indexes],
                                     tv_split)
             yield Split(t_v_keys[0], t_v_keys[1], test_indexes)
@@ -97,7 +99,8 @@ class Splitter:
         """Returns the most balanced separation"""
         counts_cum = np.cumsum(counts)
         sep = np.cumsum(split) * counts_cum[-1]
-        res = np.argmin(np.abs(counts_cum[:, np.newaxis] - sep), axis=0) + 1
+        res = np.array(
+            np.argmin(np.abs(counts_cum[:, np.newaxis] - sep), axis=0) + 1)
         return res
 
     @staticmethod
