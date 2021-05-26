@@ -5,13 +5,14 @@ import torch
 from ignite.utils import convert_tensor
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataset import Subset
 
 from imagedl import Config
 from imagedl.data import Split
-from imagedl.data.datasets import SubDataset
 from imagedl.utility_config import WORKERS
 from imagedl.utils.types import DataType, T_co
 from .logger import info
+from ..data.datasets import MapDataset
 
 
 def prepare_batch(batch: DataType, device: torch.device = None,
@@ -41,9 +42,9 @@ def get_data_loaders(config: Config,
     """Create data loaders and visualize training samples"""
     epochs, batch_size, test_batch_size, patience = config.train
     dataset, _, train_transform, test_transform, train_sampler, _ = config.data
-    train_ds = SubDataset(dataset, split.train, transform=train_transform)
-    val_ds = SubDataset(dataset, split.val, transform=test_transform)
-    test_ds = SubDataset(dataset, split.test, transform=test_transform)
+    train_ds = MapDataset(Subset(dataset, list(split.train)), train_transform)
+    val_ds = MapDataset(Subset(dataset, list(split.val)), test_transform)
+    test_ds = MapDataset(Subset(dataset, list(split.test)), test_transform)
 
     info_str = f'Train: {len(train_ds)}, Val: {len(val_ds)}'
     info_str += f', Test: {len(test_ds)}'

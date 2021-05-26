@@ -9,10 +9,11 @@ from torch import Tensor
 from torch import nn
 from torch.nn import Parameter
 from torch.optim import Optimizer
-from torch.utils.data import Sampler
+from torch.utils.data.dataset import Dataset
+from torch.utils.data.sampler import Sampler
 
 from imagedl.data import Split
-from imagedl.data.datasets.abstract import AbstractDataset, Transform, DataType
+from imagedl.utils.types import T_co, Transform, DataType
 
 
 class ModelConfig(NamedTuple):
@@ -25,12 +26,12 @@ class ModelConfig(NamedTuple):
 
 class DataConfig(NamedTuple):
     """Dataset, transforms and groups for split"""
-    dataset: AbstractDataset
+    dataset: Dataset[T_co]
     groups: Optional[np.ndarray]
     train_transform: Transform
     test_transform: Transform
     train_sampler_constructor: Optional[
-        Callable[[AbstractDataset], Sampler[int]]]
+        Callable[[Dataset], Sampler[int]]]
     split: Optional[Split]
 
 
