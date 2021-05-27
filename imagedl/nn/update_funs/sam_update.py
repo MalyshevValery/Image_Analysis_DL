@@ -1,28 +1,30 @@
-from typing import Sequence, Union, Tuple, Any, Callable, Optional
+"""Sharpness Aware Minimization training procedure"""
+from typing import Sequence, Union, Tuple, Callable, Optional
 
 import torch
 from ignite.engine import Engine
+from torch import Tensor
 
 from imagedl.nn.optim import SAM
-
-RetType = Union[Any, Tuple[torch.Tensor]]
+from imagedl.utils.types import OutTransform, PrepareBatch
 
 
 def sam_update_function(model: torch.nn.Module,
                         optimizer: SAM,
                         loss_fn: Union[Callable, torch.nn.Module],
                         device: Optional[Union[str, torch.device]],
-                        output_transform: Callable,
-                        prepare_batch: Callable) -> Callable:
+                        output_transform: OutTransform,
+                        prepare_batch: PrepareBatch) -> Callable:
     """Get SAM update function with first and second steps"""
 
-    def sam_update(engine: Engine, batch: Sequence[torch.Tensor]) -> RetType:
+    def sam_update(_: Engine,
+                   batch: Sequence[Tensor]) -> Tuple[Tensor, ...]:
         """Update function for SAM"""
         model.train()
         optimizer.zero_grad()
-        x, y = prepare_batch(batch, device=device, non_blocking=False)
-        y_pred = model(x)
-        loss = loss_fn(y_pred, y)
+        x, y = prepare_batch(batch, device, False)
+        y_pred: Tensor = model(x)
+        loss: Tensor = loss_fn(y_pred, y)
         loss.backward()
         optimizer.first_step()
 

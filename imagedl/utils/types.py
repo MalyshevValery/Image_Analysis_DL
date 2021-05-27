@@ -1,5 +1,5 @@
 """Types definition"""
-from typing import Union, Tuple, Sequence, TypeVar, Callable, Mapping
+from typing import Union, Tuple, Sequence, TypeVar, Callable, Mapping, Optional
 
 from ignite.engine import Engine
 from torch import device, Tensor
@@ -13,6 +13,8 @@ UpdateFun = Callable[[Engine, Sequence[Tensor]], DataType]
 PrepareBatch = Callable[[DataType, device, bool], DataType]
 OutputTransform = Callable[
     [Tensor, Tensor, Tensor, Tensor], Tuple[Tensor, Tensor, float]]
+
+OutTransform = Callable[[Tensor, Tensor, Tensor, Tensor], Tuple[Tensor, ...]]
 UpdateFunConstructor = Callable[
-    [Module, Optimizer, Module, device, OutputTransform,
-     PrepareBatch], UpdateFun]
+    [Module, Optimizer, Union[Callable, Module],
+     Optional[Union[str, device]], OutTransform, PrepareBatch], Callable]
