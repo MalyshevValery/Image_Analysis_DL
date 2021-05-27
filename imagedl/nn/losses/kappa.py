@@ -9,13 +9,15 @@ class KappaLoss(nn.Module):
     def __init__(self, n_classes: int):
         super().__init__()
         r = torch.arange(0, n_classes, dtype=torch.float)
-        self._weight_matrix = torch.stack([r] * n_classes, 0) - torch.stack([r] * n_classes, 1)
-        self._weight_matrix = self._weight_matrix ** 2
+        self._weight_matrix = torch.stack([r] * n_classes)
+        self._weight_matrix -= torch.stack([r] * n_classes, 1)
+        self._weight_matrix **= 2
         self._weight_matrix /= (n_classes - 1) ** 2
         self._n_classes = n_classes
         self.smooth = 1e-5
 
-    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    def forward(self, logits: torch.Tensor,
+                targets: torch.Tensor) -> torch.Tensor:
         """Calculate loss"""
         self._weight_matrix = self._weight_matrix.to(logits.device)
         targets_prob = torch.zeros(logits.shape, device=logits.device)
@@ -28,5 +30,4 @@ class KappaLoss(nn.Module):
 
         hist /= (hist.sum() + self.smooth)
         hist = hist * self._weight_matrix
-        k = hist.sum() / (random.sum() + self.smooth)
-        return k
+        return hist.sum() / (random.sum() + self.smooth)

@@ -1,5 +1,5 @@
 """Loss for HoverNet"""
-from typing import Tuple
+from typing import Tuple, Dict
 
 import torch
 from torch import nn
@@ -11,10 +11,11 @@ from .dice import DiceLoss
 class HoverLoss(nn.Module):
     """Loss for HoverNet"""
 
-    def __init__(self, np=True, hv=True, classification=True):
+    def __init__(self, np: bool = True, hv: bool = True,
+                 classification: bool = True):
         super(HoverLoss, self).__init__()
-        self.losses = {}
-        self.__map = {}
+        self.losses: Dict[str, nn.Module] = {}
+        self.__map: Dict[int, nn.Module] = {}
         c = 0
         if np:
             self.losses['NP_E'] = nn.BCEWithLogitsLoss()
@@ -40,7 +41,7 @@ class HoverLoss(nn.Module):
     def forward(self, logits: Tuple[torch.Tensor, ...],
                 targets: Tuple[torch.Tensor, ...]) -> torch.Tensor:
         """Calculate loss"""
-        loss = 0
+        loss = torch.tensor(0)
         for i in range(0, self.cnt):
             loss += self.__map[i](logits[i], targets[i])
         return loss

@@ -9,12 +9,12 @@ class CombinedLoss(nn.Module):
     """Combination of losses"""
 
     def __init__(self, *args: nn.Module, weights: Iterable[float] = None):
+        super().__init__()
         self.losses = args
         if weights is not None:
             self.weights = weights
         else:
             self.weights = [1.0] * len(self.losses)
-        super().__init__()
 
     def forward(self, logits: torch.Tensor,
                 targets: torch.Tensor) -> torch.Tensor:
