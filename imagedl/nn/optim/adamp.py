@@ -5,50 +5,64 @@ MIT license
 """
 
 import math
+from typing import Tuple, Iterator, Callable, Optional
 
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as f
+from torch import Tensor
+from torch.nn import Parameter
 from torch.optim.optimizer import Optimizer
 
 
+def _channel_view(x: Tensor) -> Tensor:
+    return x.view(x.size()[0], -1)
+
+
+def _layer_view(x: Tensor) -> Tensor:
+    return x.view(1, -1)
+
+
+def _cosine_similarity(x: Tensor, y: Tensor, eps: float,
+                       view_func: Callable[[Tensor], Tensor]) -> Tensor:
+    x = view_func(x)
+    y = view_func(y)
+    return f.cosine_similarity(x, y, eps=eps).abs_()
+
+
+def _projection(p: Tensor, grad: Tensor, perturb: float, delta: float,
+                wd_ratio: float, eps: float) -> Tuple[float, float]:
+    wd = 1.0
+    expand_size = [-1] + [1] * (len(p.shape) - 1)
+    for view_func in [_channel_view, _layer_view]:
+
+        cosine_sim = _cosine_similarity(grad, p.data, eps, view_func)
+
+        if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size()[1]):
+            p_n = p.data / view_func(p.data).norm(dim=1).view(
+                expand_size).add_(eps)
+            perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(
+                expand_size)
+            wd = wd_ratio
+
+            return perturb, wd
+
+    return perturb, wd
+
+
 class AdamP(Optimizer):
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0, delta=0.1, wd_ratio=0.1, nesterov=False):
+    """AdamP optimizer, use as regular Adam"""
+
+    def __init__(self, params: Iterator[Parameter], lr: float = 1e-3,
+                 betas: Tuple[float, float] = (0.9, 0.999), eps: float = 1e-8,
+                 weight_decay: float = 0, delta: float = 0.1,
+                 wd_ratio: float = 0.1, nesterov: bool = False):
         defaults = dict(lr=lr, betas=betas, eps=eps, weight_decay=weight_decay,
                         delta=delta, wd_ratio=wd_ratio, nesterov=nesterov)
         super(AdamP, self).__init__(params, defaults)
 
-    def _channel_view(self, x):
-        return x.view(x.size(0), -1)
-
-    def _layer_view(self, x):
-        return x.view(1, -1)
-
-    def _cosine_similarity(self, x, y, eps, view_func):
-        x = view_func(x)
-        y = view_func(y)
-
-        return F.cosine_similarity(x, y, dim=1, eps=eps).abs_()
-
-    def _projection(self, p, grad, perturb, delta, wd_ratio, eps):
-        wd = 1
-        expand_size = [-1] + [1] * (len(p.shape) - 1)
-        for view_func in [self._channel_view, self._layer_view]:
-
-            cosine_sim = self._cosine_similarity(grad, p.data, eps, view_func)
-
-            if cosine_sim.max() < delta / math.sqrt(view_func(p.data).size(1)):
-                p_n = p.data / view_func(p.data).norm(dim=1).view(
-                    expand_size).add_(eps)
-                perturb -= p_n * view_func(p_n * perturb).sum(dim=1).view(
-                    expand_size)
-                wd = wd_ratio
-
-                return perturb, wd
-
-        return perturb, wd
-
-    def step(self, closure=None):
+    def step(self,
+             closure: Optional[Callable[[], float]] = None) -> Optional[float]:
+        """Optimizer step"""
         loss = None
         if closure is not None:
             loss = closure()
@@ -90,12 +104,12 @@ class AdamP(Optimizer):
                     perturb = exp_avg / denom
 
                 # Projection
-                wd_ratio = 1
+                wd_ratio = 1.0
                 if len(p.shape) > 1:
-                    perturb, wd_ratio = self._projection(p, grad, perturb,
-                                                         group['delta'],
-                                                         group['wd_ratio'],
-                                                         group['eps'])
+                    perturb, wd_ratio = _projection(p, grad, perturb,
+                                                    group['delta'],
+                                                    group['wd_ratio'],
+                                                    group['eps'])
 
                 # Weight decay
                 if group['weight_decay'] > 0:
