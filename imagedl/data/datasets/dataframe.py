@@ -23,4 +23,4 @@ class FrameDataset(Dataset[np.ndarray]):
         return len(self.df)
 
     def __getitem__(self, idx: int) -> np.ndarray:
-        return self.data[idx]
+        return np.array(self.data[idx])

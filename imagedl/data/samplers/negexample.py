@@ -9,19 +9,19 @@ from torch.utils.data.dataset import T_co, Dataset
 from imagedl.utils.types import DataType
 
 
-def _count(data: DataType) -> Optional[int]:
+def _count(data: DataType) -> int:
     if isinstance(data, torch.Tensor):
-        return data.shape[0]
+        return int(data.shape[0])
     elif isinstance(data, Sequence):
-        return data[0].shape[0]
+        return int(data[0].shape[0])
     else:
-        return None
+        raise ValueError('Could not extract batch size')
 
 
 def _get(data: DataType, i: int) -> Optional[DataType]:
     if isinstance(data, torch.Tensor):
         return data[i:i + 1]
-    elif isinstance(data, Tuple) or isinstance(data, List):
+    elif isinstance(data, Sequence):
         return tuple(d[i:i + 1] for d in data)
     else:
         return None
@@ -58,7 +58,7 @@ class ExampleMetric(Metric):
         return torch.tensor(self._list).mean()
 
 
-class NegExampleSampler(Sampler):
+class NegExampleSampler(Sampler[int]):
     """Sampler which takes negative examples for learning"""
 
     def __init__(self, dataset: Dataset[T_co], ratio: float, metric: Metric):
@@ -66,12 +66,12 @@ class NegExampleSampler(Sampler):
             raise TypeError('Dataset provided has no len method')
         super().__init__(dataset)
         self.__dataset: Sized = dataset
-        self.__list = []
+        self.__list: List[float] = []
         self.__metric = ExampleMetric(metric, self.__list)
 
         self.__n = int(len(self.__dataset) * ratio)
         self.__losses = torch.full((len(self.__dataset),), -1.0)
-        self.__selected = []
+        self.__selected: torch.Tensor
         print(f'Number of samples: {self.__n}')
 
     def __len__(self) -> int:
