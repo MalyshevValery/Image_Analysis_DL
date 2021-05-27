@@ -14,6 +14,6 @@ class SegmentationHead(nn.Module):
 
     def forward(self, inputs: Tensor) -> Tensor:
         """Forward"""
-        out = self.bn_relu(inputs)
+        out: Tensor = self.bn_relu(inputs)
         out = self.conv(out)
         return out

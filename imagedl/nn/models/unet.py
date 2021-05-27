@@ -68,7 +68,8 @@ class UNet(nn.Module):
         x = self.up3_block(cat([self.up3(x), x2], dim=1))
         x = self.up4_block(cat([self.up4(x), x1], dim=1))
 
-        return self.out(x)
+        result: Tensor = self.out(x)
+        return result
 
     @staticmethod
     def __down_layer(in_channels: int, out_channels: int, dropout: float,

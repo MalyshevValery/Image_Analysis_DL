@@ -11,7 +11,7 @@ class Decoder(nn.Module):
     """HoverNet Decoder"""
 
     def __init__(self, in_channels: int, n_dense_1: int = 1,
-                 n_dense_2: int = 2, bias=False):
+                 n_dense_2: int = 2, bias: bool = False):
         super(Decoder, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=5, padding=2,
                                bias=bias)
@@ -42,5 +42,5 @@ class Decoder(nn.Module):
         u2 = self.conv4(u2)
 
         u1 = f.interpolate(u2, scale_factor=2) + d1
-        u1 = self.conv5(u1)
-        return u1
+        result: Tensor = self.conv5(u1)
+        return result

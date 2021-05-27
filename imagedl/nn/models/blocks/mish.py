@@ -1,11 +1,16 @@
+"""Mish activation"""
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as f
 from torch import nn
 
 
 class Mish(nn.Module):
-    def __init__(self):
-        super().__init__()
+    """Mish Activation block"""
 
-    def forward(self, input):
-        return input * torch.tanh(F.softplus(input))
+    def __init__(self, inplace: bool = True) -> None:
+        super().__init__()
+        self.inplace = inplace
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Calculate Mish activation"""
+        return inputs * torch.tanh(f.softplus(inputs, inplace=self.inplace))

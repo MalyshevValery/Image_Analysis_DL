@@ -38,4 +38,5 @@ class Conv2dBlock(nn.Module):
 
     def forward(self, inputs: Tensor) -> Tensor:
         """Run layer"""
-        return self.main(inputs)
+        results: Tensor = self.main(inputs)
+        return results

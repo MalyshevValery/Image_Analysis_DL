@@ -15,4 +15,5 @@ class BNRelu(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """Calculate layer"""
-        return self.relu(self.bn(inputs))
+        result: torch.Tensor = self.relu(self.bn(inputs))
+        return result

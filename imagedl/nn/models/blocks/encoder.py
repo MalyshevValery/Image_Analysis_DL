@@ -9,7 +9,7 @@ from .residual import ResidualBlock
 class Encoder(nn.Module):
     """HoverNet encoder"""
 
-    def __init__(self, increased=False, bias=False) -> None:
+    def __init__(self, increased: bool = False, bias: bool = False) -> None:
         super(Encoder, self).__init__()
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, padding=3, bias=bias)
         self.residual_block1 = nn.Sequential(
