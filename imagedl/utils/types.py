@@ -9,6 +9,7 @@ from torch.optim import Optimizer
 T_co = TypeVar('T_co', covariant=True)
 DataType = Union[Tensor, Sequence['DataType'], Mapping[str, 'DataType']]
 Transform = Callable[[T_co], DataType]
+MetricTransform = Transform[Tuple[DataType]]
 UpdateFun = Callable[[Engine, Sequence[Tensor]], DataType]
 PrepareBatch = Callable[[DataType, device, bool], DataType]
 OutputTransform = Callable[

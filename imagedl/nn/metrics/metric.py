@@ -6,7 +6,7 @@ import torch
 from ignite.metrics import Metric
 from torch import Tensor
 
-from imagedl.data.datasets.abstract import Transform
+from imagedl.utils.types import MetricTransform
 
 
 class MeanMetric(Metric):
@@ -38,7 +38,8 @@ class UpgradedMetric(Metric):
     - visualize - visualize your metric in graph if possible (default - pass)
     """
 
-    def __init__(self, output_transform: Transform = lambda x: x,
+    def __init__(self,
+                 output_transform: MetricTransform = lambda x: x,
                  vis: bool = False) -> None:
         super().__init__(output_transform)
         self._apply_reset = True
@@ -61,7 +62,7 @@ class UpgradedMetric(Metric):
         raise NotImplementedError()
 
     def update(self, output: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        """Update metric's internal state"""
+        """Update metric internal state"""
         if self._apply_reset:
             self._reset()
             self._apply_reset = False
@@ -94,5 +95,5 @@ def sum_class_agg(labels: Tensor, values: Tensor,
     :return:
     """
     res = torch.zeros(n_classes, device=values.device)
-    res.scatter_add_(0, labels, values)
+    res.scatter_add_(0, labels.long(), values)
     return res
