@@ -1,16 +1,28 @@
-"""Recall"""
+"""Recall metric"""
 from typing import Tuple
 
 import torch
 
-from imagedl.data.datasets.abstract import Transform
-from .metric import UpgradedMetric, sum_class_agg
+from imagedl.nn.metrics.metric import UpgradedMetric, sum_class_agg
+from imagedl.utils.types import MetricTransform
 
 
 class Recall(UpgradedMetric):
-    """Recall metric. Input: logits, targets"""
+    """Recall metric. Input: logits, targets
+    Shapes for binary:
+    - Logits [BatchSize]
+    - Targets {0,1} [BatchSize]
+    Shapes for multi-label:
+    - Logits [BatchSize, NClass]
+    - Targets {0,1} [BatchSize, NClass]
+    Shapes for classification:
+    - Logits [BatchSize, NClass]
+    - Targets {0,NClass-1} [BatchSize]
+    """
+
     def __init__(self, n_classes: int = 1,
-                 output_transform: Transform = lambda x: x, multi_label=False):
+                 output_transform: MetricTransform = lambda x: x,
+                 multi_label: bool = False):
         super().__init__(output_transform=output_transform)
         self._tp = torch.zeros(n_classes)
         self._t = torch.zeros(n_classes)
@@ -29,18 +41,15 @@ class Recall(UpgradedMetric):
         self._t = self._t.to(logits.device)
         device = logits.device
 
-        if not self._multi_label:
-            if self._n_classes > 1:
-                pred = logits.argmax(1)
-            else:
-                pred = 1.0 * (logits > 0)
-            tp: torch.Tensor = pred == targets
+        if not self._multi_label and self._n_classes > 1:
+            pred: torch.Tensor = logits.argmax(1)
+            tp: torch.Tensor = torch.eq(pred, targets)
             values = torch.ones(int(tp.sum()), device=device)
             self._tp += sum_class_agg(targets[tp], values, self._n_classes)
             uq, cnt = targets.unique(return_counts=True)
-            self._t[uq] += cnt
+            self._t[uq.long()] += cnt
         else:
-            pred = logits > 0
+            pred = torch.gt(logits, 0)
             tp = (pred * targets).sum(0)
             self._tp += tp
             self._t += targets.sum(0)
