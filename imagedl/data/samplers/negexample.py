@@ -6,6 +6,7 @@ from ignite.metrics import Metric
 from torch.utils.data import Sampler
 from torch.utils.data.dataset import T_co, Dataset
 
+from imagedl.train_utils import info
 from imagedl.utils.types import DataType
 
 
@@ -72,7 +73,7 @@ class NegExampleSampler(Sampler[int]):
         self.__n = int(len(self.__dataset) * ratio)
         self.__losses = torch.full((len(self.__dataset),), -1.0)
         self.__selected: torch.Tensor
-        print(f'Number of samples: {self.__n}')
+        info(f'Number of samples: {self.__n}')
 
     def __len__(self) -> int:
         return self.__n

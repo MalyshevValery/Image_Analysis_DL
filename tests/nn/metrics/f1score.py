@@ -67,6 +67,5 @@ class F1TestCase(unittest.TestCase):
             self.f1 = F1Score(self.prec, self.rec)
         self.prec.update((inp, out))
         self.rec.update((inp, out))
-        print(self.f1.compute(), self.rec.compute(), self.prec.compute())
         compare = torch.isclose(self.f1.compute(), res, 1e-04)
         self.assertTrue(torch.all(compare).item())
